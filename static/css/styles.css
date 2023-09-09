@@ -1,0 +1,60 @@
+*{
+    font-family: 'Poppins';
+}
+.login, .register{
+    background-color: #1d2951;
+
+}
+
+a{
+    text-decoration: none;
+}
+
+.page_title h3{
+    font-size: 2rem;
+    text-align: center ;
+    color: #1d2951;
+}
+
+.login_field{
+    padding-bottom: 1rem;
+}
+
+.login_field label{
+    font-size: 1rem;
+    color: #1d2951;
+}
+
+.forget_pw{
+    text-align: right;
+}
+.buttons{
+    padding-top: 1rem;
+}
+.btn_login   {
+    background:#1d2951 ;
+    text-align: center;
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem;
+    color: white;
+}
+
+.btn_login:hover{
+    background:#3b4570 ;
+
+
+}
+
+.login_body a{
+    color: blue;
+}
+
+.error-message{
+    color: rgb(233, 7, 7);
+    text-align: end;
+    padding-top: 1rem;
+}
+
+

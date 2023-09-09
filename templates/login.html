@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+
+<header>
+    <div>
+        {% include 'components/navbar.html' %}
+
+    </div>
+   
+</header>
+
+<div class="login vh-100">
+
+
+  
+
+    <div class="login_body">
+        <div class="container">
+            <form method="post" action="{% url 'login' %}">
+
+                <div class="row">  
+                    
+                    <div class="col-xl-4 col-md-6 col-12 mx-auto " style="padding-top:20rem">
+                        <div class="card" style="border:none">
+                            <div class="card-body">
+                                <div class="page_title">
+                                    <h3>Login</h3>
+
+                                </div>
+                                {% if error %}
+                                <p class="error-message">{{ error }}</p>
+                                    {% endif %}
+                                {% csrf_token %}
+
+                                <div class="pb-3 login_field">
+                                    <label for="username" class="form-label login_label">Username</label>
+                                    <input type="text"   class="form-control" name="username"  id="username" required>
+                                  </div>
+
+                                  <div class="pb-3 login_field">
+                                    <label for="password" class="form-label ">Password</label>
+                                    <input type="password" class="form-control" name="password" id="password" id="username" required>
+                                  </div>
+
+                               <div class="forget_pw" >
+                                    <a href="" style="text-decoration: none;">Forget Password?</a>
+                                  </div>
+                                  <div class="buttons" >
+                                    <button type="submit" class="btn_login ">Login</button>
+
+                                  </div>
+                                  
+
+                                  <hr>  
+                                  <div class="text-center">
+                                    <span class="text-muted">Don't have an account?</span>
+                                    <a href="{% url 'register' %}" style="text-decoration: none;">Register</a>
+                                  </div>
+
+
+
+
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                <!-- <label for="username">Username:</label>
+                <input type="text" name="username" id="username" required>
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" required> -->
+                <!-- <button type="submit">Login</button> -->
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+    
+
+{% endblock %}
