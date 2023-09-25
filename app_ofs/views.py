@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login,logout
 from django.http import HttpResponseRedirect
 from .forms import RegisterForm
 
@@ -30,3 +30,7 @@ def register(request):
 
 def user_dashboard(request):
     return render(request, 'dashboard/dashboard.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
