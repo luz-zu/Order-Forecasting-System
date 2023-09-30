@@ -39,6 +39,7 @@ a{
     border-radius: 5px;
     padding: 0.5rem;
     color: white;
+    /* background: red; */
 }
 
 .btn_login:hover{
@@ -57,4 +58,6 @@ a{
     padding-top: 1rem;
 }
 
+
+/* sidebar */
 
