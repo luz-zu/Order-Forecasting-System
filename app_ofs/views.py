@@ -2,18 +2,32 @@ from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, login,logout
 from django.http import HttpResponseRedirect
 from .forms import RegisterForm
-
-
+from django.db import connection
 
 def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
+        user_ip_address = request.META.get('REMOTE_ADDR')
         if user is not None:
             login(request, user)
+            description = "logged in"
+            sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
+            values = (username, user_ip_address, description)
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql_query, values)
+                connection.commit()
             return HttpResponseRedirect('/dashboard')
         else:
+            description = "Incorrect username/password"
+            sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
+            values = (username, user_ip_address, description)
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql_query, values)
+                connection.commit()
             return render(request, 'login.html', {'error': 'Invalid Username or Password'})
     return render(request, 'login.html')
 
