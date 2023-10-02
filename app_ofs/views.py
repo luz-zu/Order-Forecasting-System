@@ -48,3 +48,7 @@ def user_dashboard(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+def category(request):
+    return render(request, 'category.html')
