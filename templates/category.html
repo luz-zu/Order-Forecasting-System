@@ -11,10 +11,79 @@
 
 
 <div class="container pt-3">
-    
    
-    
 
+    <div class="text-end pt-3">
+        <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
+    </div>
+    
+   <div class="row pt-3">
+    <div class="col-12">
+        <table>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Category Id</th>
+                <th scope="col">Category</th>
+                <th scope="col">Total Product</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td scope="row">1</td>
+                <td>1</td>
+                <td>Carpet</td>
+                <td>5</td>
+                <td>
+                    
+                    <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
+                    <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td scope="row">1</td>
+                <td>1</td>
+                <td>Carpet</td>
+                <td>5</td>
+                <td>
+                    
+                    <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
+                    <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                </td>
+              </tr>
+              
+            
+            </tbody>
+          </table>
+
+    </div>
+    
+   </div>
+    
+   <div class="modal fade " id="add_category" tabindex="-1" aria-labelledby="add_category" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">New Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="category" class="col-form-label">Category:</label>
+              <input type="text" class="form-control" id="category">
+            </div>
+            
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary">Add Category</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 
