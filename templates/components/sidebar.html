@@ -1,14 +1,21 @@
 <div class="sidebar">
   <ul>
-    <li class="logo">
-      <a href="">
+    <li class="">
+        <a href="{% url 'dashboard'%}">
+          <span class="icon"><i class="fa-solid fa-table-cells-large"></i></span>
+          <span class="text">Dashboard</span>
+        </a>
+      </li>
+
+    <li class="">
+      <a href="{% url 'category'%}">
         <span class="icon"><i class="fa-solid fa-user"></i></span>
         <span class="text">Category</span>
       </a>
     </li>
 
     <li>
-      <a href="">
+      <a href="{% url 'products' %}">
         <span class="icon"><i class="fa-solid fa-user"></i></span>
         <span class="text">Products</span>
       </a>

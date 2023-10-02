@@ -166,3 +166,19 @@ table th{
 tr:nth-child(even){
     background: #ebebeb;
 }
+
+
+.product .card-title_{
+    color: #1d2951  ;
+}
+
+.products_detail a{
+    text-decoration: none;
+    color: #1a313a;
+}
+
+.products_card_icons{
+    display: flex;
+    justify-content: space-around;
+}
+

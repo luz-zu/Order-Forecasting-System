@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, login,logout
 from django.http import HttpResponseRedirect
+from django.http import JsonResponse
 from .forms import RegisterForm
 from django.db import connection
 
@@ -52,3 +53,6 @@ def logout_view(request):
 
 def category(request):
     return render(request, 'category.html')
+
+def products(request):
+    return render(request, 'products.html')
