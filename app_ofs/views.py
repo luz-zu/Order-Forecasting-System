@@ -56,3 +56,6 @@ def category(request):
 
 def products(request):
     return render(request, 'products.html')
+
+def addnewproduct(request):
+    return render (request, 'products/addnew-product.html')

@@ -5,9 +5,9 @@
 <nav>
     {%include "components/navbar.html" %}
 </nav>
-<!-- <div>
+<div>
     {%include "components/sidebar.html" %}
-</div> -->
+</div>
 
 
 <div class="container pt-3">
@@ -15,16 +15,13 @@
    
 
    <div class="pt-3">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h4>Category 1</h4>
-        </div>
+      
         <div class="text-end ">
-            <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
-        </div>
+            <!-- <a href="{%url 'addnewproduct' %}"> -->
 
-    </div>
-    
+                <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_new_product" data-bs-whatever="add_new_product">Add New Product</button>
+
+        </div>    
     <hr>
 
     <div class="row pt-3">
@@ -57,7 +54,36 @@
 </div>
 
 
+<div class="modal fade " id="add_new_product" tabindex="-1" aria-labelledby="add_new_product" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">New Products</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+           
 
+            <div class="mb-3">
+                <label for="product_name" class="col-form-label">Product Name:</label>
+                <input type="text" class="form-control" id="product_name" required>
+              </div>
+              <div class="mb-3">
+                <label for="product_description" class="form-label">Product Description:</label>
+                <textarea class="form-control " id="product_description" placeholder="" required></textarea>
+               
+              </div>
+            
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary">Add Category</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
 
