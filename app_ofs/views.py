@@ -62,3 +62,6 @@ def addnewproduct(request):
 
 def orders(request):
     return render(request, 'orders.html')
+
+def inventory(request):
+    return render(request, 'inventory.html')
