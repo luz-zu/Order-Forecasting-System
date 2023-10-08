@@ -1,4 +1,5 @@
 from django import forms
+from .models import category
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
@@ -9,3 +10,8 @@ class RegisterForm(UserCreationForm):
         model = get_user_model()
         fields = ['first_name', 'last_name', 'username', 'email', 'password1', 'password2']
         # fields = '__all__' # to display all the fields on the dom.
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = category
+        fields = ['category_id', 'category']

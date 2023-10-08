@@ -59,3 +59,6 @@ def products(request):
 
 def addnewproduct(request):
     return render (request, 'products/addnew-product.html')
+
+def orders(request):
+    return render(request, 'orders.html')
