@@ -12,9 +12,58 @@
 
 <div class="container pt-3">
 
-   
+  <div class="text-end pt-3">
+    <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_order" data-bs-whatever="add_order">Add New Order</button>
+</div>
+<hr>
 
+<div class="row pt-3">
+  <div class="col-12">
+    <table>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Order Id</th>
+            <th scope="col">Product</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Ordered Date</th>
+            <th scope="col">Delivery Date</th>
+            <th scope="col">Status</th>
 
-  </div>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td scope="row">1</td>
+            <td>1</td>
+            <td>Carpet</td>
+            <td>5</td>
+            <td >
+                
+                <a href=""  data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category"><i class="fa-solid fa-pen-to-square pe-2"  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i></a>
+                <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
+            </td>
+          </tr>
+          <tr>
+            <td scope="row">1</td>
+            <td>1</td>
+            <td>Carpet</td>
+            <td>5</td>
+            <td>
+                
+                <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
+                <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
+            </td>
+          </tr>
+          
+        
+        </tbody>
+      </table>
+
+</div>
+</div>
+
+</div>
 
 {% endblock %}

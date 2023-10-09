@@ -16,6 +16,7 @@
     <div class="text-end pt-3">
         <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
     </div>
+    <hr>
     
    <div class="row pt-3">
     <div class="col-12">
@@ -25,35 +26,22 @@
                 <th scope="col">#</th>
                 <th scope="col">Category Id</th>
                 <th scope="col">Category</th>
-                <th scope="col">Total Product</th>
-                <th></th>
+                <th scope="col">Edit</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td scope="row">1</td>
-                <td>1</td>
-                <td>Carpet</td>
-                <td>5</td>
-                <td >
-                    
-                    <a href=""  data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category"><i class="fa-solid fa-pen-to-square pe-2"  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i></a>
-                    <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
-                </td>
-              </tr>
-              <tr>
-                <td scope="row">1</td>
-                <td>1</td>
-                <td>Carpet</td>
-                <td>5</td>
-                <td>
-                    
-                    <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
-                    <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
-                </td>
-              </tr>
-              
-            
+              {% for category in categories %}
+                <tr>
+                    <td scope="row">{{ forloop.counter }}</td>
+                    <td>{{ category.category_id }}</td>
+                    <td>{{ category.category }}</td>
+                    <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-name="{{ category.category }}">
+                            <i class="fa-solid fa-pen-to-square pe-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
           </table>
 
@@ -69,23 +57,19 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form>
-            <div class="mb-3">
-              <label for="category_id" class="col-form-label">Category Id:</label>
-              <input type="text" class="form-control" id="category_id">
-            </div>
+          <form method="post" action="{% url 'addCategory' %}">
+            {% csrf_token %}
 
             <div class="mb-3">
                 <label for="category" class="col-form-label">Category:</label>
-                <input type="text" class="form-control" id="category">
+                <input type="text" class="form-control" name="category" id="category">
               </div>
-            
-          </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary">Add Category</button>
+          <button type="submit" class="btn btn-primary">Add Category</button>
         </div>
+        </form>
       </div>
     </div>
   </div>
@@ -98,14 +82,14 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form>
+          <form method="post" action="{% url 'editCategory' %}">
             <div class="mb-3">
-              <label for="old_category_name" class="col-form-label">Category Name:</label>
-              <input type="text" class="form-control" id="old_category_name">
+              <label for="old_category_name" class="col-form-label">Current:</label>
+              <input type="text" class="form-control" id="old_category_name" disabled>
             </div>
 
             <div class="mb-3">
-                <label for="new_category_name" class="col-form-label">New Category Name:</label>
+                <label for="new_category_name" class="col-form-label">Category name:</label>
                 <input type="text" class="form-control" id="new_category_name">
               </div>
             

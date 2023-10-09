@@ -1,9 +1,10 @@
 from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, login,logout
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.http import JsonResponse
 from .forms import RegisterForm
-from django.db import connection
+from django.db import connection, IntegrityError
+import random
 
 def login_view(request):
     if request.method == 'POST':
@@ -38,7 +39,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('login')  # Redirect to your homepage or a success page
+            return redirect('login')
     else:
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
@@ -65,3 +66,66 @@ def orders(request):
 
 def inventory(request):
     return render(request, 'inventory.html')
+
+
+def getCategory(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM category_info")
+        data = cursor.fetchall()
+
+    categories = []
+    for row in data:
+        category = {
+            'category_id': row[1],
+            'category': row[2],
+           
+        }
+        categories.append(category)
+
+    context = {
+        'categories': categories,
+    }
+
+    return render(request, 'category.html', context)
+
+def addCategory(request):
+    if request.method == 'POST':
+        category_id = random.randint(1000, 9999)
+        category = request.POST['category']
+
+        if category:
+            checkExistingCategory = "SELECT category_id FROM category_info WHERE category = %s"
+            with connection.cursor() as cursor:
+                cursor.execute(checkExistingCategory, (category,))
+                getExistingCategoryData = cursor.fetchone()
+        
+            if getExistingCategoryData:
+                return HttpResponse("Category already exists")
+
+
+            sql_query = "INSERT INTO category_info (category_id, category) VALUES (%s, %s)"
+            values = (category_id, category)
+
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(sql_query, values)
+                    connection.commit()
+
+                return HttpResponseRedirect('/category')
+            except IntegrityError:
+                return HttpResponse("An error occurred while adding the category")
+            
+        else:
+            return HttpResponse("Invalid category data")
+    return render(request, 'category.html')
+
+def editCategory(request):
+    if request.method == 'POST':
+        old_category_name = request.POST['old_category']
+        new_category_name = request.POST['new_category_name']
+
+        if (old_category_name & new_category_name):
+            
+            return
+
+    return
