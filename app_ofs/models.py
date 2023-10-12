@@ -9,3 +9,9 @@ class CustomUser(AbstractUser):
 class category(models.Model):
     category_id = models.CharField(max_length=100)
     category = models.CharField(max_length=100)
+
+
+class products(models.Model):
+    product_id = models.CharField(max_length=50)
+    product_name = models.CharField(max_length=50)
+    product_description =  models.CharField(max_length=200)

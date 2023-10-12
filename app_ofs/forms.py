@@ -1,5 +1,5 @@
 from django import forms
-from .models import category
+from .models import category, products
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
@@ -15,3 +15,8 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = category
         fields = ['category_id', 'category']
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = products
+        fields = ['product_id', 'product_name', 'product_description']

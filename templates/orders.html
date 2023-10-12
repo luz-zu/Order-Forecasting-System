@@ -34,28 +34,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td scope="row">1</td>
-            <td>1</td>
-            <td>Carpet</td>
-            <td>5</td>
-            <td >
-                
-                <a href=""  data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category"><i class="fa-solid fa-pen-to-square pe-2"  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i></a>
-                <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
-            </td>
-          </tr>
-          <tr>
-            <td scope="row">1</td>
-            <td>1</td>
-            <td>Carpet</td>
-            <td>5</td>
-            <td>
-                
-                <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
-                <!-- <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a> -->
-            </td>
-          </tr>
+         <tr>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+
+         </tr>
           
         
         </tbody>
@@ -64,6 +52,64 @@
 </div>
 </div>
 
+</div>
+
+<div class="modal fade " id="add_order" tabindex="-1" aria-labelledby="add_order" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">New Orders</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'addOrder' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="order_product_name" class="col-form-label">Product:</label>
+            <input type="text" class="form-control" name="order_product_name" id="order_product_name" required>
+            
+          </div>
+        
+
+          <div class="mb-3">
+              <label for="quantity" class="col-form-label">Quantity:</label>
+              <input type="text" class="form-control" name="quantity" id="quantity" required>
+            </div>
+            <div class="mb-3">
+              <label for="ordered_date" class="form-label">Ordered Date:</label>
+              <input type="text" class="form-control" name="ordered_date" id="ordered_date" required>            
+            </div>
+
+
+            <div class="mb-3">
+              <label for="price" class="form-label">Price:</label>
+              <input type="text" class="form-control" name="price" id="price" required>            
+            </div>
+
+            <div class="mb-3">
+              <label for="delivery_date" class="form-label">Delivery Date:</label>
+              <input type="text" class="form-control" name="delivery_date" id="delivery_date" required>            
+            </div>
+
+            <div class="mb-3">
+              <label for="status" class="form-label">Status:</label>
+              <select class="form-control" name="status" id="status">
+                <option value="">Ongoing</option>
+                <option value="">Pending</option>
+                <option value="">Completed</option>
+
+              </select>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Add Order</button>
+            </div>
+          
+        </form>
+      </div>
+    
+    </div>
+  </div>
 </div>
 
 {% endblock %}

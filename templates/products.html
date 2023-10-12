@@ -1,176 +1,207 @@
-{%extends "base.html" %}
+  {%extends "base.html" %}
 
-{% block title %} Dashboard {% endblock %}
-{% block content %}
-<nav>
-    {%include "components/navbar.html" %}
-</nav>
-<div>
-    {%include "components/sidebar.html" %}
-</div>
+  {% block title %} Dashboard {% endblock %}
+  {% block content %}
+  <nav>
+      {%include "components/navbar.html" %}
+  </nav>
+  <div>
+      {%include "components/sidebar.html" %}
+  </div>
 
 
-<div class="container pt-3">
+  <div class="container pt-3">
 
-   
-
-   <div class="pt-3">
-      
-        <div class="text-end ">
-            <!-- <a href="{%url 'addnewproduct' %}"> -->
-
-                <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_new_product" data-bs-whatever="add_new_product">Add New Product</button>
-
-        </div>    
-    <hr>
-
-    <div class="row pt-3">
-        <div class="col-12">
-            <table>
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Product Id</th>
-                    <th scope="col">Product</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td scope="row">1</td>
-                    <td>1</td>
-                    <td>Carpet</td>
-                    <td >
-                        
-                        <a href=""  data-bs-toggle="modal" data-bs-target="#edit_product" data-bs-whatever="edit_product"><i class="fa-solid fa-pen-to-square pe-2"  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i></a>
-                        <a href="" class="text-danger" data-bs-toggle="modal" data-bs-target="#delete_product" data-bs-whatever="delete_product" ><i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i></a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td scope="row">1</td>
-                    <td>1</td>
-                    <td>Carpet</td>
-                    <td>
-                        
-                        <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
-                        <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a>
-                    </td>
-                  </tr>
-                  
-                
-                </tbody>
-              </table>
     
-        </div>
+
+    <div class="pt-3">
         
-       </div>
+          <div class="text-end ">
+              <!-- <a href="{%url 'addnewproduct' %}"> -->
 
-   <!-- <div class="row pt-3">
-        <div class="col-lg-3 col-md-4 col-6">
-            <div class="card">
-                <img src="https://images.pexels.com/photos/18377912/pexels-photo-18377912/free-photo-of-colorful-tent-on-hill.jpeg?auto=compress&cs=tinysrgb&w=1600" class="card-img-top" alt="...">
-                <div class="card-body">
-                  <h5 class="card-title fw-bold text-center">Product 1</h5>
-                  <div class="text-center products_detail">
-                    <a href="#" >Details</a>
-                  </div>
-                  <div class="products_card_icons">
+                  <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_new_product" data-bs-whatever="add_new_product">Add New Product</button>
 
-                  </div>  -->
-                  <!-- <div class="products_card_icons">
-                    <div>
-                        <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
-                    </div>
-                    <div>
-                        <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a>
-                    </div>
-                  </div> -->
-                <!-- </div>
-              </div>
+          </div>    
+      <hr>
+
+      <div class="row pt-3">
+          <div class="col-12">
+              <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Product Id</th>
+                      <th scope="col">Product</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for product in products %}
+
+                    <tr>
+                      <td scope="row">{{ forloop.counter }}</td>
+                      <td>{{product.product_id}}</td>
+                      <td>{{product.product_name}}</td>
+                      <td >
+                          
+                          <a href=""  data-bs-toggle="modal" data-bs-target="#edit_product" data-bs-whatever="edit_product"><i class="fa-solid fa-pen-to-square pe-2"  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i></a>
+
+                          <button class="text-danger delete-button" data-product-id="{{ product.product_id }}">
+                            <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
+                        </button>
+                          <!-- <a href="" class="text-danger delete-button" data-bs-toggle="modal" data-bs-target="#delete_product" data-bs-whatever="delete_product" data-product-id="{{ product.product_id  }}"><i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i></a> -->
+                      </td>
+                    </tr>
+                  
+                    {% endfor %}
+
+                  
+                  </tbody>
+                </table>
+      
+          </div>
+          
         </div>
-    </div> -->
-   </div>
+
+    <!-- <div class="row pt-3">
+          <div class="col-lg-3 col-md-4 col-6">
+              <div class="card">
+                  <img src="https://images.pexels.com/photos/18377912/pexels-photo-18377912/free-photo-of-colorful-tent-on-hill.jpeg?auto=compress&cs=tinysrgb&w=1600" class="card-img-top" alt="...">
+                  <div class="card-body">
+                    <h5 class="card-title fw-bold text-center">Product 1</h5>
+                    <div class="text-center products_detail">
+                      <a href="#" >Details</a>
+                    </div>
+                    <div class="products_card_icons">
+
+                    </div>  -->
+                    <!-- <div class="products_card_icons">
+                      <div>
+                          <a href=""  data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square pe-2"></i></a>
+                      </div>
+                      <div>
+                          <a href="" class="text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                      </div>
+                    </div> -->
+                  <!-- </div>
+                </div>
+          </div>
+      </div> -->
+    </div>
+      
     
-   
-</div>
+  </div>
 
 
-<div class="modal fade " id="add_new_product" tabindex="-1" aria-labelledby="add_new_product" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">New Products</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form>
-           
-
-            <div class="mb-3">
-                <label for="product_name" class="col-form-label">Product Name:</label>
-                <input type="text" class="form-control" id="product_name" required>
-              </div>
+  <div class="modal fade " id="add_new_product" tabindex="-1" aria-labelledby="add_new_product" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">New Products</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form method="post" action="{% url 'addProduct' %}">
+              {% csrf_token %}
               <div class="mb-3">
-                <label for="product_description" class="form-label">Product Description:</label>
-                <textarea class="form-control " id="product_description" placeholder="" required></textarea>
-               
+                <label for="product_category" class="col-form-label">Category:</label>
+                <div>
+                  <!-- <select name="product_category" class="form-control">
+                    <option value="">Select a category</option>
+                    {% for category in categories_list %}
+                        <option value="{{ category.0 }}">{{ category.0 }}</option>
+                    {% endfor %}                
+                  </select> -->
+
+                </div>
+                
               </div>
             
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary">Add Category</button>
+
+              <div class="mb-3">
+                  <label for="product_name" class="col-form-label">Product Name:</label>
+                  <input type="text" class="form-control" name="product_name" id="product_name" required>
+                </div>
+                <div class="mb-3">
+                  <label for="product_description" class="form-label">Product Description:</label>
+                  <textarea class="form-control " name="product_description" id="product_description" placeholder="" required></textarea>
+                
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+              
+            </form>
+          </div>
+        
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="modal fade " id="edit_product" tabindex="-1" aria-labelledby="edit_product" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Edit Product</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form>
-            <div class="mb-3">
-              <label for="old_product_name" class="col-form-label">Product Name:</label>
-              <input type="text" class="form-control" id="old_product_name">
-            </div>
+    <div class="modal fade " id="edit_product" tabindex="-1" aria-labelledby="edit_product" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Edit Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" action="{% url 'update_product' %}">
+              {% csrf_token %}
 
-            <div class="mb-3">
-                <label for="new_product_name" class="col-form-label">New Product Name:</label>
-                <input type="text" class="form-control" id="new_product_name">
-              </div>
-            
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary">Edit Product</button>
+              <!-- <div class="mb-3">
+                <label for="old_product_name" class="col-form-label">Product Name:</label>
+                <input type="text" class="form-control" id="old_product_name">
+              </div> -->
+
+              <div class="mb-3">
+                  <label for="new_product_name" class="col-form-label">New Product Name:</label>
+                  <input type="text" class="form-control" id="new_product_name">
+                </div>
+
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Edit Product</button>
+                </div>
+              
+            </form>
+          </div>
+      
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="modal fade " id="delete_product" tabindex="-1" aria-labelledby="delete_product" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Delete Product</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <span> Are you sure you want to delete a product?</span>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-danger">Delete Product</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+      $(document).ready(function() {
+          $('.delete-button').on('click', function() {
+              var productID = $(this).data('product-id');
+              var button = $(this); // Store the reference to the button
 
-{% endblock %}
+              if (confirm("Are you sure you want to delete this product?")) {
+                  $.ajax({
+                      type: 'POST',
+                      url: '/delete_product/' + productID + '/', // Use the URL pattern name
+                      data: {
+                          csrfmiddlewaretoken: "{{ csrf_token }}"
+                      },
+                      success: function(data) {
+                          // Handle success, e.g., remove the deleted row from the table
+                          if (data === 'success') {
+                              button.closest('tr').remove(); // Use the stored button reference
+                          } else {
+                              alert('Product not found or an error occurred.');
+                          }
+                      },
+                      error: function() {
+                          // Handle error
+                          alert('Error deleting the product.');
+                      }
+                  });
+              }
+          });
+      });
+  </script>
+  
+
+  {% endblock %}
