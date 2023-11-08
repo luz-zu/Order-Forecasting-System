@@ -1,77 +1,83 @@
-*{
-    font-family: 'Poppins';
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap");
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
-.login, .register{
+
+body {
+    min-height: 100vh;
+    background: #1a313a;
+    font-family: "Poppins", sans-serif;
+}
+
+.login,
+.register {
     background-color: #1d2951;
-
 }
 
-a{
+.logout {
     text-decoration: none;
+    padding: 5px;
+    color: white;
 }
 
-.page_title h3{
+.logout:hover {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #384e96;
+    color: white;
+}
+
+.page_title h3 {
     font-size: 2rem;
-    text-align: center ;
+    text-align: center;
     color: #1d2951;
 }
 
-.login_field{
+.login_field {
     padding-bottom: 1rem;
 }
 
-.login_field label{
+.login_field label {
     font-size: 1rem;
     color: #1d2951;
 }
 
-.forget_pw{
+.forget_pw {
     text-align: right;
 }
-.buttons{
+
+.buttons {
     padding-top: 1rem;
 }
-.btn_login   {
-    background:#1d2951 ;
+
+.btn_login {
+    background: #1d2951;
     text-align: center;
     width: 100%;
     border: none;
     border-radius: 5px;
     padding: 0.5rem;
     color: white;
-    /* background: red; */
 }
 
-.btn_login:hover{
-    background:#3b4570 ;
-
-
+.btn_login:hover {
+    background: #3b4570;
 }
 
-.login_body a{
+.login_body a {
     color: blue;
 }
 
-.error-message{
+.error-message {
     color: rgb(233, 7, 7);
     text-align: end;
     padding-top: 1rem;
 }
 
-
-/* sidebar */
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-}
-body{
-    min-height: 100vh;
-    background: #1a313a;
-}
-
-.sidebar{
+.sidebar {
     position: absolute;
     width: 15rem;
     height: 100vh;
@@ -80,40 +86,37 @@ body{
     transition: 0.5s;
 }
 
-.sidebar:hover{
+.sidebar:hover {
     width: 15rem;
 }
 
-.sidebar ul{
+.sidebar ul {
     position: relative;
     height: 100vh;
 }
 
-
-.sidebar ul li{
+.sidebar ul li {
     list-style: none;
     padding: 0rem 1rem;
 }
 
-
-.sidebar ul list-style:hover{
+.sidebar ul list-style:hover {
     background: #f3f3f3;
-
 }
 
-.sidebar ul li a{
+.sidebar ul li a {
     position: relative;
     display: flex;
     white-space: nowrap;
     text-decoration: none;
 }
 
-.sidebar ul li:hover{
+.sidebar ul li:hover {
     background: #384e96;
     border-radius: 10px;
 }
 
-.sidebar ul  li a .icon{
+.sidebar ul li a .icon {
     position: relative;
     display: flex;
     justify-content: center;
@@ -125,7 +128,7 @@ body{
     color: #fff;
 }
 
-.sidebar ul li a .text{
+.sidebar ul li a .text {
     position: relative;
     height: 60px;
     display: flex;
@@ -135,7 +138,7 @@ body{
     text-transform: uppercase;
 }
 
-.blue-btn{
+.blue-btn {
     background-color: #1d2951;
     padding: 0.4rem 1rem;
     color: #f3f3f3;
@@ -143,42 +146,53 @@ body{
     border-radius: 10px;
 }
 
-.blue-btn:hover{
+.blue-btn:hover {
     box-shadow: 0 3px 10px rgba(136, 46, 46, 0.2);
     background: #384e96;
-
 }
 
-table{
+table {
+    border-collapse: collapse;
     width: 100%;
-    border: 1px solid black;
-
 }
-table tr, table th, table td{
-  text-align: center;
+
+th, td {
+    border: 1px solid #585858a6;
+    padding: 8px;
+}
+
+
+table tr,
+table th,
+table td {
+    background-color: white;
+    text-align: center;
     padding: 1rem;
 }
-table th{
+
+table th {
     background-color: #1d2951;
     color: white;
 }
 
-tr:nth-child(even){
+tr:nth-child(even) {
     background: #ebebeb;
 }
 
-
-.product .card-title_{
-    color: #1d2951  ;
+.product .card-title_ {
+    color: #1d2951;
 }
 
-.products_detail a{
+.products_detail a {
     text-decoration: none;
     color: #1a313a;
 }
 
-.products_card_icons{
+.products_card_icons {
     display: flex;
     justify-content: space-around;
 }
 
+#table-filter {
+    float: right;
+}

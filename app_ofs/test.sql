@@ -6,5 +6,4 @@ CREATE TABLE IF NOT EXISTS `product_info` (
   `category_id` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`category_id`) REFERENCES `category_info`(`category_id`)
-
-) ;
+);

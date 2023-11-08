@@ -8,22 +8,20 @@ urlpatterns = [
     path('dashboard', views.user_dashboard, name = 'dashboard'),
     path('logout/', views.logout_view, name='logout'),
     path('category' , views.getCategory, name = 'category'),
-    # path('products' , views.products, name = 'products'),
     path('addnewproduct', views.addnewproduct, name = 'addnewproduct'),
-    path('orders', views.orders, name = 'orders'),
     path('inventory', views.inventory, name = 'inventory'),
     path('category/', views.addCategory, name = 'addCategory'),
-    path('category/', views.editCategory, name = 'editCategory'),
-    # path('products/', views.get_categories_list, name='get_categories_list'),
-    path('products/', views.addProduct, name = 'addProduct'),
+    path('editcategory/', views.editCategory, name = 'editCategory'),
     path('products' , views.getProduct, name = 'products'),
-    path('products/', views.update_product, name='update_product'),
+    path('product_category', views.get_categories_list, name = 'product_category'),
+    path('order_product_name', views.get_product_list, name = 'order_product_name'),
+    path('products/', views.addProduct, name = 'addProduct'),
+    path('editproduct/', views.editProduct, name='editProduct'),
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
-    path('orders/', views.addOrder, name = 'addOrder'),
-
-
-
-
-
-
+    path('orders/', views.getOrder, name = 'orders'),
+    path('addorder/', views.addOrder, name = 'addOrder'),
+    path('delete_order/<int:order_id>/', views.delete_order, name='delete_order'),
+    path('getProductCategory/', views.getProductCategory, name='getProductCategory'),
+    path('inventory/', views.getItems, name='inventory'),
+    path('addItems/', views.addItems, name='addItems'),
 ]
