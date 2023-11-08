@@ -1,20 +1,100 @@
-{%extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %} Dashboard {% endblock %}
+{% block title %} Inventory {% endblock %}
 {% block content %}
 <nav>
-    {%include "components/navbar.html" %}
+    {% include "components/navbar.html" %}
 </nav>
 <div>
-    {%include "components/sidebar.html" %}
+    {% include "components/sidebar.html" %}
+</div>
+<div class="container pt-3">
+    <hr>
+    <div class="row pt-3 justify-content-between">
+        <div class="col-2">
+            <input type="text" class="form-control" id="table-filter" placeholder="Search...">
+        </div>
+        <div class="col-2 text-end">
+            <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
+        </div>
+    </div>
+
+    <div class="row pt-3">
+        <div class="col-12">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td scope="row">{{ forloop.counter }}</td>
+                        <td>{{ item.category }}</td>
+                        <td>{{ item.product }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.price }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<div class="modal fade" id="add_items" tabindex="-1" aria-labelledby="add_items" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'addItems' %}">
+                    {% csrf_token %}
+                    <input type="hidden" id="category_url" value="{% url 'product_category' %}">
+                    <div class="mb-3">
+                      <label for="product_category" class="col-form-label">Category:</label>
+                      <div>
+                        <select name="product_category" id="category_dropdown" class="form-control">
+                          <option value="">Select a category</option>
+                        </select>
+                      </div>
+                    </div>
 
-<div class="container pt-3">
+                    <input type="hidden" id="product_url" value="{% url 'getProductCategory' %}">
+                    <div class="mb-3">
+                      <label for="getProductCategory" class="col-form-label">Product:</label>
+                      <div>
+                        <select name="getProductCategory" id="product_dropdown2" class="form-control">
+                          <option value="">Select a product</option>
+                        </select>
+                      </div>
+                    </div>
 
-   
+                    <div class="mb-3">
+                      <label for="quantity" class="col-form-label">Quantity:</label>
+                      <input type="text" class="form-control" name="quantity" id="quantity" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="price" class="col-form-label">Price:</label>
+                      <input type="text" class="form-control" name="price" id="price" required>
+                    </div>
 
-
-  </div>
-
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% load static %}
 {% endblock %}
