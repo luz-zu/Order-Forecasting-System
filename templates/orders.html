@@ -1,115 +1,120 @@
-{%extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %} Dashboard {% endblock %}
+{% block title %} Orders {% endblock %}
 {% block content %}
 <nav>
-    {%include "components/navbar.html" %}
+    {% include "components/navbar.html" %}
 </nav>
 <div>
-    {%include "components/sidebar.html" %}
+    {% include "components/sidebar.html" %}
 </div>
-
-
-<div class="container pt-3">
-
-  <div class="text-end pt-3">
-    <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_order" data-bs-whatever="add_order">Add New Order</button>
-</div>
-<hr>
-
-<div class="row pt-3">
-  <div class="col-12">
-    <table>
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Order Id</th>
-            <th scope="col">Product</th>
-            <th scope="col">Quantity</th>
-            <th scope="col">Ordered Date</th>
-            <th scope="col">Delivery Date</th>
-            <th scope="col">Status</th>
-
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-         <tr>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-
-         </tr>
-          
-        
-        </tbody>
-      </table>
-
-</div>
-</div>
-
-</div>
-
-<div class="modal fade " id="add_order" tabindex="-1" aria-labelledby="add_order" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">New Orders</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form method="post" action="{% url 'addOrder' %}">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label for="order_product_name" class="col-form-label">Product:</label>
-            <input type="text" class="form-control" name="order_product_name" id="order_product_name" required>
-            
-          </div>
-        
-
-          <div class="mb-3">
-              <label for="quantity" class="col-form-label">Quantity:</label>
-              <input type="text" class="form-control" name="quantity" id="quantity" required>
-            </div>
-            <div class="mb-3">
-              <label for="ordered_date" class="form-label">Ordered Date:</label>
-              <input type="text" class="form-control" name="ordered_date" id="ordered_date" required>            
-            </div>
-
-
-            <div class="mb-3">
-              <label for="price" class="form-label">Price:</label>
-              <input type="text" class="form-control" name="price" id="price" required>            
-            </div>
-
-            <div class="mb-3">
-              <label for="delivery_date" class="form-label">Delivery Date:</label>
-              <input type="text" class="form-control" name="delivery_date" id="delivery_date" required>            
-            </div>
-
-            <div class="mb-3">
-              <label for="status" class="form-label">Status:</label>
-              <select class="form-control" name="status" id="status">
-                <option value="">Ongoing</option>
-                <option value="">Pending</option>
-                <option value="">Completed</option>
-
-              </select>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Add Order</button>
-            </div>
-          
-        </form>
-      </div>
-    
+<div class="container pt-3">    
+    <hr>
+    <div class="row pt-3 justify-content-between">
+        <div class="col-2">
+            <input type="text" class="form-control" id="table-filter" placeholder="Search...">
+        </div>
+        <div class="col-2 text-end">
+            <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_order" data-bs-whatever="add_order">Add New Order</button>
+        </div>
     </div>
-  </div>
+
+    <div class="row pt-3">
+        <div class="col-12">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Order Id</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Ordered Date</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Delivery Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td scope="row">{{ forloop.counter }}</td>
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.order_product_name }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>{{ order.ordered_date }}</td>
+                        <td>{{ order.price }}</td>
+                        <td>{{ order.delivery_date }}</td>
+                        <td>{{ order.status }}</td>
+                        <td>
+                            <form method="post" action="{% url 'delete_order' order.order_id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                <button style="border: none; background-color: transparent; margin-left: 10px;" type="submit" class="text-danger delete-button" data-bs-toggle="modal" data-bs-target="#delete_order" data-bs-whatever="delete_order"><i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<div class="modal fade" id="add_order" tabindex="-1" aria-labelledby="add_order" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">New Orders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'addOrder' %}">
+                    {% csrf_token %}
+                    <input type="hidden" id="product_url" value="{% url 'order_product_name' %}">
+                    <div class="mb-3">
+                        <label for="order_product_name" class="col-form-label">Product:</label>
+                        <select name="order_product_name" id="product_dropdown" class="form-control">
+                            <option value="">Select a product</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="quantity" class="col-form-label">Quantity:</label>
+                        <input type="text" class="form-control" name="quantity" id="quantity" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ordered_date" class="form-label">Ordered Date:</label>
+                        <input type="text" class="form-control datepicker" name="ordered_date" id="ordered_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price:</label>
+                        <input type="text" class="form-control" name="price" id="price" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="delivery_date" class="form-label">Delivery Date:</label>
+                        <input type="text" class="form-control datepicker" name="delivery_date" id="delivery_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status:</label>
+                        <select class="form-control" name="status" id="status">
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% load static %}
 {% endblock %}
