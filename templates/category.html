@@ -1,6 +1,6 @@
 {%extends "base.html" %}
 
-{% block title %} Dashboard {% endblock %}
+{% block title %} Category {% endblock %}
 {% block content %}
 <nav>
     {%include "components/navbar.html" %}
@@ -11,14 +11,17 @@
 
 
 <div class="container pt-3">
-   
-
-    <div class="text-end pt-3">
-        <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
-    </div>
     <hr>
+    <div class="row pt-3 justify-content-between">
+      <div class="col-2">
+        <input type="text" class="form-control" id="table-filter" placeholder="Search...">
+      </div>
+      <div class="col-2 text-end">
+        <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
+      </div>
+    </div>
     
-   <div class="row pt-3">
+  <div class="row pt-3">
     <div class="col-12">
         <table>
             <thead>
@@ -26,7 +29,7 @@
                 <th scope="col">#</th>
                 <th scope="col">Category Id</th>
                 <th scope="col">Category</th>
-                <th scope="col">Edit</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -36,9 +39,9 @@
                     <td>{{ category.category_id }}</td>
                     <td>{{ category.category }}</td>
                     <td>
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-name="{{ category.category }}">
-                            <i class="fa-solid fa-pen-to-square pe-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
-                        </a>
+                      <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-id="{{ category.category_id }}" data-category-name="{{ category.category }}">
+                        <i class="fa-solid fa-pen-to-square pe-2 me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
+                      </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -47,9 +50,9 @@
 
     </div>
     
-   </div>
+  </div>
     
-   <div class="modal fade " id="add_category" tabindex="-1" aria-labelledby="add_category" aria-hidden="true">
+  <div class="modal fade " id="add_category" tabindex="-1" aria-labelledby="add_category" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
@@ -67,7 +70,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Category</button>
+          <button type="submit" class="btn btn-primary">Submit</button>
         </div>
         </form>
       </div>
@@ -83,30 +86,25 @@
         </div>
         <div class="modal-body">
           <form method="post" action="{% url 'editCategory' %}">
-            <div class="mb-3">
-              <label for="old_category_name" class="col-form-label">Current:</label>
-              <input type="text" class="form-control" id="old_category_name" disabled>
-            </div>
+            {% csrf_token %}
+            
+            <input type="hidden" name="category_id" id="category_id">
 
             <div class="mb-3">
-                <label for="new_category_name" class="col-form-label">Category name:</label>
-                <input type="text" class="form-control" id="new_category_name">
-              </div>
+              <label for="old_category_name" class="col-form-label">Name:</label>
+              <input type="text" class="form-control" name="old_category_name" id="old_category_name">
+            </div>
             
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
           </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary">Edit Category</button>
-        </div>
       </div>
     </div>
   </div>
 </div>
 
-
-
-
-
-
+{% load static %}
 {% endblock %}
