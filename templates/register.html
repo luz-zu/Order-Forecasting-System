@@ -5,11 +5,18 @@
 {% block content %}
 {% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+<header>
+  <div>
+      {% include 'components/navbar.html' %}
+
+  </div>
+ 
+</header>
 
 <div class="register vh-100">
   <form method="POST" novalidate>
-    <div class="row">
-      <div class="col-xl-4 col-md-6 col-12 mx-auto" style="padding-top: 10rem">
+    <div class="d-flex">
+      <div class="col-xl-4 col-md-6 col-12 mx-auto" style="padding-top: 5rem">
         <div class="card">
           <div class="card-body">
             <div class="page_title">
@@ -17,27 +24,6 @@
             </div>
             <div>
               {% csrf_token %} 
-
-              <!-- <div class="login_field">
-                <label for="first_name">First Name</label>
-
-                <input type="text" name="first_name" maxlength="150" id="id_first_name" class="form-control" required>
-              </div>
-
-              <div class="login_field">
-                <label for="last_name">Last Name</label>
-
-                <input type="text" name="last_name" maxlength="150" id="id_last_name" class="form-control" required>
-              </div>
-
-              <div class="login_field">
-                
-                  <label for="id_username" class="form-label">Username</label>
-                
-                <input type="text" name="username" maxlength="150" autofocus="" required="" id="id_username">
-              </div> -->
-
-
               {% for field in form %}
               
               
@@ -54,13 +40,17 @@
                     >{{ field.label }}</label
                   >
                 </div>
+                <!-- <div class="form-control"> -->
+                  {{ field}}
+
+                <!-- </div> -->
                 
-                {{ field}}
+                
               </div>
               {% endfor %}
-              <!-- <input type="submit" value="Register" / -->
+              <!-- <input type="submit" value="Register" /> -->
               <div class="buttons" >
-                <button type="submit" value="Register" class="btn_login ">Register</button>
+                <button type="submit" value="Register" class="btns ">Register</button>
 
               </div>
 
