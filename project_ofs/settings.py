@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'project_ofs.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'myprojectdb',
+        'NAME': 'ofs',
         'USER': 'root',
         'PASSWORD': '',
         'HOST' : '127.0.0.1',
