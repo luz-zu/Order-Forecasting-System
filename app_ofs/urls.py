@@ -3,8 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('index', views.index, name='index'),
-    path('', views.login_view, name='login'),
+    path('', views.index, name='index'),
+    path('login', views.login_view, name='login'),
     path('register/', views.register, name = 'register'),
     path('dashboard', views.user_dashboard, name = 'dashboard'),
     path('logout/', views.logout_view, name='logout'),
@@ -25,4 +25,6 @@ urlpatterns = [
     path('getProductCategory/', views.getProductCategory, name='getProductCategory'),
     path('inventory/', views.getItems, name='inventory'),
     path('addItems/', views.addItems, name='addItems'),
+    path('forgetpassword/', views.forgetpassword, name='forgetpassword'),
+
 ]
