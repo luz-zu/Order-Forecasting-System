@@ -404,7 +404,6 @@ def getItems(request):
     return render(request, 'inventory.html', context)
 
 
-
 def forgetpassword(request):
     return render(request, 'forgetpassword.html')
 
