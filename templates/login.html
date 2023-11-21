@@ -46,7 +46,7 @@
                                   </div>
 
                                <div class="forget_pw" >
-                                    <a href="" style="text-decoration: none;">Forget Password?</a>
+                                    <a href="{% url 'forgetpassword' %}" style="text-decoration: none;">Forgot Password?</a>
                                   </div>
                                   <div class="buttons" >
                                     <button type="submit" class="btns">Login</button>
@@ -60,19 +60,12 @@
                                     <a href="{% url 'register' %}" style="text-decoration: none;">Register</a>
                                   </div>
 
-
-
-
                             </div>
                         </div>
                     </div>
                     
                 </div>
-                <!-- <label for="username">Username:</label>
-                <input type="text" name="username" id="username" required>
-                <label for="password">Password:</label>
-                <input type="password" name="password" id="password" required> -->
-                <!-- <button type="submit">Login</button> -->
+               
             </form>
 
         </div>

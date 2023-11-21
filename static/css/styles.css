@@ -217,4 +217,9 @@ tr:nth-child(even) {
     float: right;
 }
 
-/* sidebar new */
+form .custom-input {
+    border: 1px solid #ced4da; 
+    width: 100%;
+    border-radius: 5px;
+    padding: 5px;
+}

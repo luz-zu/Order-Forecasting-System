@@ -26,5 +26,8 @@ urlpatterns = [
     path('inventory/', views.getItems, name='inventory'),
     path('addItems/', views.addItems, name='addItems'),
     path('forgetpassword/', views.forgetpassword, name='forgetpassword'),
+    path('send_otp/', views.send_otp, name='send_otp'),
+    path('verify_otp/', views.verify_otp, name='verify_otp'),
+    path('reset_password/', views.reset_password, name='reset_password'),
 
 ]

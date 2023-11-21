@@ -484,6 +484,10 @@ def reset_password(request):
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
 
+        if len(new_password) < 8:
+            return render(request, 'forgetpassword.html', {'otp_verified': True, 'error': 'Password should be at least 8 characters long.'})
+
+
         if new_password == confirm_password:
             hashed_password = make_password(new_password)
             with connection.cursor() as cursor:
