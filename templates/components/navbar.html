@@ -1,80 +1,95 @@
 {% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
 <div>
-    <div class="" style="background-color: white;">
-        <div class="container text-blue d-flex justify-content-between align-items-center py-2">
-            <div>
-                <h3 class="fw-bold">OFS</h3>
-            </div>
-            <!-- {% if not user.is_authenticated %} -->
-            <div class="d-md-flex d-none justify-content-between align-items-center collapse" id="collapseExample">
-                <div class="pe-4 fw-bold">
-                    <a href="{% url 'index' %}" class="text-blue">Home</a>
-                    
-                </div>
-                <div class="pe-4 fw-bold">
-                    <a href="" class="text-blue">About Us</a>
-                    
-                </div>
-
-                <div class="pe-4 fw-bold">
-                    <a href="" class="text-blue">Our Partners</a>
-                </div>
-
-                <div class="pe-4 fw-bold">
-                    <a href="" class="text-blue">Contact Us</a>
-                </div>
-            </div>
-            <!-- {% endif %} -->
-            <div>
-                {% if user.is_authenticated %}
-                    <i class="fa-solid fa-caret-down" style="color: #ffffff;"></i>
-                    <a class="logout" href="{% url 'logout' %}" class="btn_login">Logout</a>
-                    {% else %}
-                    <!-- Content to show when the user is not authenticated (not logged in) -->
-                    <!-- <a href="{% url 'login' %}" class="btn_login">Login</a> -->
-                    {% if request.path == '/register/' %}
-                    <a href="{% url 'login' %}" class="btns">Login</a>
-
-                    {% else %}
-                    <a href="{% url 'register' %}" class="btns">Register</a>
-
-                    {% endif %}
-
-                {% endif %}
-                
-            </div>
-            <div class="d-md-none" >
-                <a  class="" data-bs-toggle="collapse" href="#menus" role="button" aria-expanded="false" aria-controls="menus" >                <i class="fa-solid fa-bars fs-4"></i>
-                </a>
-            </div>
-
-            
-              
+  <div class="" style="background-color: white">
+    <div
+      class="container text-blue d-flex justify-content-between align-items-center py-2"
+    >
+      <div>
+        <h3 class="fw-bold">OFS</h3>
+      </div>
+      <!-- {% if not user.is_authenticated %} -->
+      <div
+        class="d-md-flex d-none justify-content-between align-items-center collapse"
+        id="collapseExample"
+      >
+        <div class="pe-4 fw-bold">
+          <a href="{% url 'index' %}" class="text-blue">Home</a>
         </div>
-    </div>
-    
-</div>
-
-<!-- {% if not user.is_authenticated %} -->
-<div class="collapse text-blue d-md-none overlay" id="menus">
-    <div class=" d-block overlay-content">
-        <div class="p-2 fw-bold">
-            <a href=""></a>Home
-        </div>
-        <div class="p-2 fw-bold">
-            <a href=""></a>About Us
+        <div class="pe-4 fw-bold">
+          <a href="" class="text-blue">About Us</a>
         </div>
 
-        <div class="p-2 fw-bold">
-            Our Partners
+        <div class="pe-4 fw-bold">
+          <a href="" class="text-blue">Our Partners</a>
         </div>
 
-        <div class="p-2 fw-bold">
-            Contact Us
+        <div class="pe-4 fw-bold">
+          <a href="" class="text-blue">Contact Us</a>
         </div>
+      </div>
+      <!-- {% endif %} -->
+      <div>
+        {% if user.is_authenticated %}
+        <!-- <i class="fa-solid fa-caret-down text-blue"></i> -->
+        <div class="dropdown">
+          <a
+            class=""
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            <i class="fa-solid fa-caret-down text-blue"></i>
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item text-blue fs-5" style=" text-transform: capitalize;" href="#"><i class="fa-solid fa-user pe-2 "></i>{{user.username}}</a></li>
+            <li><a class="dropdown-item text-blue" href="#"><i class="fa-solid fa-pen-to-square pe-2"></i>Edit Profile</a></li>
+            <li><a href="{% url 'logout' %}"  class="dropdown-item text-blue" class="btns"><i class="fa-solid fa-right-from-bracket pe-2"></i>Logout</a></li>
+            <!-- <li><a class="dropdown-item" href="#">Something else here</a></li> -->
+          </ul>
+        </div>
+        <!-- <a href="{% url 'logout' %}" class="btns">Logout</a> -->
+        {% else %}
+        <!-- Content to show when the user is not authenticated (not logged in) -->
+        <!-- <a href="{% url 'login' %}" class="btn_login">Login</a> -->
+        {% if request.path == '/register/' %}
+        <a href="{% url 'login' %}" class="btns">Login</a>
+
+        {% else %}
+        <a href="{% url 'register' %}" class="btns">Register</a>
+
+        {% endif %} {% endif %}
+      </div>
+      {% if not user.is_authenticated %}
+
+      <div class="d-md-none">
+        <a
+          class=""
+          data-bs-toggle="collapse"
+          href="#menus"
+          role="button"
+          aria-expanded="false"
+          aria-controls="menus"
+        >
+          <i class="fa-solid fa-bars fs-4"></i>
+        </a>
+      </div>
+      {% endif %}
     </div>
   </div>
+</div>
 
-  <!-- {% endif %} -->
+{% if not user.is_authenticated %}
+<div class="collapse text-blue d-md-none overlay" id="menus">
+  <div class="d-block overlay-content">
+    <div class="p-2 fw-bold"><a href=""></a>Home</div>
+    <div class="p-2 fw-bold"><a href=""></a>About Us</div>
+
+    <div class="p-2 fw-bold">Our Partners</div>
+
+    <div class="p-2 fw-bold">Contact Us</div>
+  </div>
+</div>
+
+{% endif %}
