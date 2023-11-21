@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDictKeyError
 from django.contrib.auth.hashers import make_password
 
+
 def index(request):
     return render(request, 'index.html')
 
@@ -53,6 +54,7 @@ def register(request):
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
 
+
 def user_dashboard(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending'")
@@ -66,6 +68,8 @@ def user_dashboard(request):
 
         cursor.execute("SELECT COUNT(*) FROM order_info")
         totalOrders = cursor.fetchone()[0]
+
+        
 
         context = {
             'pendingOrder': pendingOrders,
