@@ -10,53 +10,56 @@
 </div>
 <div class="container pt-3">    
     <hr>
-    <div class="d-flex pt-3 justify-content-between">
+    <div class="d-md-flex d-block pt-3 justify-content-between">
         <div>
             <input type="text" class="form-control" id="table-filter" placeholder="Search...">
         </div>
-        <div>
+        <div class="text-end pt-md-0 pt-5">
             <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_order" data-bs-whatever="add_order">Add New Order</button>
         </div>
     </div>
 
     <div class="row pt-3">
         <div class="col-12">
-            <table>
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Order Id</th>
-                        <th scope="col">Product</th>
-                        <th scope="col">Quantity</th>
-                        <th scope="col">Ordered Date</th>
-                        <th scope="col">Price</th>
-                        <th scope="col">Delivery Date</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td scope="row">{{ forloop.counter }}</td>
-                        <td>{{ order.order_id }}</td>
-                        <td>{{ order.order_product_name }}</td>
-                        <td>{{ order.quantity }}</td>
-                        <td>{{ order.ordered_date }}</td>
-                        <td>{{ order.price }}</td>
-                        <td>{{ order.delivery_date }}</td>
-                        <td>{{ order.status }}</td>
-                        <td>
-                            <form method="post" action="{% url 'delete_order' order.order_id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                <button style="border: none; background-color: transparent; margin-left: 10px;" type="submit" class="text-danger delete-button" data-bs-toggle="modal" data-bs-target="#delete_order" data-bs-whatever="delete_order"><i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i></button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Order Id</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Ordered Date</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Delivery Date</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td scope="row">{{ forloop.counter }}</td>
+                            <td>{{ order.order_id }}</td>
+                            <td>{{ order.order_product_name }}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>{{ order.ordered_date }}</td>
+                            <td>{{ order.price }}</td>
+                            <td>{{ order.delivery_date }}</td>
+                            <td>{{ order.status }}</td>
+                            <td>
+                                <form method="post" action="{% url 'delete_order' order.order_id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                    <button style="border: none; background-color: transparent; margin-left: 10px;" type="submit" class="text-danger delete-button" data-bs-toggle="modal" data-bs-target="#delete_order" data-bs-whatever="delete_order"><i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+           
         </div>
     </div>
 </div>
