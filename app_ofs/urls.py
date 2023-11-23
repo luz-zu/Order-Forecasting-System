@@ -29,5 +29,7 @@ urlpatterns = [
     path('send_otp/', views.send_otp, name='send_otp'),
     path('verify_otp/', views.verify_otp, name='verify_otp'),
     path('reset_password/', views.reset_password, name='reset_password'),
+    path('editprofile/', views.editprofile, name='editprofile'),
+    path('changepassword/', views.changepassword, name='changepassword'),
 
 ]

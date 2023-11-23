@@ -55,6 +55,12 @@ body {
     color: #1d2951;
 }
 
+.title h3 {
+    font-size: 2rem;
+    text-align: center;
+    color: #fff;
+}
+
 .login_field {
     padding-bottom: 1rem;
 }
@@ -85,6 +91,16 @@ body {
  .btns:hover {
     background: #3b4570;
     color: white;
+}
+
+.btns_white {
+    background: #fff;
+    text-align: center;
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem;
+    color: #1d2951;
 }
 
 .login_body a {
@@ -171,9 +187,15 @@ body {
     background: #384e96;
 }
 
+.table-responsive{
+    overflow-x: auto;
+
+}
+
 table {
     border-collapse: collapse;
     width: 100%;
+    overflow-x: auto;
 }
 
 th, td {
@@ -188,11 +210,14 @@ table td {
     background-color: white;
     text-align: center;
     padding: 1rem;
+
 }
 
 table th {
     background-color: #1d2951;
     color: white;
+    white-space: nowrap;
+
 }
 
 tr:nth-child(even) {

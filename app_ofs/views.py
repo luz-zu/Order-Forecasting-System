@@ -10,6 +10,7 @@ from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDictKeyError
 from django.contrib.auth.hashers import make_password
+from django.contrib import messages
 
 
 def index(request):
@@ -503,3 +504,49 @@ def reset_password(request):
             return render(request, 'forgetpassword.html', {'otp_verified': True, 'error': error, 'email': email})
     else:
         return render(request, 'login.html')
+    
+
+
+def editprofile(request):
+    if request.method == 'POST':
+        # Get the updated data from the form
+        new_username = request.POST.get('edit_username')
+        new_email = request.POST.get('edit_email')
+        new_phonenumber = request.POST.get('edit_phonenumber')
+
+        # Update user information
+        user = request.user
+        user.username = new_username
+        user.email = new_email
+        user.phonenumber = new_phonenumber
+        user.save()
+
+        # messages.success(request, 'Profile updated successfully!')
+
+    return render(request, 'editprofile.html')
+
+def changepassword(request):
+    if request.method == 'POST':
+        old_password = request.POST.get('edit_old_pass')
+        new_password = request.POST.get('edit_new_pass')
+        confirm_password = request.POST.get('edit_confirm_pass')
+
+        user = request.user
+
+        # Check if the old password matches the user's current password
+        if user.check_password(old_password):
+            # Check if the new password and confirm password match
+            if new_password == confirm_password:
+                # Set the new password for the user
+                user.set_password(new_password)
+                user.save()
+
+                messages.success(request, 'Password changed successfully!')
+                return redirect('profile')  # Redirect to profile or any desired page after password change
+            else:
+                messages.error(request, 'New password and confirm password do not match.')
+        else:
+            messages.error(request, 'Invalid old password.')
+
+    
+    return render(request, 'changepassword.html')
