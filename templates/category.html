@@ -3,7 +3,7 @@
 {% block title %} Category {% endblock %}
 {% block content %}
 <nav>
-    {%include "components/usernav.html" %}
+    {%include "components/navbar.html" %}
 </nav>
 <div>
     {%include "components/sidebar.html" %}
@@ -12,42 +12,46 @@
 
 <div class="container pt-3">
     <hr>
-    <div class="d-flex pt-3 justify-content-between">
+    <div class="d-md-flex d-block pt-3 justify-content-between">
       <div>
         <input type="text" class="form-control" id="table-filter" placeholder="Search...">
       </div>
-      <div>
+      <div class="text-end pt-md-0 pt-5">
         <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
       </div>
     </div>
     
   <div class="row pt-3">
     <div class="col-12">
-        <table>
-            <thead>
+      <div  class="table-responsive">
+        <table >
+          <!-- <thead> -->
+            <tr>
+              <th >#</th>
+              <th >Category Id</th>
+              <th >Category</th>
+              <th >Actions</th>
+            </tr>
+          <!-- </thead> -->
+          <!-- <tbody> -->
+            {% for category in categories %}
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">Category Id</th>
-                <th scope="col">Category</th>
-                <th scope="col">Actions</th>
+                  <td >{{ forloop.counter }}</td>
+                  <td>{{ category.category_id }}</td>
+                  <td>{{ category.category }}</td>
+                  <td>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-id="{{ category.category_id }}" data-category-name="{{ category.category }}">
+                      <i class="fa-solid fa-pen-to-square pe-2 me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
+                    </a>
+                  </td>
               </tr>
-            </thead>
-            <tbody>
-              {% for category in categories %}
-                <tr>
-                    <td scope="row">{{ forloop.counter }}</td>
-                    <td>{{ category.category_id }}</td>
-                    <td>{{ category.category }}</td>
-                    <td>
-                      <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-id="{{ category.category_id }}" data-category-name="{{ category.category }}">
-                        <i class="fa-solid fa-pen-to-square pe-2 me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
-                      </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-          </table>
+              {% endfor %}
+          <!-- </tbody> -->
+        </table>
+      </div>
+        
 
+        
     </div>
     
   </div>
