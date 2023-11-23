@@ -10,39 +10,42 @@
 </div>
 <div class="container pt-3">
     <hr>
-    <div class="d-flex pt-3 justify-content-between">
+    <div class="d-md-flex d-block pt-3 justify-content-between">
         <div >
             <input type="text" class="form-control" id="table-filter" placeholder="Search...">
         </div>
-        <div>
+        <div class="text-end pt-md-0 pt-5">
             <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
         </div>
     </div>
 
     <div class="row pt-3">
         <div class="col-12">
-            <table>
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Category</th>
-                        <th scope="col">Product</th>
-                        <th scope="col">Quantity</th>
-                        <th scope="col">Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr>
-                        <td scope="row">{{ forloop.counter }}</td>
-                        <td>{{ item.category }}</td>
-                        <td>{{ item.product }}</td>
-                        <td>{{ item.quantity }}</td>
-                        <td>{{ item.price }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div  class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td scope="row">{{ forloop.counter }}</td>
+                            <td>{{ item.category }}</td>
+                            <td>{{ item.product }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
         </div>
     </div>
 </div>
