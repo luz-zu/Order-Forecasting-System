@@ -557,3 +557,7 @@ def changepassword(request):
 
     
     return render(request, 'changepassword.html')
+
+def inventorylist(request): 
+    return render(request, 'inventorylist.html')
+
