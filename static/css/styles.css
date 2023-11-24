@@ -1,250 +1,246 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap");
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-a{
-    text-decoration: none;
+a {
+  text-decoration: none;
 }
 
 body {
-    min-height: 100vh;
-    font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
 }
 
-.bg-blue{
-    background-color: #1d2951;
-
+.bg-blue {
+  background-color: #1d2951;
 }
 
-.text-blue{
+.text-blue {
   color: #384e96;
-
 }
 
 .login,
-.register , .bg-grad {
-
-    /* background-image:linear-gradient(#1d2951, #aeb6cf, #1d2951); */
-    background-color: #1d2951;
-
+.register,
+.bg-grad {
+  /* background-image:linear-gradient(#1d2951, #aeb6cf, #1d2951); */
+  background-color: #1d2951;
 }
 
-    
-
+.bg-blue-gradient {
+  /* background-image: linear-gradient(#aeb6cf, #aeb6cf, #1d2951); */
+  background-color: #BBC3E1;
+}
 
 .logout {
-    text-decoration: none;
-    padding: 5px;
-    color: white;
+  text-decoration: none;
+  padding: 5px;
+  color: white;
 }
 
 .logout:hover {
-    padding: 5px;
-    border-radius: 5px;
-    background-color: #384e96;
-    color: white;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #384e96;
+  color: white;
 }
 
 .page_title h3 {
-    font-size: 2rem;
-    text-align: center;
-    color: #1d2951;
+  font-size: 2rem;
+  text-align: center;
+  color: #1d2951;
 }
 
 .title h3 {
-    font-size: 2rem;
-    text-align: center;
-    color: #fff;
+  font-size: 2rem;
+  text-align: center;
+  color: #fff;
 }
 
 .login_field {
-    padding-bottom: 1rem;
+  padding-bottom: 1rem;
 }
 
 .login_field label {
-    font-size: 1rem;
-    color: #1d2951;
+  font-size: 1rem;
+  color: #1d2951;
 }
 
 .forget_pw {
-    text-align: right;
+  text-align: right;
 }
 
 .buttons {
-    padding-top: 1rem;
+  padding-top: 1rem;
 }
 
 .btns {
-    background: #1d2951;
-    text-align: center;
-    width: 100%;
-    border: none;
-    border-radius: 5px;
-    padding: 0.5rem;
-    color: white;
+  background: #1d2951;
+  text-align: center;
+  width: 100%;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem;
+  color: white;
 }
 
- .btns:hover {
-    background: #3b4570;
-    color: white;
+.btns:hover {
+  background: #3b4570;
+  color: white;
 }
 
 .btns_white {
-    background: #fff;
-    text-align: center;
-    width: 100%;
-    border: none;
-    border-radius: 5px;
-    padding: 0.5rem;
-    color: #1d2951;
+  background: #fff;
+  text-align: center;
+  width: 100%;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem;
+  color: #1d2951;
 }
 
 .login_body a {
-    color: blue;
+  color: blue;
 }
 
 .error-message {
-    color: rgb(233, 7, 7);
-    text-align: end;
-    padding-top: 1rem;
+  color: rgb(233, 7, 7);
+  text-align: end;
+  padding-top: 1rem;
 }
 
 .sidebar {
-    position: absolute;
-    width: 15rem;
-    height: 100vh;
-    background: #1d2951;
-    overflow: hidden;
-    transition: 0.5s;
+  position: absolute;
+  width: 15rem;
+  height: 100vh;
+  background: #1d2951;
+  overflow: hidden;
+  transition: 0.5s;
 }
 
 .sidebar:hover {
-    width: 15rem;
+  width: 15rem;
 }
 
 .sidebar ul {
-    position: relative;
-    height: 100vh;
+  position: relative;
+  height: 100vh;
 }
 
 .sidebar ul li {
-    list-style: none;
-    padding: 0rem 1rem;
+  list-style: none;
+  padding: 0rem 1rem;
 }
 
 .sidebar ul list-style:hover {
-    background: #f3f3f3;
+  background: #f3f3f3;
 }
 
 .sidebar ul li a {
-    position: relative;
-    display: flex;
-    white-space: nowrap;
-    text-decoration: none;
+  position: relative;
+  display: flex;
+  white-space: nowrap;
+  text-decoration: none;
 }
 
 .sidebar ul li:hover {
-    background: #384e96;
-    border-radius: 10px;
+  background: #384e96;
+  border-radius: 10px;
 }
 
 .sidebar ul li a .icon {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-width: 40px;
-    padding-right: 1rem;
-    height: 60px;
-    font-size: 1.5em;
-    color: #fff;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 40px;
+  padding-right: 1rem;
+  height: 60px;
+  font-size: 1.5em;
+  color: #fff;
 }
 
 .sidebar ul li a .text {
-    position: relative;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    font-size: 1em;
-    color: #fff;
-    text-transform: uppercase;
+  position: relative;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  font-size: 1em;
+  color: #fff;
+  text-transform: uppercase;
 }
 
 .blue-btn {
-    background-color: #1d2951;
-    padding: 0.4rem 1rem;
-    color: #f3f3f3;
-    border: none;
-    border-radius: 10px;
+  background-color: #1d2951;
+  padding: 0.4rem 1rem;
+  color: #f3f3f3;
+  border: none;
+  border-radius: 10px;
 }
 
 .blue-btn:hover {
-    box-shadow: 0 3px 10px rgba(136, 46, 46, 0.2);
-    background: #384e96;
+  box-shadow: 0 3px 10px rgba(136, 46, 46, 0.2);
+  background: #384e96;
 }
 
-.table-responsive{
-    overflow-x: auto;
-
+.table-responsive {
+  overflow-x: auto;
 }
 
 table {
-    border-collapse: collapse;
-    width: 100%;
-    overflow-x: auto;
+  border-collapse: collapse;
+  width: 100%;
+  overflow-x: auto;
 }
 
-th, td {
-    border: 1px solid #585858a6;
-    padding: 8px;
+th,
+td {
+  border: 1px solid #585858a6;
+  padding: 8px;
 }
-
 
 table tr,
 table th,
 table td {
-    background-color: white;
-    text-align: center;
-    padding: 1rem;
-
+  background-color: white;
+  text-align: center;
+  padding: 1rem;
 }
 
 table th {
-    background-color: #1d2951;
-    color: white;
-    white-space: nowrap;
-
+  background-color: #1d2951;
+  color: white;
+  white-space: nowrap;
 }
 
 tr:nth-child(even) {
-    background: #ebebeb;
+  background: #ebebeb;
 }
 
 .product .card-title_ {
-    color: #1d2951;
+  color: #1d2951;
 }
 
 .products_detail a {
-    text-decoration: none;
-    color: #1a313a;
+  text-decoration: none;
+  color: #1a313a;
 }
 
 .products_card_icons {
-    display: flex;
-    justify-content: space-around;
+  display: flex;
+  justify-content: space-around;
 }
 
 #table-filter {
-    float: right;
+  float: right;
 }
 
 form .custom-input {
-    border: 1px solid #ced4da; 
-    width: 100%;
-    border-radius: 5px;
-    padding: 5px;
+  border: 1px solid #ced4da;
+  width: 100%;
+  border-radius: 5px;
+  padding: 5px;
 }

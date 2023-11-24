@@ -1,9 +1,13 @@
+
+
 {% extends "base.html" %}
 
 {% block title %} Register {% endblock %}
 
 {% block content %}
 {% load static %}
+
+
 <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
 <header>
   <div>
@@ -12,6 +16,16 @@
   </div>
  
 </header>
+
+<div class="messages">
+  {% if messages %}
+      <ul>
+          {% for message in messages %}
+              <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+          {% endfor %}
+      </ul>
+  {% endif %}
+</div>
 
 <div class="register vh-100">
   <form method="POST" novalidate>
@@ -22,6 +36,7 @@
             <div class="page_title">
               <h3>Register</h3>
             </div>
+            
             <div>
               {% csrf_token %} 
               {% for field in form %}

@@ -1,6 +1,6 @@
 from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, login,logout
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse,HttpResponseNotFound
 from django.http import JsonResponse
 from .forms import RegisterForm
 from django.db import connection, IntegrityError
@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDictKeyError
 from django.contrib.auth.hashers import make_password
 from django.contrib import messages
+from django.template.loader import get_template
+
 
 
 def index(request):
@@ -45,12 +47,17 @@ def login_view(request):
     return render(request, 'login.html')
 
 def register(request): 
+   
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
+            messages.success(request, 'Registration successful! You are now logged in.')
             return redirect('login')
+        else:   
+            messages.error(request, 'Registration failed. Please check the provided information.')
+
     else:
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
@@ -542,7 +549,7 @@ def changepassword(request):
                 user.save()
 
                 messages.success(request, 'Password changed successfully!')
-                return redirect('profile')  # Redirect to profile or any desired page after password change
+                return redirect('editprofile')  # Redirect to profile or any desired page after password change
             else:
                 messages.error(request, 'New password and confirm password do not match.')
         else:
