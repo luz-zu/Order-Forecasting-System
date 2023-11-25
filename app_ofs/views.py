@@ -13,14 +13,27 @@ from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
+from functools import wraps
+from django.views.decorators.cache import never_cache
 
+def not_logged_in(function):
+    @wraps(function)
+    def wrap(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return function(request, *args, **kwargs)
+        else:
+            # Redirect authenticated users to a specific URL, like the dashboard
+            return redirect('/dashboard')
+    return wrap
+
+@not_logged_in
 def index(request):
     return render(request, 'index.html')
 
-
+@not_logged_in
+@never_cache
 def login_view(request):
     
-
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -46,6 +59,7 @@ def login_view(request):
             return render(request, 'login.html', {'error': 'Invalid Username or Password'})
     return render(request, 'login.html')
 
+@not_logged_in
 def register(request): 
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -82,8 +96,9 @@ def user_dashboard(request):
             'completedOrder': completedOrders,
             'totalOrder': totalOrders,
         }
-    return render(request, 'dashboard/dashboard.html', context)
 
+    return render(request, 'dashboard/dashboard.html', context)
+    
 @login_required
 def logout_view(request):
     logout(request)
