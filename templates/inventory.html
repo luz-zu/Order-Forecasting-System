@@ -113,11 +113,15 @@
         </div>
     </div>
     <div class="row pt-3">
+        {% for category in categories %}
+
         <div class="col-lg-3 col-md-4 col-sm-6 pt-2" >
             <div class="card bg-blue text-white fs-5">
                 <div class="card-body">
                     <div>
-                        Category 1
+                        
+                        {{ category.category }}
+                        <!-- {{ product.product_name }} -->
                     </div>
                     <div>
                         Total Product : 12
@@ -132,7 +136,9 @@
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-4 col-sm-6 pt-2" >
+        {% endfor %}
+
+        <!-- <div class="col-lg-3 col-md-4 col-sm-6 pt-2" >
             <div class="card bg-blue text-white fs-5">
                 <div class="card-body">
                     <div>
@@ -206,7 +212,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 </div>
 

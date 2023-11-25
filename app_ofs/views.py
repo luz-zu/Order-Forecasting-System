@@ -51,10 +51,14 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
+            # user = form.save()
+            form.save()
             messages.success(request, 'Registration successful! You are now logged in.')
-            return redirect('login')
+            # login(request, user)
+            return render(request, 'register.html',  {'form': form})
+        # , {'form': form}
+
+            # return redirect('login')
         else:   
             messages.error(request, 'Registration failed. Please check the provided information.')
 
@@ -102,7 +106,23 @@ def addnewproduct(request):
     return render (request, 'products/addnew-product.html')
 
 def inventory(request):
-    return render(request, 'inventory.html')
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM category_info")
+        data = cursor.fetchall()
+
+    categories = []
+    for row in data:
+        category = {
+            'category_id': row[1],  # Assuming category_id is in the first column (index 0)
+            'category': row[2],     # Assuming category name is in the second column (index 1)
+        }
+        categories.append(category)
+
+    context = {
+        'categories': categories,
+    }
+
+    return render(request, 'inventory.html', context)
 
 def getCategory(request):
     with connection.cursor() as cursor:
@@ -271,10 +291,12 @@ def delete_product(request, product_id):
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-
+                messages.success(request, "Product Deleted.")
+    
             return HttpResponseRedirect('/products')
         except IntegrityError:
             return HttpResponse("An error occurred while deleting the products")
+        
         
     return render(request, 'products.html')
 
@@ -559,5 +581,6 @@ def changepassword(request):
     return render(request, 'changepassword.html')
 
 def inventorylist(request): 
+    
     return render(request, 'inventorylist.html')
 

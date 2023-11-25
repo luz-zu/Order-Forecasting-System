@@ -1,5 +1,11 @@
 window.onload = function () {
 
+    // flash messages
+    document.getElementById("messages").style.display = "block";
+    setTimeout(function () {
+      document.getElementById("messages").style.display = "none";
+    }, 10000); // Display the messages for 30 seconds (30000 milliseconds)
+
     // category.html
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_category"]').on('click', function () {
         var currCategoryid = $(this).data('category-id');
@@ -177,3 +183,5 @@ window.onload = function () {
         }
     });
 };
+
+
