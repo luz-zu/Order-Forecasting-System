@@ -13,11 +13,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.template.loader import get_template
 
-
-
 def index(request):
     return render(request, 'index.html')
-
 
 def login_view(request):
     if request.method == 'POST':
@@ -47,19 +44,13 @@ def login_view(request):
     return render(request, 'login.html')
 
 def register(request): 
-   
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            # user = form.save()
             form.save()
             messages.success(request, 'Registration successful! You are now logged in.')
-            # login(request, user)
             return render(request, 'register.html',  {'form': form})
-        # , {'form': form}
-
-            # return redirect('login')
-        else:   
+        else:
             messages.error(request, 'Registration failed. Please check the provided information.')
 
     else:
