@@ -12,11 +12,15 @@ from django.utils.datastructures import MultiValueDictKeyError
 from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.template.loader import get_template
+from django.contrib.auth.decorators import login_required
 
 def index(request):
     return render(request, 'index.html')
 
+
 def login_view(request):
+    
+
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -27,16 +31,15 @@ def login_view(request):
             description = "logged in"
             sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
             values = (username, user_ip_address, description)
-
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
+            messages.success(request, 'You have successfully logged in.')
             return HttpResponseRedirect('/dashboard')
         else:
             description = "Incorrect username/password"
             sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
             values = (username, user_ip_address, description)
-
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
@@ -52,12 +55,11 @@ def register(request):
             return render(request, 'register.html',  {'form': form})
         else:
             messages.error(request, 'Registration failed. Please check the provided information.')
-
     else:
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
 
-
+@login_required
 def user_dashboard(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending'")
@@ -82,20 +84,25 @@ def user_dashboard(request):
         }
     return render(request, 'dashboard/dashboard.html', context)
 
+@login_required
 def logout_view(request):
     logout(request)
     return redirect('login')
 
-
+@login_required
 def category(request):
     return render(request, 'category.html')
 
+@login_required
 def products(request):
     return render(request, 'products.html')
 
+@login_required
 def addnewproduct(request):
     return render (request, 'products/addnew-product.html')
 
+
+@login_required
 def inventory(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM category_info")
@@ -108,13 +115,13 @@ def inventory(request):
             'category': row[2],     # Assuming category name is in the second column (index 1)
         }
         categories.append(category)
-
     context = {
         'categories': categories,
     }
 
     return render(request, 'inventory.html', context)
 
+@login_required
 def getCategory(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM category_info")
@@ -134,6 +141,7 @@ def getCategory(request):
 
     return render(request, 'category.html', context)
 
+@login_required
 def addCategory(request):
     if request.method == 'POST':
         category_id = random.randint(1000, 9999)
@@ -165,6 +173,7 @@ def addCategory(request):
             return HttpResponse("Invalid category data")
     return render(request, 'category.html')
 
+@login_required
 def editCategory(request):
     if request.method == 'POST':
         old_category_id = request.POST.get('category_id', '')
@@ -184,6 +193,7 @@ def editCategory(request):
         
     return render(request, 'category.html')
 
+@login_required
 def get_categories_list(request):
     categories_list = []
     with connection.cursor() as cursor:
@@ -194,6 +204,7 @@ def get_categories_list(request):
 
     return JsonResponse(categories_list, safe=False)
 
+@login_required
 def addProduct(request):
     if request.method == 'POST':
         product_id = random.randint(10000, 20000)
@@ -228,7 +239,7 @@ def addProduct(request):
             return HttpResponse("Invalid product data")
     return render(request, 'products.html')
 
-
+@login_required
 def getProduct(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM product_info")
@@ -250,7 +261,7 @@ def getProduct(request):
 
     return render(request, 'products.html', context)
 
-
+@login_required
 def editProduct(request):
     if request.method == 'POST':
         old_product_id = request.POST.get('product_id', '')
@@ -271,6 +282,7 @@ def editProduct(request):
         
     return render(request, 'products.html')
 
+@login_required
 def delete_product(request, product_id):
     if request.method == 'POST':
         getProductID = request.POST.get('product_id', '')
@@ -291,6 +303,7 @@ def delete_product(request, product_id):
         
     return render(request, 'products.html')
 
+@login_required
 def getOrder(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM order_info")
@@ -315,6 +328,7 @@ def getOrder(request):
 
     return render(request, 'orders.html', context)
 
+@login_required
 def get_product_list(request):
     product_list = []
     with connection.cursor() as cursor:
@@ -325,6 +339,7 @@ def get_product_list(request):
 
     return JsonResponse(product_list, safe=False)
 
+@login_required
 def addOrder(request):
     if request.method == 'POST':
         order_id = random.randint(1000, 2000)
@@ -349,6 +364,8 @@ def addOrder(request):
             
     return render(request, 'orders.html')
 
+
+@login_required
 def delete_order(request, order_id):
     if request.method == 'POST':
         getOrderID = request.POST.get('order_id', '')
@@ -366,6 +383,7 @@ def delete_order(request, order_id):
         
     return render(request, 'orders.html')
 
+@login_required
 def getProductCategory(request):
     category = request.GET.get('category')
     print(category)
@@ -382,6 +400,7 @@ def getProductCategory(request):
 
     return JsonResponse(product_list, safe=False)
 
+@login_required
 def addItems(request):
     if request.method == 'POST':
         productCategory = request.POST['product_category']
@@ -404,6 +423,7 @@ def addItems(request):
 
     return render(request, 'inventory.html')
 
+@login_required
 def getItems(request):
     print("hello")
     with connection.cursor() as cursor:
@@ -425,7 +445,6 @@ def getItems(request):
     }
 
     print(context)
-
     return render(request, 'inventory.html', context)
 
 
@@ -526,7 +545,7 @@ def reset_password(request):
         return render(request, 'login.html')
     
 
-
+@login_required
 def editprofile(request):
     if request.method == 'POST':
         # Get the updated data from the form
@@ -545,6 +564,7 @@ def editprofile(request):
 
     return render(request, 'editprofile.html')
 
+@login_required
 def changepassword(request):
     if request.method == 'POST':
         old_password = request.POST.get('edit_old_pass')
@@ -571,6 +591,8 @@ def changepassword(request):
     
     return render(request, 'changepassword.html')
 
+
+@login_required
 def inventorylist(request): 
     
     return render(request, 'inventorylist.html')
