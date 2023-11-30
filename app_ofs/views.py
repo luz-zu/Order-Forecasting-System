@@ -27,6 +27,7 @@ def not_logged_in(function):
     return wrap
 
 @not_logged_in
+@never_cache
 def index(request):
     return render(request, 'index.html')
 
@@ -41,14 +42,14 @@ def login_view(request):
         user_ip_address = request.META.get('REMOTE_ADDR')
         if user is not None:
             login(request, user)
+            messages.success(request, f'Welcome, {user.username}! You have successfully logged in.')
             description = "logged in"
             sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
             values = (username, user_ip_address, description)
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-            messages.success(request, 'You have successfully logged in.')
-            return HttpResponseRedirect('/dashboard')
+            return redirect('/dashboard')
         else:
             description = "Incorrect username/password"
             sql_query = "INSERT INTO logs (username, ip, description) VALUES (%s, %s, %s)"
@@ -60,6 +61,7 @@ def login_view(request):
     return render(request, 'login.html')
 
 @not_logged_in
+@never_cache
 def register(request): 
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -99,9 +101,10 @@ def user_dashboard(request):
 
     return render(request, 'dashboard/dashboard.html', context)
     
-@login_required
+# @login_required
 def logout_view(request):
     logout(request)
+    messages.success(request, 'You have successfully logged out.')
     return redirect('login')
 
 @login_required
@@ -169,7 +172,8 @@ def addCategory(request):
                 getExistingCategoryData = cursor.fetchone()
         
             if getExistingCategoryData:
-                return HttpResponse("Category already exists")
+                messages.info(request, 'Category Already Existed!')
+                return HttpResponseRedirect('/category')
 
 
             sql_query = "INSERT INTO category_info (category_id, category) VALUES (%s, %s)"
@@ -179,7 +183,7 @@ def addCategory(request):
                 with connection.cursor() as cursor:
                     cursor.execute(sql_query, values)
                     connection.commit()
-
+                messages.success(request, 'Category Added successfully!')
                 return HttpResponseRedirect('/category')
             except IntegrityError:
                 return HttpResponse("An error occurred while adding the category")
@@ -201,10 +205,10 @@ def editCategory(request):
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-
-            return HttpResponseRedirect('/category')
+            return messages.success(request, 'Category Edited successfully!')
+            # return HttpResponseRedirect('/category')
         except IntegrityError:
-            return HttpResponse("An error occurred while editing the category name")
+            return messages.info(request, 'Category Edited successfully!')
         
     return render(request, 'category.html')
 
@@ -537,6 +541,7 @@ def verify_otp(request):
     else:
         return render(request, 'forgetpassword.html', {'otp_verified': False, 'otp_sent': False})
 
+@login_required
 def reset_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -568,18 +573,30 @@ def editprofile(request):
         new_email = request.POST.get('edit_email')
         new_phonenumber = request.POST.get('edit_phonenumber')
 
-        # Update user information
         user = request.user
-        user.username = new_username
-        user.email = new_email
-        user.phonenumber = new_phonenumber
-        user.save()
+        changed_fields = []
+        if new_username != user.username:
+            user.username = new_username
+            changed_fields.append('Username')
 
-        # messages.success(request, 'Profile updated successfully!')
+        if new_email != user.email:
+            user.email = new_email
+            changed_fields.append('Email')
+
+        if new_phonenumber != user.phone_number:
+            user.phone_number = new_phonenumber
+            changed_fields.append('Phone Number')
+
+        if changed_fields:
+            user.save()
+            changed_fields_str = ' & '.join(changed_fields)
+            messages.success(request, f'{changed_fields_str} have been updated successfully!')
+        else:
+            messages.info(request, 'No changes detected. Profile remains unchanged.')
 
     return render(request, 'editprofile.html')
 
-@login_required
+# @login_required
 def changepassword(request):
     if request.method == 'POST':
         old_password = request.POST.get('edit_old_pass')
@@ -594,10 +611,11 @@ def changepassword(request):
             if new_password == confirm_password:
                 # Set the new password for the user
                 user.set_password(new_password)
+                messages.success(request, 'Password changed successfully!')
                 user.save()
 
-                messages.success(request, 'Password changed successfully!')
-                return redirect('editprofile')  # Redirect to profile or any desired page after password change
+                
+                return render(request, 'changepassword.html')
             else:
                 messages.error(request, 'New password and confirm password do not match.')
         else:

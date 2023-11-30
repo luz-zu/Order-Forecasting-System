@@ -10,6 +10,16 @@
 </div>
 
 
+<div id="messages" style="display: none">
+  {% for msg in messages %}
+  {% if msg.tags == 'success' %}
+    <div class="alert alert-success" role="alert">{{ msg }}</div>
+  {% elif msg.tags == 'info' %}
+    <div class="alert alert-info" role="alert">{{ msg }}</div>
+  {% endif %}
+{% endfor %}
+</div>
+
 <div class="container pt-3">
     <hr>
     <div class="row">
@@ -38,12 +48,11 @@
 
                           <div class="pb-3 login_field">
                             <label for="edit_phonenumber" class="form-label text-white">Phone Number</label>
-                            <input type="text"   class="form-control" name="edit_phonenumber"  id="edit_phonenumber" value="{{user.email}}" >
+                            <input type="text"   class="form-control" name="edit_phonenumber"  id="edit_phonenumber" value="{{user.last_name}}" >
                           </div>
 
                           <div class="buttons" >
                             <button type="submit" class="btns_white">Save</button>
-
                           </div>
                         </form>
 

@@ -9,6 +9,16 @@
     {%include "components/sidebar.html" %}
 </div>
 
+<div id="messages" style="display: none">
+  {% for msg in messages %}
+  {% if msg.tags == 'success' %}
+    <div class="alert alert-success" role="alert">{{ msg }}</div>
+  {% elif msg.tags == 'info' %}
+    <div class="alert alert-info" role="alert">{{ msg }}</div>
+  {% endif %}
+{% endfor %}
+</div>
+
 
 <div class="container pt-3">
     <hr>
