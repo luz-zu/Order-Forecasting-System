@@ -113,6 +113,7 @@ def category(request):
 
 @login_required
 def products(request):
+    
     return render(request, 'products.html')
 
 @login_required
@@ -229,21 +230,22 @@ def addProduct(request):
         product_id = random.randint(10000, 20000)
         getCategory = request.POST.get('product_category')
         product_name = request.POST['product_name']
-        product_description = request.POST['product_description']
-
+        product_description = request.POST['product_description']  
+        current_user_id = request.user.id
 
         if product_name:
             checkExistingProduct = "SELECT product_id FROM product_info WHERE product_name = %s"
             with connection.cursor() as cursor:
                 cursor.execute(checkExistingProduct, (product_name,))
                 getExistingProductData = cursor.fetchone()
+
         
             if getExistingProductData:
                 return HttpResponse("Product already exists")
 
 
-            sql_query = "INSERT INTO product_info (product_id, category, product_name, product_description) VALUES (%s, %s, %s, %s)"
-            values = (product_id, getCategory, product_name, product_description)
+            sql_query = "INSERT INTO product_info (product_id, product_name, product_description, category, userid) VALUES (%s, %s, %s, %s,%s)"
+            values = (product_id, product_name, product_description, getCategory, current_user_id)
 
             try:
                 with connection.cursor() as cursor:
@@ -258,25 +260,42 @@ def addProduct(request):
             return HttpResponse("Invalid product data")
     return render(request, 'products.html')
 
+
+
+
 @login_required
 def getProduct(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM product_info")
         data = cursor.fetchall()
 
+        cursor.execute("SELECT * FROM category_info")
+        category_data = cursor.fetchall()
+
     products = []
     for row in data:
         product = {
             'product_id': row[1],
-            'category': row[2],
-            'product_name': row[3],
-            'product_description': row[4],
+            'product_name': row[2],
+            'product_description': row[3],
+            'category': row[4],           
         }
         products.append(product)
+      
 
+    categories = []
+    for row in category_data:
+        category = {
+            'category_id': row[1],  # Assuming category_id is in the first column (index 0)
+            'category': row[2],     # Assuming category name is in the second column (index 1)
+        }
+        categories.append(category)
     context = {
+        'categories': categories,
         'products': products,
     }
+
+    # print(context_category)
 
     return render(request, 'products.html', context)
 
@@ -284,6 +303,7 @@ def getProduct(request):
 def editProduct(request):
     if request.method == 'POST':
         old_product_id = request.POST.get('product_id', '')
+        print(old_product_id)    
         new_product_name = request.POST.get('new_product_name', '')
         new_product_description = request.POST.get('new_product_description', '')
 

@@ -179,11 +179,9 @@
               >
                 <option value="">Select a category</option>
                 {% for category in categories %}
-                <option value="">{{ category.category }}</option>
+                <option value="{{ category.category_id }}">{{ category.category }}</option>
 
                 {% endfor%}
-
-
               </select>
             </div>
           </div>
@@ -250,7 +248,7 @@
         <form method="POST" action="{% url 'editProduct' %}">
           {% csrf_token %}
 
-          <input type="hidden" name="product_id" id="product_id" />
+          <input type="" name="product_id" id="product_id" value="{{ products.product_id }}" />
 
           <div class="mb-3">
             <label for="new_product_name" class="col-form-label"
