@@ -382,24 +382,28 @@ def getOrder(request):
 @login_required
 def editOrder(request):
     if request.method == 'POST':
-        order_id = request.POST.get('orderid', '')
-        print(old_product_id)    
-        new_product_name = request.POST.get('new_product_name', '')
-        new_product_description = request.POST.get('new_product_description', '')
+        old_orderid = request.POST.get('old_orderid', '')
+        print(old_orderid)    
+        edit_quantity = request.POST.get('edit_quantity', '')
+        edit_price = request.POST.get('edit_price', '')
+        edit_delivery_date = request.POST.get('edit_delivery_date', '')
+        edit_status = request.POST.get('edit_status', '')
 
-        sql_query = "UPDATE product_info SET product_name = %s, product_description = %s WHERE product_id = %s"
-        values = (new_product_name, new_product_description, old_product_id)
+
+
+        sql_query = "UPDATE order_info SET quantity = %s, price = %s, delivery_date = %s, status = %s WHERE order_id = %s"
+        values = (edit_quantity, edit_price, edit_delivery_date, edit_status, old_orderid)
 
         try:
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
 
-            return HttpResponseRedirect('/products')
+            return HttpResponseRedirect('/orders')
         except IntegrityError:
-            return HttpResponse("An error occurred while editing the product details")
+            return HttpResponse("An error occurred while editing the order details")
         
-    return render(request, 'products.html')
+    return render(request, 'orders.html')
 
 
 @login_required

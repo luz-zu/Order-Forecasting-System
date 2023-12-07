@@ -30,10 +30,10 @@ window.onload = function () {
 
 
     // flash messages
-    document.getElementById("messages").style.display = "block";
-    setTimeout(function() {
-        document.getElementById("messages").style.display = "none";
-    }, 10000); // Display the messages for 10 seconds (10000 milliseconds)
+    // document.getElementById("messages").style.display = "block";
+    // setTimeout(function() {
+    //     document.getElementById("messages").style.display = "none";
+    // }, 10000); // Display the messages for 10 seconds (10000 milliseconds)
 
     // category.html
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_category"]').on('click', function () {
@@ -57,6 +57,7 @@ window.onload = function () {
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_order"]').on('click', function () {
         var currOrderId = $(this).data('order-id');
         document.getElementById('old_orderid').value = currOrderId;
+        console.log(currOrderId);
     });
      
 

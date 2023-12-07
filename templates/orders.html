@@ -156,7 +156,7 @@
             <div class="modal-body">
                 <form method="post" action="{% url 'editOrder' %}">
                     {% csrf_token %}
-                    <input type="" name="old_orderid" id="old_orderid"  />
+                    <input type="hidden" name="old_orderid" id="old_orderid"  />
                     <!-- <div class="mb-3">
                         <label for="order_product_name" class="col-form-label">Product:</label>
                         <select name="order_product_name" id="product_dropdown" class="form-control">
@@ -168,8 +168,8 @@
                     </div> -->
 
                     <div class="mb-3">
-                        <label for="quantity" class="col-form-label">Quantity:</label>
-                        <input type="number" class="form-control" name="quantity" id="quantity" required>
+                        <label for="edit_quantity" class="col-form-label">Quantity:</label>
+                        <input type="number" class="form-control" name="edit_quantity" id="edit_quantity" >
                     </div>
 
                     <!-- <div class="mb-3">
@@ -178,18 +178,18 @@
                     </div> -->
 
                     <div class="mb-3">
-                        <label for="price" class="form-label">Price:</label>
-                        <input type="number" class="form-control" name="price" id="price" required>
+                        <label for="edit_price" class="form-label">Price:</label>
+                        <input type="number" class="form-control" name="edit_price" id="edit_price" >
                     </div>
 
                     <div class="mb-3">
-                        <label for="delivery_date" class="form-label">Delivery Date:</label>
-                        <input type="date" class="form-control datepicker" name="delivery_date" id="delivery_date" required>
+                        <label for="edit_delivery_date" class="form-label">Delivery Date:</label>
+                        <input type="date" class="form-control datepicker" name="edit_delivery_date" id="edit_delivery_date" >
                     </div>
 
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status:</label>
-                        <select class="form-control" name="status" id="status">
+                        <label for="edit_status" class="form-label">Status:</label>
+                        <select class="form-control" name="edit_status" id="edit_status">
                             <option value="Ongoing">Ongoing</option>
                             <option value="Pending">Pending</option>
                             <option value="Completed">Completed</option>
