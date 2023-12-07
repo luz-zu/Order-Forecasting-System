@@ -205,10 +205,10 @@ def editCategory(request):
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-            return messages.success(request, 'Category Edited successfully!')
-            # return HttpResponseRedirect('/category')
+            messages.success(request, 'Category Edited successfully!')
+            return HttpResponseRedirect('/category')
         except IntegrityError:
-            return messages.info(request, 'Category Edited successfully!')
+            return messages.error(request, 'Failed Editing Category!')
         
     return render(request, 'category.html')
 

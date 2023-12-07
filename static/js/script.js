@@ -4,6 +4,31 @@ window.onload = function () {
         window.history.replaceState(null, null, window.location.href);
     }
 
+    // disable date
+    const orderDateInput = document.getElementById('ordered_date');
+    const deliveryDateInput = document.getElementById('delivery_date');
+
+    orderDateInput.addEventListener('change', function() {
+    const selectedOrderDate = new Date(orderDateInput.value);
+    
+    const currentDate = new Date();
+
+    const minDeliveryDate = new Date(selectedOrderDate);
+    minDeliveryDate.setDate(selectedOrderDate.getDate() + 1);
+
+    deliveryDateInput.setAttribute('min', minDeliveryDate.toISOString().split('T')[0]);
+
+    deliveryDateInput.disabled = false;
+    
+    if (selectedOrderDate < currentDate) {
+        alert("Please select a valid future order date.");
+        orderDateInput.value = '';
+        deliveryDateInput.value = '';
+        deliveryDateInput.disabled = true;
+    }
+    });
+
+
     // flash messages
     document.getElementById("messages").style.display = "block";
     setTimeout(function() {

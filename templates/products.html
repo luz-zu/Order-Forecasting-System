@@ -171,12 +171,19 @@
               >Category:</label
             >
             <div>
+
               <select
                 name="product_category"
                 id="category_dropdown"
                 class="form-control"
               >
                 <option value="">Select a category</option>
+                {% for category in categories %}
+                <option value="">{{ category.category }}</option>
+
+                {% endfor%}
+
+
               </select>
             </div>
           </div>

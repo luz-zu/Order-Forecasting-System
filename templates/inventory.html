@@ -116,7 +116,7 @@
         {% for category in categories %}
 
         <div class="col-lg-3 col-md-4 col-sm-6 pt-2" >
-            <div class="card bg-blue text-white fs-5">
+            <div class="card bg-blue-gradient text-blue fs-5">
                 <div class="card-body">
                     <div>
                         
@@ -129,7 +129,7 @@
                     <hr>
                     <div class="text-end">
                         <a href="">
-                            <button class="btns_white">View Products</button>
+                            <button class="btns">View Products</button>
                         </a>
                     </div>
                 </div>
@@ -232,6 +232,9 @@
                       <div>
                         <select name="product_category" id="category_dropdown" class="form-control">
                           <option value="">Select a category</option>
+                          {% for category in categories %}
+                          <option value="">{{category.category}}</option>
+                          {% endfor %}
                         </select>
                       </div>
                     </div>
