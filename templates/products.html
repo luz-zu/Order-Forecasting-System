@@ -3,17 +3,19 @@
 {% load static %}
 
 <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-<script src="{% static 'script.js' %}"> </script>
+
 
 <nav>{%include "components/navbar.html" %}</nav>
 <div>{%include "components/sidebar.html" %}</div>
 
+<div id="messages" style="display: none">
+  {% for msg in messages %}
+  <div class="alert alert-success" role="alert">{{ msg }}</div>
+  {% endfor %}
+</div>
+
 <div class="container pt-3">
-  <div id="messages" style="display: none">
-    {% for msg in messages %}
-    <div class="alert alert-success" role="alert">{{ msg }}</div>
-    {% endfor %}
-  </div>
+ 
 
   <script>
     // Function to display messages for 30 seconds and then hide
@@ -248,7 +250,7 @@
         <form method="POST" action="{% url 'editProduct' %}">
           {% csrf_token %}
 
-          <input type="" name="product_id" id="product_id" value="{{ products.product_id }}" />
+          <input type="hidden" name="product_id" id="product_id" value="{{ products.product_id }}" />
 
           <div class="mb-3">
             <label for="new_product_name" class="col-form-label"
@@ -290,5 +292,6 @@
   </div>
 </div>
 
+<script src="{% static 'script.js' %}"> </script>
 {% load static %} 
 {% endblock %}

@@ -5,28 +5,28 @@ window.onload = function () {
     }
 
     // disable date
-    const orderDateInput = document.getElementById('ordered_date');
-    const deliveryDateInput = document.getElementById('delivery_date');
+    // const orderDateInput = document.getElementById('ordered_date');
+    // const deliveryDateInput = document.getElementById('delivery_date');
 
-    orderDateInput.addEventListener('change', function() {
-    const selectedOrderDate = new Date(orderDateInput.value);
+    // orderDateInput.addEventListener('change', function() {
+    // const selectedOrderDate = new Date(orderDateInput.value);
     
-    const currentDate = new Date();
+    // const currentDate = new Date();
 
-    const minDeliveryDate = new Date(selectedOrderDate);
-    minDeliveryDate.setDate(selectedOrderDate.getDate() + 1);
+    // const minDeliveryDate = new Date(selectedOrderDate);
+    // minDeliveryDate.setDate(selectedOrderDate.getDate() + 1);
 
-    deliveryDateInput.setAttribute('min', minDeliveryDate.toISOString().split('T')[0]);
+    // deliveryDateInput.setAttribute('min', minDeliveryDate.toISOString().split('T')[0]);
 
-    deliveryDateInput.disabled = false;
+    // deliveryDateInput.disabled = false;
     
-    if (selectedOrderDate < currentDate) {
-        alert("Please select a valid future order date.");
-        orderDateInput.value = '';
-        deliveryDateInput.value = '';
-        deliveryDateInput.disabled = true;
-    }
-    });
+    // if (selectedOrderDate < currentDate) {
+    //     alert("Please select a valid future order date.");
+    //     orderDateInput.value = '';
+    //     deliveryDateInput.value = '';
+    //     deliveryDateInput.disabled = true;
+    // }
+    // });
 
 
     // flash messages
@@ -52,6 +52,13 @@ window.onload = function () {
         document.getElementById('new_product_name').value = currProductName;
         document.getElementById('new_product_description').value = currProductDescription;
     });
+
+    // order.html
+    $('a[data-bs-toggle="modal"][data-bs-whatever="edit_order"]').on('click', function () {
+        var currOrderId = $(this).data('order-id');
+        document.getElementById('old_orderid').value = currOrderId;
+    });
+     
 
 
     // below code is to display the available category data in the dropdown menu

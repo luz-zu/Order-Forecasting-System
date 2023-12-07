@@ -348,6 +348,9 @@ def getOrder(request):
         cursor.execute("SELECT * FROM order_info")
         data = cursor.fetchall()
 
+        cursor.execute("SELECT * FROM product_info")
+        product_data = cursor.fetchall()
+
     orders = []
     for row in data:
         order = {
@@ -361,11 +364,43 @@ def getOrder(request):
         }
         orders.append(order)
 
+    products = []
+    for row in product_data:
+        product = {
+            'product_id': row[1],
+            'product_name': row[2],
+        }
+        products.append(product)
     context = {
         'orders': orders,
+        'products': products,
+
     }
 
     return render(request, 'orders.html', context)
+
+@login_required
+def editOrder(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('orderid', '')
+        print(old_product_id)    
+        new_product_name = request.POST.get('new_product_name', '')
+        new_product_description = request.POST.get('new_product_description', '')
+
+        sql_query = "UPDATE product_info SET product_name = %s, product_description = %s WHERE product_id = %s"
+        values = (new_product_name, new_product_description, old_product_id)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql_query, values)
+                connection.commit()
+
+            return HttpResponseRedirect('/products')
+        except IntegrityError:
+            return HttpResponse("An error occurred while editing the product details")
+        
+    return render(request, 'products.html')
+
 
 @login_required
 def get_product_list(request):
@@ -388,9 +423,10 @@ def addOrder(request):
         price = request.POST['price']
         delivery_date = request.POST['delivery_date']
         status = request.POST['status']
+        current_user_id = request.user.id
 
-        sql_query = "INSERT INTO order_info (order_id, order_product_name, quantity, ordered_date, price, delivery_date, status) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-        values = (order_id, order_product_name, quantity,ordered_date , price, delivery_date, status)
+        sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        values = (order_id, order_product_name, quantity,ordered_date , price, delivery_date, status, current_user_id)
 
         try:
             with connection.cursor() as cursor:
