@@ -123,9 +123,28 @@ def addnewproduct(request):
 
 @login_required
 def inventory(request):
+    current_user_id = request.user.id
+    sql_category = "SELECT * FROM category_info where userid = %s"
+
+    sql_product = "SELECT * FROM product_info where userid = %s"
+    value = (current_user_id,)
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM category_info")
+        cursor.execute(sql_category, value)
         data = cursor.fetchall()
+        cursor.execute(sql_product, value)
+        product_data = cursor.fetchall()
+
+
+    products = []
+    for row in product_data:
+        product = {
+            'product_id': row[1],
+            'product_name': row[2],
+            'product_description': row[3],
+            'category': row[4],           
+        }
+        products.append(product)
+      
 
     categories = []
     for row in data:
@@ -136,14 +155,20 @@ def inventory(request):
         categories.append(category)
     context = {
         'categories': categories,
+        'products':products,
     }
+
+ 
 
     return render(request, 'inventory.html', context)
 
 @login_required
 def getCategory(request):
+    current_user_id = request.user.id
+    sql_query = "SELECT * FROM category_info where userid = %s"
+
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM category_info")
+        cursor.execute(sql_query, (current_user_id,))
         data = cursor.fetchall()
 
     categories = []
@@ -165,11 +190,12 @@ def addCategory(request):
     if request.method == 'POST':
         category_id = random.randint(1000, 9999)
         category = request.POST.get('category', None)
+        current_user_id =request.user.id
 
         if category is not None:
-            checkExistingCategory = "SELECT category_id FROM category_info WHERE category = %s"
+            checkExistingCategory = "SELECT category_id FROM category_info WHERE category = %s and userid =%s"
             with connection.cursor() as cursor:
-                cursor.execute(checkExistingCategory, (category,))
+                cursor.execute(checkExistingCategory, (category, current_user_id))
                 getExistingCategoryData = cursor.fetchone()
         
             if getExistingCategoryData:
@@ -177,8 +203,8 @@ def addCategory(request):
                 return HttpResponseRedirect('/category')
 
 
-            sql_query = "INSERT INTO category_info (category_id, category) VALUES (%s, %s)"
-            values = (category_id, category)
+            sql_query = "INSERT INTO category_info (category_id, category, userid) VALUES (%s, %s,%s)"
+            values = (category_id, category,current_user_id)
 
             try:
                 with connection.cursor() as cursor:
@@ -198,9 +224,10 @@ def editCategory(request):
     if request.method == 'POST':
         old_category_id = request.POST.get('category_id', '')
         old_category_name = request.POST.get('old_category_name', '')
+        current_user_id =request.user.id
 
-        sql_query = "UPDATE category_info SET category = %s WHERE category_id = %s"
-        values = (old_category_name, old_category_id)
+        sql_query = "UPDATE category_info SET category = %s WHERE category_id = %s and userid = %s"
+        values = (old_category_name, old_category_id, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -215,9 +242,12 @@ def editCategory(request):
 
 @login_required
 def get_categories_list(request):
+    current_user_id = request.user.id
+
     categories_list = []
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, category FROM category_info")
+        cursor.execute("SELECT id, category FROM category_info WHERE userid =%s")
+        values = (current_user_id)
         categories = cursor.fetchall()
         for category in categories:
             categories_list.append({'id': category[0], 'category': category[1]})
@@ -234,9 +264,9 @@ def addProduct(request):
         current_user_id = request.user.id
 
         if product_name:
-            checkExistingProduct = "SELECT product_id FROM product_info WHERE product_name = %s"
+            checkExistingProduct = "SELECT product_id FROM product_info WHERE product_name = %s and userid = %s"
             with connection.cursor() as cursor:
-                cursor.execute(checkExistingProduct, (product_name,))
+                cursor.execute(checkExistingProduct, (product_name,current_user_id,))
                 getExistingProductData = cursor.fetchone()
 
         
@@ -265,11 +295,15 @@ def addProduct(request):
 
 @login_required
 def getProduct(request):
+    current_user_id = request.user.id
+    sql_query_product = "SELECT * FROM product_info where userid = %s"
+    sql_query_category = "SELECT * FROM category_info where userid = %s"
+
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM product_info")
+        cursor.execute(sql_query_product, (current_user_id,))
         data = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM category_info")
+        cursor.execute(sql_query_category, (current_user_id,))
         category_data = cursor.fetchall()
 
     products = []
@@ -301,14 +335,15 @@ def getProduct(request):
 
 @login_required
 def editProduct(request):
+    current_user_id = request.user.id
+
     if request.method == 'POST':
         old_product_id = request.POST.get('product_id', '')
-        print(old_product_id)    
         new_product_name = request.POST.get('new_product_name', '')
         new_product_description = request.POST.get('new_product_description', '')
 
-        sql_query = "UPDATE product_info SET product_name = %s, product_description = %s WHERE product_id = %s"
-        values = (new_product_name, new_product_description, old_product_id)
+        sql_query = "UPDATE product_info SET product_name = %s, product_description = %s WHERE product_id = %s and userid = %s"
+        values = (new_product_name, new_product_description, old_product_id,current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -323,11 +358,12 @@ def editProduct(request):
 
 @login_required
 def delete_product(request, product_id):
+    current_user_id = request.user.id
     if request.method == 'POST':
         getProductID = request.POST.get('product_id', '')
 
-        sql_query = "DELETE from product_info WHERE product_id = %s"
-        values = (getProductID)
+        sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
+        values = (getProductID, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -344,22 +380,29 @@ def delete_product(request, product_id):
 
 @login_required
 def getOrder(request):
+    current_user_id = request.user.id
+    sql_query_order = "SELECT * FROM order_info WHERE userid = %s"
+    values_order = (current_user_id)
+    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
+    values_product = (current_user_id)
+
+    # values = (getProductID, current_user_id)
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM order_info")
+        cursor.execute(sql_query_order, values_order)
         data = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM product_info")
+        cursor.execute(sql_query_product, values_product)
         product_data = cursor.fetchall()
 
     orders = []
     for row in data:
         order = {
             'order_id': row[1],
-            'order_product_name': row[2],
-            'quantity': row[3],
-            'ordered_date': row[4],
+            'order_product_name': row[7],
+            'quantity': row[2],
+            'ordered_date': row[3],
             'price': row[5],
-            'delivery_date': row[6],
+            'delivery_date': row[4],
             'status': row[7],
         }
         orders.append(order)
@@ -381,18 +424,16 @@ def getOrder(request):
 
 @login_required
 def editOrder(request):
+    current_user_id = request.user.id
     if request.method == 'POST':
         old_orderid = request.POST.get('old_orderid', '')
-        print(old_orderid)    
         edit_quantity = request.POST.get('edit_quantity', '')
         edit_price = request.POST.get('edit_price', '')
         edit_delivery_date = request.POST.get('edit_delivery_date', '')
         edit_status = request.POST.get('edit_status', '')
 
-
-
-        sql_query = "UPDATE order_info SET quantity = %s, price = %s, delivery_date = %s, status = %s WHERE order_id = %s"
-        values = (edit_quantity, edit_price, edit_delivery_date, edit_status, old_orderid)
+        sql_query = "UPDATE order_info SET quantity = %s, price = %s, delivery_date = %s, status = %s WHERE order_id = %s and userid = %s"
+        values = (edit_quantity, edit_price, edit_delivery_date, edit_status, old_orderid, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -407,10 +448,13 @@ def editOrder(request):
 
 
 @login_required
-def get_product_list(request):
+def get_product_list(request): 
+    current_user_id = request.user.id   
+    sql_query_product = "SELECT id, product_name FROM product_info where userid = %s"
+    values = (current_user_id)
     product_list = []
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, product_name FROM product_info")
+        cursor.execute(sql_query_product, values)
         products = cursor.fetchall()
         for product in products:
             product_list.append({'id': product[0], 'product': product[1]})
@@ -446,10 +490,11 @@ def addOrder(request):
 
 @login_required
 def delete_order(request, order_id):
+    current_user_id =  request.user.id
     if request.method == 'POST':
         getOrderID = request.POST.get('order_id', '')
-        sql_query = "DELETE from order_info WHERE order_id = %s"
-        values = (getOrderID)
+        sql_query = "DELETE from order_info WHERE order_id = %s and userid = %s"
+        values = (getOrderID, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -465,16 +510,16 @@ def delete_order(request, order_id):
 @login_required
 def getProductCategory(request):
     category = request.GET.get('category')
-    print(category)
+    current_user_id =  request.user.id
 
     product_list = []
     with connection.cursor() as cursor:
-        sql_query = "SELECT id, product_name FROM product_info WHERE category = %s"
-        cursor.execute(sql_query, [category])
+        sql_query = "SELECT id, product_name FROM product_info WHERE category = %s and userid =%s"
+        cursor.execute(sql_query, [category, current_user_id])
         products = cursor.fetchall()
-        print(products)
+        # print(products)
         for product in products:
-            print(product[1])
+            # print(product[1])
             product_list.append({'id': product[0], 'product': product[1]})
 
     return JsonResponse(product_list, safe=False)
@@ -482,14 +527,22 @@ def getProductCategory(request):
 @login_required
 def addItems(request):
     if request.method == 'POST':
-        productCategory = request.POST['product_category']
-        product = request.POST['getProductCategory']
-        quantity = request.POST['quantity']
-        price = request.POST['price']
+        product = request.POST.get('getProductCategory', '')
+        quantity = request.POST.get('quantity', '')
+        price = request.POST.get('price', '')
+        current_user_id = request.user.id
 
+        new_query = "SELECT product_name from product_info WHERE product_name = %s and userid = %s"
+        values = (product,current_user_id,)
 
-        sql_query = "INSERT INTO inventory_details (category, product, quantity, price) VALUES (%s, %s, %s, %s)"
-        values = (productCategory, product, quantity, price)
+        with connection.cursor() as cursor:
+            cursor.execute(new_query, values)
+            getCategoryId = cursor.fetchone()
+        
+            print("Product Name", getCategoryId)
+
+        sql_query = "INSERT INTO inventory_details (productid, quantity, price, categoryid, userid) VALUES (%s, %s, %s,%s,%s)"
+        values = (product, quantity, price, getCategoryId,current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -504,9 +557,11 @@ def addItems(request):
 
 @login_required
 def getItems(request):
-    print("hello")
+    current_user_id = request.user.id
+    sql_query_inventory = "SELECT * FROM inventory_details where userid = %d"
+    values = (current_user_id)
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM inventory_details")
+        cursor.execute(sql_query_inventory, values)
         data = cursor.fetchall()
 
     itemList = []
@@ -664,15 +719,17 @@ def changepassword(request):
         confirm_password = request.POST.get('edit_confirm_pass')
 
         user = request.user
-
+        email = user.email
+        print(email)
         # Check if the old password matches the user's current password
         if user.check_password(old_password):
+            print("checked old password")
             # Check if the new password and confirm password match
             if new_password == confirm_password:
-                # Set the new password for the user
-                user.set_password(new_password)
+                hashed_password = make_password(new_password)
+                with connection.cursor() as cursor:
+                    cursor.execute("UPDATE app_ofs_customuser SET password = %s WHERE email = %s", [hashed_password, email])
                 messages.success(request, 'Password changed successfully!')
-                user.save()
 
                 
                 return render(request, 'changepassword.html')
@@ -686,7 +743,65 @@ def changepassword(request):
 
 
 @login_required
-def inventorylist(request): 
-    
-    return render(request, 'inventorylist.html')
+def inventorylist(request, category_name): 
+    current_user_id = request.user.id
+    sql_query = "SELECT category_id from category_info WHERE category= %s and cur"
+    values = (category_name,)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query, values)
+        getCategoryId = cursor.fetchone()
+    print("pro", getCategoryId)
+    sql_query_product = "SELECT i.quantity, i.price, i.productid, p.product_name " \
+                        "FROM inventory_details i " \
+                        "INNER JOIN product_info p ON i.productid = p.product_id " \
+                        "WHERE p.category = %s"  # Filter by category name instead of category_id
+    value_inventory = (getCategoryId,)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_product, value_inventory)
+        getInventoryData = cursor.fetchall()
+
+    itemList = []
+    for row in getInventoryData:
+        items = {
+            'quantity': row[0],
+            'price': row[1],
+            'product_name': row[3],  # Index 3 holds the product_name
+        }
+        itemList.append(items)
+
+    context = {
+        'items': itemList,
+    } 
+    return render(request, 'inventorylist.html', context)
+
+
+    # sql_query_product = "SELECT * from inventory_details WHERE categoryid= %s"
+    # value_inventory = (getCategoryId,)
+
+    # sql_query_product = "SELECT i.quantity, i.price, i.productid, i.categoryid, p.product_name " \
+    #                         "FROM inventory_details i " \
+    #                         "INNER JOIN product_info p ON i.productid = p.product_id " \
+    #                         "WHERE i.categoryid = %s"
+    # value_inventory = (getCategoryId,)
+
+    # with connection.cursor() as cursor:
+    #     cursor.execute(sql_query_product, value_inventory)
+    #     getInventoryData = cursor.fetchall()
+    # print(getInventoryData)
+
+    # itemList = []
+    # for row in getInventoryData:
+    #     items = {
+    #         'quantity': row[0],
+    #         'price': row[1],
+    #         'product_name': row[4],
+    #     }
+    #     itemList.append(items)
+
+    # context = {
+    #     'items': itemList,
+    # } 
+    # return render(request, 'inventorylist.html', context)
 

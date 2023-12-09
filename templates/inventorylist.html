@@ -24,7 +24,6 @@
                     <thead>
                         <tr>
                             <th scope="col">#</th>
-                            <th scope="col">Category</th>
                             <th scope="col">Product</th>
                             <th scope="col">Quantity</th>
                             <th scope="col">Price</th>
@@ -34,8 +33,7 @@
                         {% for item in items %}
                         <tr>
                             <td scope="row">{{ forloop.counter }}</td>
-                            <td>{{ item.category }}</td>
-                            <td>{{ item.product }}</td>
+                            <td>{{ item.product_name }}</td>
                             <td>{{ item.quantity }}</td>
                             <td>{{ item.price }}</td>
                         </tr>

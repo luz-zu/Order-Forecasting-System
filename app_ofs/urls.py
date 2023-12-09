@@ -32,5 +32,5 @@ urlpatterns = [
     path('reset_password/', views.reset_password, name='reset_password'),
     path('editprofile/', views.editprofile, name='editprofile'),
     path('changepassword/', views.changepassword, name='changepassword'),
-    path('inventorylist/', views.inventorylist, name='inventorylist'),
+    path('inventorylist/<str:category_name>/', views.inventorylist, name='inventorylist'),
 ]
