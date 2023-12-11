@@ -403,7 +403,7 @@ def getOrder(request):
             'ordered_date': row[3],
             'price': row[5],
             'delivery_date': row[4],
-            'status': row[7],
+            'status': row[6],
         }
         orders.append(order)
 
@@ -473,6 +473,14 @@ def addOrder(request):
         status = request.POST['status']
         current_user_id = request.user.id
 
+        ordered_date = timezone.datetime.strptime(ordered_date, '%Y-%m-%d').date()
+        delivery_date = timezone.datetime.strptime(delivery_date, '%Y-%m-%d').date()
+
+        if delivery_date <= ordered_date:
+            error_message = "Delivery date must be later than the order date."
+
+            return HttpResponse("Delivery date must be later than the order date.")
+
         sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         values = (order_id, order_product_name, quantity,ordered_date , price, delivery_date, status, current_user_id)
 
@@ -485,7 +493,7 @@ def addOrder(request):
         except IntegrityError:
             return HttpResponse("An error occurred while adding the product")
             
-    return render(request, 'orders.html')
+    return render(request, 'orders.html', {'error_message':error_message})
 
 
 @login_required
@@ -745,8 +753,8 @@ def changepassword(request):
 @login_required
 def inventorylist(request, category_name): 
     current_user_id = request.user.id
-    sql_query = "SELECT category_id from category_info WHERE category= %s and cur"
-    values = (category_name,)
+    sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
+    values = (category_name,current_user_id)
 
     with connection.cursor() as cursor:
         cursor.execute(sql_query, values)

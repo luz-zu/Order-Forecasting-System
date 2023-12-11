@@ -1,14 +1,47 @@
-<!-- {% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
+<style>
+  .sidebar {
+    display: block;
+  }
+
+  @media screen and (max-width: 993px) {
+    .sidebar {
+      display: block;
+    }
+  }
+  .sidebar-toggle-btn {
+    display: none;
+  }
+
+  @media screen and (max-width: 992px) {
+    .sidebar-toggle-btn {
+      display: block;
+    }
+  }
+  
+</style>
+
+<script>
+  function toggleSidebar() {
+    var sidebar = document.querySelector(".sidebar");
+    if (sidebar.style.display === "block") {
+      sidebar.style.display = "none";
+    } else {
+      sidebar.style.display = "block";
+    }
+    sidebar.classList.toggle("active");
+  }
+</script>
 
 <div class="sidebar">
   <ul>
     <li class="">
-        <a href="{% url 'dashboard'%}">
-          <span class="icon"><i class="fa-solid fa-list"></i></span>
-          <span class="text">Dashboard</span>
-        </a>
-      </li>
+      <a href="{% url 'dashboard'%}">
+        <span class="icon"><i class="fa-solid fa-list"></i></span>
+        <span class="text">Dashboard</span>
+      </a>
+    </li>
 
     <li class="">
       <a href="{% url 'category'%}">
@@ -28,7 +61,6 @@
       <a href="{%url 'orders' %}">
         <span class="icon"><i class="fa-solid fa-list-check"></i></span>
         <span class="text">Orders</span>
-
       </a>
     </li>
 
@@ -39,4 +71,4 @@
       </a>
     </li>
   </ul>
-</div> -->
+</div>
