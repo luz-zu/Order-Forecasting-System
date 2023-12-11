@@ -16,6 +16,10 @@ from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
 
+def previous_pg(request):
+    previous_page = request.META.get('HTTP_REFERER')
+    return HttpResponseRedirect(previous_page)
+
 def not_logged_in(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
@@ -491,6 +495,71 @@ def editOrder(request):
         
     return render(request, 'orders.html')
 
+def orderFilter(request):
+    if request.method == 'POST':
+        based_on = request.POST.get('basedon')
+        from_date =request.POST.get('from-date')
+        to_date =request.POST.get('to-date')
+        max_price =request.POST.get('max-price')
+        min_price = request.POST.get('min-price')
+        max_quantity =request.POST.get('max-quantity')
+        min_quantity =request.POST.get('min-quantity')
+        
+
+        sql_query = "SELECT * FROM order_info WHERE 1=1"
+
+        if based_on == 'ordered_date':
+            if from_date:
+                sql_query += f" AND ordered_date >= '{from_date}'"
+            if to_date:
+                sql_query += f" AND ordered_date <= '{to_date}'"
+            if min_price:
+                sql_query += f" AND price >= {min_price}"
+            if max_price:
+                sql_query += f" AND price <= {max_price}"
+            if min_quantity:
+                sql_query += f" AND quantity >= {min_quantity}"
+            if max_quantity:
+                sql_query += f" AND quantity <= {max_quantity}"
+        elif based_on == 'delivery_date':
+            if from_date:
+                sql_query += f" AND ordered_date >= '{from_date}'"
+            if to_date:
+                sql_query += f" AND ordered_date <= '{to_date}'"
+            if min_price:
+                sql_query += f" AND price >= {min_price}"
+            if max_price:
+                sql_query += f" AND price <= {max_price}"
+            if min_quantity:
+                sql_query += f" AND quantity >= {min_quantity}"
+            if max_quantity:
+                sql_query += f" AND quantity <= {max_quantity}"
+
+        
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql_query)
+            data = cursor.fetchall()
+        orders = []
+        for row in data:
+            order = {
+                'order_id': row[1],
+                'order_product_name': row[7],
+                'quantity': row[2],
+                'ordered_date': row[3],
+                'price': row[5],
+                'delivery_date': row[4],
+                'status': row[6],
+            }
+            orders.append(order)
+
+        context = {
+            'orders': orders,
+        }
+        print(orders)
+    previous_page = request.META.get('HTTP_REFERER')
+    return HttpResponseRedirect(previous_page, context)
+
 
 @login_required
 def get_product_list(request): 
@@ -539,6 +608,9 @@ def addOrder(request):
             return HttpResponse("An error occurred while adding the product")
             
     return render(request, 'orders.html', {'error_message':error_message})
+
+
+
 
 
 @login_required

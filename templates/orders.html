@@ -22,17 +22,25 @@
         placeholder="Search..."
       />
     </div>
-    <div class="text-end pt-md-0 pt-5">
-      <button
-        class="blue-btn"
-        data-bs-toggle="modal"
-        data-bs-target="#add_order"
-        data-bs-whatever="add_order"
-      >
-        Add New Order
-      </button>
+    <div class="d-flex justify-content-end">
+      <div class="pt-md-0 pt-3">
+        <button
+          class="blue-btn"
+          data-bs-toggle="modal"
+          data-bs-target="#add_order"
+          data-bs-whatever="add_order"
+        >
+          Add New Order
+        </button>
+      </div>
+      <div class="ps-3 pt-md-0 pt-3">
+        <button class="blue-btn" data-bs-toggle="collapse" data-bs-target="#filterform" aria-expanded="false" aria-controls="filterform"><i class="fa-solid fa-filter"></i></button>
+      </div>
     </div>
   </div>
+
+  <div>{% include "components/filter.html" %}</div>
+
 
   <div class="row pt-3">
     <div class="col-12">
