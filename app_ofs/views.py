@@ -381,12 +381,12 @@ def delete_product(request, product_id):
 @login_required
 def getOrder(request):
     current_user_id = request.user.id
-    sql_query_order = "SELECT * FROM order_info WHERE userid = %s"
+    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Ongoing' OR status = 'Pending')"
+
     values_order = (current_user_id)
     sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
     values_product = (current_user_id)
 
-    # values = (getProductID, current_user_id)
     with connection.cursor() as cursor:
         cursor.execute(sql_query_order, values_order)
         data = cursor.fetchall()
@@ -421,6 +421,51 @@ def getOrder(request):
     }
 
     return render(request, 'orders.html', context)
+
+
+@login_required
+def getCompletedOrder(request):
+    current_user_id = request.user.id
+    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Completed') ORDER BY ordered_date DESC LIMIT 2"
+
+    values_order = (current_user_id)
+    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
+    values_product = (current_user_id)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_order, values_order)
+        data = cursor.fetchall()
+
+        cursor.execute(sql_query_product, values_product)
+        product_data = cursor.fetchall()
+
+    orders = []
+    for row in data:
+        order = {
+            'order_id': row[1],
+            'order_product_name': row[7],
+            'quantity': row[2],
+            'ordered_date': row[3],
+            'price': row[5],
+            'delivery_date': row[4],
+            'status': row[6],
+        }
+        orders.append(order)
+
+    products = []
+    for row in product_data:
+        product = {
+            'product_id': row[1],
+            'product_name': row[2],
+        }
+        products.append(product)
+    context = {
+        'orders': orders,
+        'products': products,
+
+    }
+
+    return render(request, 'getCompletedOrder.html', context)
 
 @login_required
 def editOrder(request):
@@ -488,8 +533,8 @@ def addOrder(request):
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-
-            return HttpResponseRedirect('/orders')
+            previous_page = request.META.get('HTTP_REFERER')
+            return HttpResponseRedirect(previous_page)
         except IntegrityError:
             return HttpResponse("An error occurred while adding the product")
             

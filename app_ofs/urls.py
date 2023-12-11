@@ -23,6 +23,7 @@ urlpatterns = [
     path('addorder/', views.addOrder, name = 'addOrder'),
     path('editOrder/', views.editOrder, name='editOrder'),
     path('delete_order/<int:order_id>/', views.delete_order, name='delete_order'),
+    path('getCompletedOrder/', views.getCompletedOrder, name='getCompletedOrder'),
     path('getProductCategory/', views.getProductCategory, name='getProductCategory'),
     # path('inventory/', views.getItems, name='inventory'),
     path('addItems/', views.addItems, name='addItems'),

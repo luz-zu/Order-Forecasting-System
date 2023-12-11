@@ -19,6 +19,15 @@
       display: block;
     }
   }
+
+  
+  .sidebar_dropdown .sidebar_dropdown-menu{
+    display: none;
+  }
+
+  .sidebar_dropdown:hover .sidebar_dropdown-menu{
+    display: block;
+  }
   
 </style>
 
@@ -32,6 +41,7 @@
     }
     sidebar.classList.toggle("active");
   }
+  
 </script>
 
 <div class="sidebar">
@@ -57,12 +67,26 @@
       </a>
     </li>
 
-    <li>
+    <!-- <li>
       <a href="{%url 'orders' %}">
         <span class="icon"><i class="fa-solid fa-list-check"></i></span>
         <span class="text">Orders</span>
       </a>
+    </li> -->
+
+    <li class="sidebar_dropdown">
+      <a href="#" class="d-flex align-items-center">
+        <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+        <span class="text">Orders</span>
+        <span class="ps-3 text-white"><i class="fa-solid fa-chevron-down"></i></span>
+      </a>
+      <!-- <ul class="sidebar_dropdown-menu">
+        <a href="">Pending Orders</a>
+        <a href="">Completed Orders</a>
+      </ul> -->
     </li>
+    
+   
 
     <li>
       <a href="{% url 'inventory' %}">
