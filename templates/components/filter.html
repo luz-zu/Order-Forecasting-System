@@ -2,100 +2,98 @@
 <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
 <div class="collapse" id="filterform">
-
-   
-    <form action="{% url 'orderFilter' %}" method="Post">
-      {% csrf_token %}
-    <div class="d-lg-flex d-block justify-content-between pt-3">
-      <div class="d-lg-flex d-block">
-        <div class="mb-3">
-          <select name="basedon" id="basedon" class="form-control">
-            <option value="ordered_date">Ordered Date</option>
-            <option value="delivery_date">Delivery Date</option>
-          </select>
-        </div>
-        <div class="mb-3 d-flex ps-2">
-          <div>
-            <label for="from-date" class="col-form-label">From:</label>
-          </div>
-
-          <div class="ps-2">
-            <input
-              type="date"
-              class="form-control"
-              name="from-date"
-              id="from-date"
-            />
-          </div>
+  <form id="filterForm" action="{% url 'orderFilter' %}" method="Post">
+    {% csrf_token %}
+  <div class="d-lg-flex d-block justify-content-between pt-3">
+    <div class="d-lg-flex d-block">
+      <div class="mb-3">
+        <select name="basedon" id="basedon" class="form-control">
+          <option value="ordered_date">Ordered Date</option>
+          <option value="delivery_date">Delivery Date</option>
+        </select>
+      </div>
+      <div class="mb-3 d-flex ps-2">
+        <div>
+          <label for="from-date" class="col-form-label">From:</label>
         </div>
 
-        <div class="mb-3 d-flex ps-3">
-          <div>
-            <label for="to-date" class="col-form-label">To:</label>
-          </div>
+        <div class="ps-2">
+          <input
+            type="date"
+            class="form-control"
+            name="from-date"
+            id="from-date"
+          />
+        </div>
+      </div>
 
-          <div class="ps-2">
-            <input
-              type="date"
-              class="form-control"
-              name="to-date"
-              id="to-date"
-            />
-          </div>
+      <div class="mb-3 d-flex ps-3">
+        <div>
+          <label for="to-date" class="col-form-label">To:</label>
         </div>
 
-        <div class="mb-3 d-flex align-items-center ps-3">
-          <div class="ps-2">
-            <input
-              type="number"
-              class="form-control"
-              name="max-price"
-              id="max-price"
-              placeholder="Max Price"
-            />
-          </div>
-          <div class="ps-2">-</div>
-
-          <div class="ps-2">
-            <input
-              type="number"
-              class="form-control"
-              name="min-price"
-              id="min-date"
-              placeholder="Min Price"
-            />
-          </div>
+        <div class="ps-2">
+          <input
+            type="date"
+            class="form-control"
+            name="to-date"
+            id="to-date"
+          />
         </div>
+      </div>
 
-        <div class="mb-3 d-flex align-items-center ps-3">
-          <div class="ps-2">
-            <input
-              type="number"
-              class="form-control"
-              name="max-quantity"
-              id="max-quantity"
-              placeholder="Max Quantity"
-            />
-          </div>
-          <div class="ps-2">-</div>
+      <div class="mb-3 d-flex align-items-center ps-3">
+        <div class="ps-2">
+          <input
+            type="number"
+            class="form-control"
+            name="max-price"
+            id="max-price"
+            placeholder="Max Price"
+          />
+        </div>
+        <div class="ps-2">-</div>
 
-          <div class="ps-2">
-            <input
-              type="number"
-              class="form-control"
-              name="min-quantity"
-              id="min-quantity"
-              placeholder="Min Quantity"
-            />
-          </div>
+        <div class="ps-2">
+          <input
+            type="number"
+            class="form-control"
+            name="min-price"
+            id="min-date"
+            placeholder="Min Price"
+          />
+        </div>
+      </div>
+
+      <div class="mb-3 d-flex align-items-center ps-3">
+        <div class="ps-2">
+          <input
+            type="number"
+            class="form-control"
+            name="max-quantity"
+            id="max-quantity"
+            placeholder="Max Quantity"
+          />
+        </div>
+        <div class="ps-2">-</div>
+
+        <div class="ps-2">
+          <input
+            type="number"
+            class="form-control"
+            name="min-quantity"
+            id="min-quantity"
+            placeholder="Min Quantity"
+          />
         </div>
       </div>
     </div>
-
-    <div class="ps-3 mb-3 text-end">
-      <a href="">
-        <button class="blue-btn">Apply</button>
-      </a>
-    </div>
-    </form>
   </div>
+
+  <div class="ps-3 mb-3 text-end">
+    <a href="">
+      <button type="submit" class="blue-btn">Apply</button>
+    </a>
+  </div>
+  </form>
+</div>

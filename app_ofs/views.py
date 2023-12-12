@@ -495,75 +495,68 @@ def editOrder(request):
         
     return render(request, 'orders.html')
 
-def orderFilter(request):
+
+def order_filter(request):
     if request.method == 'POST':
-        based_on = request.POST.get('basedon')
-        from_date =request.POST.get('from-date')
-        to_date =request.POST.get('to-date')
-        max_price =request.POST.get('max-price')
+        basedon = request.POST.get('basedon')
+        from_date = request.POST.get('from-date')
+        to_date = request.POST.get('to-date')
+        max_price = request.POST.get('max-price')
         min_price = request.POST.get('min-price')
-        max_quantity =request.POST.get('max-quantity')
-        min_quantity =request.POST.get('min-quantity')
-        
+        max_quantity = request.POST.get('max-quantity')
+        min_quantity = request.POST.get('min-quantity')
 
-        sql_query = "SELECT * FROM order_info WHERE 1=1"
+        sql_query = """
+            SELECT *
+            FROM order_info
+            WHERE userid = %s
+        """
 
-        if based_on == 'ordered_date':
-            if from_date:
-                sql_query += f" AND ordered_date >= '{from_date}'"
-            if to_date:
-                sql_query += f" AND ordered_date <= '{to_date}'"
-            if min_price:
-                sql_query += f" AND price >= {min_price}"
-            if max_price:
-                sql_query += f" AND price <= {max_price}"
-            if min_quantity:
-                sql_query += f" AND quantity >= {min_quantity}"
-            if max_quantity:
-                sql_query += f" AND quantity <= {max_quantity}"
-        elif based_on == 'delivery_date':
-            if from_date:
-                sql_query += f" AND ordered_date >= '{from_date}'"
-            if to_date:
-                sql_query += f" AND ordered_date <= '{to_date}'"
-            if min_price:
-                sql_query += f" AND price >= {min_price}"
-            if max_price:
-                sql_query += f" AND price <= {max_price}"
-            if min_quantity:
-                sql_query += f" AND quantity >= {min_quantity}"
-            if max_quantity:
-                sql_query += f" AND quantity <= {max_quantity}"
+        params = [request.user.id]
 
-        
+        if from_date:
+            sql_query += f" AND {basedon} >= %s"
+            params.append(from_date)
+        if to_date:
+            sql_query += f" AND {basedon} >= %s"
+            params.append(to_date)
+        if min_price:
+            sql_query += " AND price >= %s"
+            params.append(min_price)
+        if max_price:
+            sql_query += " AND price <= %s"
+            params.append(max_price)
+        if min_quantity:
+            sql_query += " AND quantity >= %s"
+            params.append(min_quantity)
+        if max_quantity:
+            sql_query += " AND quantity <= %s"
+            params.append(max_quantity)
 
         with connection.cursor() as cursor:
-            cursor.execute(sql_query)
-            data = cursor.fetchall()
-        orders = []
-        for row in data:
-            order = {
-                'order_id': row[1],
-                'order_product_name': row[7],
-                'quantity': row[2],
-                'ordered_date': row[3],
-                'price': row[5],
-                'delivery_date': row[4],
-                'status': row[6],
+            cursor.execute(sql_query, params)
+            filtered_orders = cursor.fetchall()
+
+        filteredList = []
+        for order in filtered_orders:
+            context = {
+                'order_id': order[1],
+                'order_product_name': order[8],
+                'quantity': order[2],
+                'ordered_date': order[3],
+                'price': order[5],
+                'delivery_date': order[4],
+                'status': order[6],
             }
-            orders.append(order)
+            filteredList.append(context)
 
-        context = {
-            'orders': orders,
-        }
-        print(orders)
-    previous_page = request.META.get('HTTP_REFERER')
-    return HttpResponseRedirect(previous_page, context)
+        return render(request, 'orders.html', {'orders': filteredList})
 
+    return HttpResponseRedirect('/orders')
 
 @login_required
-def get_product_list(request): 
-    current_user_id = request.user.id   
+def get_product_list(request):
+    current_user_id = request.user.id
     sql_query_product = "SELECT id, product_name FROM product_info where userid = %s"
     values = (current_user_id)
     product_list = []
