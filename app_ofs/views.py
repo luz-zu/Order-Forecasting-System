@@ -148,7 +148,6 @@ def inventory(request):
             'category': row[4],           
         }
         products.append(product)
-      
 
     categories = []
     for row in data:
@@ -162,9 +161,51 @@ def inventory(request):
         'products':products,
     }
 
- 
-
     return render(request, 'inventory.html', context)
+
+@login_required
+def staff(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM staff_details")
+        staff_members = cursor.fetchall()
+    
+    staff_details = []
+    for row in staff_members:
+        staff = {
+            'fname': row[1],
+            'lname': row[2],
+            'email': row[3],
+            'phone': row[5],
+            'role': row[6],
+            'address': row[7],
+            'time': row[9],
+        }
+        staff_details.append(staff)
+    
+    context = {
+        'staff_members': staff_details
+    }
+    return render(request, 'staff.html', context)
+
+@login_required
+def addStaff(request):
+    if request.method == 'POST':
+        fname = request.POST.get('first_name', '')
+        lname = request.POST.get('last_name', '')
+        email = request.POST.get('staff_email', '')
+        phone = request.POST.get('staff_phone', '')
+        role = request.POST.get('staff_role', '')
+        address = request.POST.get('staff_address', '')
+
+        sql_query = "INSERT INTO staff_details (first_name, last_name, email, phone, role, address) VALUES (%s, %s, %s, %s, %s, %s)"
+        sql_values = (fname, lname, email, phone, role, address)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql_query, sql_values)
+
+        return HttpResponseRedirect('/staff')
+
+    return render(request, 'staff.html')
 
 @login_required
 def getCategory(request):
