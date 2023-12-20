@@ -1,7 +1,7 @@
 -- --------------------------------------------------------
--- Host:                         127.0.0.1
--- Server version:               10.11.6-MariaDB - mariadb.org binary distribution
--- Server OS:                    Win64
+-- Host:                         182.93.85.68
+-- Server version:               10.11.4-MariaDB-1~deb12u1 - Debian 12
+-- Server OS:                    debian-linux-gnu
 -- HeidiSQL Version:             12.6.0.6765
 -- --------------------------------------------------------
 
@@ -32,43 +32,45 @@ CREATE TABLE IF NOT EXISTS `app_ofs_category` (
 -- Dumping structure for table ofs.app_ofs_customuser
 CREATE TABLE IF NOT EXISTS `app_ofs_customuser` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `password` varchar(128) NOT NULL,
+  `password` varchar(128) DEFAULT NULL,
   `last_login` datetime(6) DEFAULT NULL,
-  `is_superuser` tinyint(1) NOT NULL,
-  `username` varchar(150) NOT NULL,
-  `first_name` varchar(150) NOT NULL,
-  `last_name` varchar(150) NOT NULL,
-  `email` varchar(254) NOT NULL,
-  `is_staff` tinyint(1) NOT NULL,
-  `is_active` tinyint(1) NOT NULL,
-  `date_joined` datetime(6) NOT NULL,
+  `is_superuser` tinyint(1) DEFAULT 0,
+  `username` varchar(150) DEFAULT NULL,
+  `first_name` varchar(150) DEFAULT NULL,
+  `last_name` varchar(150) DEFAULT NULL,
+  `email` varchar(254) DEFAULT NULL,
+  `is_staff` tinyint(1) DEFAULT 0,
+  `is_active` tinyint(1) DEFAULT 1,
+  `date_joined` datetime(6) DEFAULT NULL,
   `dob` date DEFAULT NULL,
-  `phone_number` varchar(15) NOT NULL,
+  `phone_number` varchar(15) DEFAULT NULL,
   `otp` varchar(50) DEFAULT NULL,
   `otp_created_at` varchar(50) DEFAULT NULL,
   `otp_verified` varchar(50) DEFAULT NULL,
-  `userrole` varchar(50) DEFAULT NULL,
+  `userrole` varchar(50) DEFAULT 'user',
+  `first_login` int(11) DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ofs.app_ofs_customuser: ~15 rows (approximately)
-INSERT INTO `app_ofs_customuser` (`id`, `password`, `last_login`, `is_superuser`, `username`, `first_name`, `last_name`, `email`, `is_staff`, `is_active`, `date_joined`, `dob`, `phone_number`, `otp`, `otp_created_at`, `otp_verified`, `userrole`) VALUES
-	(1, 'pbkdf2_sha256$600000$FvZ4s7uyhmbbGO548RVcA1$E1RQy6vxghpNNEI9OgFRuWWJ6T9ACcOnJZhVQASLALU=', '2023-11-30 23:03:55.592952', 0, 'lujana', 'Lujana', 'Bajracharya', 'lujanaba@gmail.com', 0, 1, '2023-10-02 05:16:26.819802', NULL, 'Bajracharya', '302056', '2023-12-09 07:45:24.028841', '1', NULL),
-	(2, 'pbkdf2_sha256$600000$WthacnDhgIRp1k5ZiN5zy1$DahRT3urUlVMa42vp59CN02EtXsYfGEZKjVmD5nshB0=', '2023-11-23 08:18:30.112592', 0, 'sajna', 'Sajana', 'Bajra', 'sajanabaj31@gmail.com', 0, 1, '2023-10-03 03:35:40.204047', NULL, '', NULL, NULL, NULL, NULL),
-	(3, 'pbkdf2_sha256$600000$OCl7jH1sXA1dUwbHAYeVla$rANVxvEN1ai2LAjGOD5AUJXYeo0d9iPbFkYeW1eZXr4=', '2023-11-08 16:29:31.716838', 0, 'luzzu', 'Lujana', 'Bajracharya', 'manojgamer99@gmail.com', 0, 1, '2023-11-08 16:29:31.432950', NULL, '', '158847', '2023-11-20 05:41:47.449347', NULL, NULL),
-	(4, 'pbkdf2_sha256$600000$aElDEon457bSye6Xgta4oG$p2s+szO3p5vhQe6c1EMiNzzuX6NTXpdlIWdKyFnXs60=', '2023-11-20 12:33:08.722779', 0, 'luniva', 'Luniva', 'Bajracharya', 'bajraluni@gmail.com', 0, 1, '2023-11-20 12:31:03.213386', NULL, '', '668955', '2023-11-20 12:55:22.564788', '1', NULL),
-	(5, 'pbkdf2_sha256$600000$ZeDKmbMCrDN1tuDYKgB9kW$Eks7caUlfS6Ir2JFrKaNomrntiXMQbyeBEP74w0H68A=', '2023-11-23 17:24:30.706824', 0, 'manoj', 'manoj', 'karki', 'manojgamer99@gmail.com', 0, 1, '2023-11-23 17:24:30.463945', NULL, '', NULL, NULL, NULL, NULL),
-	(6, 'pbkdf2_sha256$600000$EiSxUx4EEpZLq4ZcFXjQdp$UuQzVFe8ZTkLIBbKTrJJqnK/q/PtcT/rFEdAldfaYCQ=', '2023-11-23 17:27:00.953791', 0, 'luni', 'Luniva', 'Bajra', 'bajraluni@gmail.com', 0, 1, '2023-11-23 17:27:00.726398', NULL, '', NULL, NULL, NULL, NULL),
-	(7, 'pbkdf2_sha256$600000$pdO6FdLkybXBhVSpBYmuQI$YnUlw47xmp87lqw128FCbL8AdAJ94eMOXhUvtE6a5Zg=', '2023-11-25 13:14:45.804773', 0, 'sagina', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:14:45.571702', NULL, '', NULL, NULL, NULL, NULL),
-	(8, 'pbkdf2_sha256$600000$XJDAazMlm5hAyVdLludFMu$xVGmrzcokvLEI2O/xDvGuxAymplg20RXueI0bbXz/KQ=', NULL, 0, 'sagimjn', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:16:49.143018', NULL, '', NULL, NULL, NULL, NULL),
-	(9, 'pbkdf2_sha256$600000$7bgitgAeXaeuY5OUDXek1M$Rm4tIVS8yg7Bc15AIk3jC0cBGUbxx9Rp9jRng3mTZhc=', NULL, 0, 'sagimaharjan', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:18:53.332290', NULL, '', NULL, NULL, NULL, NULL),
-	(10, 'pbkdf2_sha256$600000$lj8RfFp8mhkPLCBs1fre8G$u+BaRmrIkxHR68hxMJjgeuQw+QEJqTKZ7Rp/fmhdRlk=', NULL, 0, 'madan', 'Madan', 'Karki', 'madan@gmail.com', 0, 1, '2023-11-25 13:35:47.991633', NULL, '', NULL, NULL, NULL, NULL),
-	(11, 'pbkdf2_sha256$600000$wJtMuwTkiCuVThUyfifEnW$Ht0Qal08jAEXeKCHIl9IaNwuGdjcDrzCktA7rbCIQyg=', NULL, 0, 'test', 'test', 'test', 'test@gmail.com', 0, 1, '2023-11-25 13:37:50.761713', NULL, '', NULL, NULL, NULL, NULL),
-	(12, 'pbkdf2_sha256$600000$CI27BgEt0aYyVFMHfEDte8$qtcMMx9OGjAen79YWNJNsetTZ89/avowCCrxybnS/bg=', NULL, 0, 'testing', 'test', 'test', 'testing@gmail.com', 0, 1, '2023-11-25 13:38:48.242855', NULL, '', NULL, NULL, NULL, NULL),
-	(15, 'pbkdf2_sha256$600000$roDFR4yWM4cOjnQVjOxYCE$lX+z8mAqblGWhWdPpVGORTxHXV/l7IrsL9Pu1LuRz7Q=', '2023-12-07 13:09:44.386201', 0, 'luzzubaj', 'Lujana', 'Bajracharya', 'kk', 0, 1, '2023-12-07 08:19:45.553208', NULL, 'Bajracharya', NULL, NULL, NULL, NULL),
-	(16, 'pbkdf2_sha256$600000$PJKQATxslIetbQbT0v0sbI$GqnzgSPj/4AcgLgreOKOHyCAvoivmCJ+hXiaFJXB96g=', '2023-12-07 20:14:20.286546', 0, 'manoj99', 'manoj', 'karki', 'manojgamer@gmail.com', 0, 1, '2023-12-07 20:10:09.636001', NULL, '', NULL, NULL, NULL, NULL),
-	(17, 'pbkdf2_sha256$720000$Xoi4dQ9hpLHvCMs03BQ9U2$nzf1lalUN53eV6wTUlSDcfzpPSJG/m7/EDcir/VjVLM=', '2023-12-18 16:32:30.728018', 0, 'lbaj', 'Lujana', 'Bajracharya', 'lujanabajra@gmail.com', 0, 1, '2023-12-09 07:47:25.938782', NULL, '', '180120', '2023-12-11 11:10:05.136200', NULL, NULL);
+-- Dumping data for table ofs.app_ofs_customuser: ~16 rows (approximately)
+INSERT INTO `app_ofs_customuser` (`id`, `password`, `last_login`, `is_superuser`, `username`, `first_name`, `last_name`, `email`, `is_staff`, `is_active`, `date_joined`, `dob`, `phone_number`, `otp`, `otp_created_at`, `otp_verified`, `userrole`, `first_login`) VALUES
+	(1, 'pbkdf2_sha256$600000$FvZ4s7uyhmbbGO548RVcA1$E1RQy6vxghpNNEI9OgFRuWWJ6T9ACcOnJZhVQASLALU=', '2023-11-30 23:03:55.592952', 0, 'lujana', 'Lujana', 'Bajracharya', 'lujanaba@gmail.com', 0, 1, '2023-10-02 05:16:26.819802', NULL, 'Bajracharya', '302056', '2023-12-09 07:45:24.028841', '1', 'admin', 1),
+	(2, 'pbkdf2_sha256$600000$WthacnDhgIRp1k5ZiN5zy1$DahRT3urUlVMa42vp59CN02EtXsYfGEZKjVmD5nshB0=', '2023-11-23 08:18:30.112592', 0, 'sajna', 'Sajana', 'Bajra', 'sajanabaj31@gmail.com', 0, 1, '2023-10-03 03:35:40.204047', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(3, 'pbkdf2_sha256$600000$OCl7jH1sXA1dUwbHAYeVla$rANVxvEN1ai2LAjGOD5AUJXYeo0d9iPbFkYeW1eZXr4=', '2023-11-08 16:29:31.716838', 0, 'luzzu', 'Lujana', 'Bajracharya', 'manojgamer99@gmail.com', 0, 1, '2023-11-08 16:29:31.432950', NULL, '', '158847', '2023-11-20 05:41:47.449347', NULL, 'admin', 1),
+	(4, 'pbkdf2_sha256$600000$aElDEon457bSye6Xgta4oG$p2s+szO3p5vhQe6c1EMiNzzuX6NTXpdlIWdKyFnXs60=', '2023-11-20 12:33:08.722779', 0, 'luniva', 'Luniva', 'Bajracharya', 'bajraluni@gmail.com', 0, 1, '2023-11-20 12:31:03.213386', NULL, '', '668955', '2023-11-20 12:55:22.564788', '1', 'admin', 1),
+	(5, 'pbkdf2_sha256$600000$ZeDKmbMCrDN1tuDYKgB9kW$Eks7caUlfS6Ir2JFrKaNomrntiXMQbyeBEP74w0H68A=', '2023-11-23 17:24:30.706824', 0, 'manoj', 'manoj', 'karki', 'manojgamer99@gmail.com', 0, 1, '2023-11-23 17:24:30.463945', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(6, 'pbkdf2_sha256$600000$EiSxUx4EEpZLq4ZcFXjQdp$UuQzVFe8ZTkLIBbKTrJJqnK/q/PtcT/rFEdAldfaYCQ=', '2023-11-23 17:27:00.953791', 0, 'luni', 'Luniva', 'Bajra', 'bajraluni@gmail.com', 0, 1, '2023-11-23 17:27:00.726398', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(7, 'pbkdf2_sha256$600000$pdO6FdLkybXBhVSpBYmuQI$YnUlw47xmp87lqw128FCbL8AdAJ94eMOXhUvtE6a5Zg=', '2023-11-25 13:14:45.804773', 0, 'sagina', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:14:45.571702', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(8, 'pbkdf2_sha256$600000$XJDAazMlm5hAyVdLludFMu$xVGmrzcokvLEI2O/xDvGuxAymplg20RXueI0bbXz/KQ=', NULL, 0, 'sagimjn', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:16:49.143018', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(9, 'pbkdf2_sha256$600000$7bgitgAeXaeuY5OUDXek1M$Rm4tIVS8yg7Bc15AIk3jC0cBGUbxx9Rp9jRng3mTZhc=', NULL, 0, 'sagimaharjan', 'Sagina', 'Maharjan', 'mjnsagina@gmail.com', 0, 1, '2023-11-25 13:18:53.332290', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(10, 'pbkdf2_sha256$600000$lj8RfFp8mhkPLCBs1fre8G$u+BaRmrIkxHR68hxMJjgeuQw+QEJqTKZ7Rp/fmhdRlk=', NULL, 0, 'madan', 'Madan', 'Karki', 'madan@gmail.com', 0, 1, '2023-11-25 13:35:47.991633', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(11, 'pbkdf2_sha256$600000$wJtMuwTkiCuVThUyfifEnW$Ht0Qal08jAEXeKCHIl9IaNwuGdjcDrzCktA7rbCIQyg=', NULL, 0, 'test', 'test', 'test', 'test@gmail.com', 0, 1, '2023-11-25 13:37:50.761713', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(12, 'pbkdf2_sha256$600000$CI27BgEt0aYyVFMHfEDte8$qtcMMx9OGjAen79YWNJNsetTZ89/avowCCrxybnS/bg=', NULL, 0, 'testing', 'test', 'test', 'testing@gmail.com', 0, 1, '2023-11-25 13:38:48.242855', NULL, '', NULL, NULL, NULL, 'admin', 1),
+	(15, 'pbkdf2_sha256$600000$roDFR4yWM4cOjnQVjOxYCE$lX+z8mAqblGWhWdPpVGORTxHXV/l7IrsL9Pu1LuRz7Q=', '2023-12-07 13:09:44.386201', 0, 'luzzubaj', 'Lujana', 'Bajracharya', 'kk', 0, 1, '2023-12-07 08:19:45.553208', NULL, 'Bajracharya', NULL, NULL, NULL, 'admin', 1),
+	(16, 'pbkdf2_sha256$600000$PJKQATxslIetbQbT0v0sbI$GqnzgSPj/4AcgLgreOKOHyCAvoivmCJ+hXiaFJXB96g=', '2023-12-07 20:14:20.286546', 0, 'manoj99', 'manoj', 'karki', 'manojgamer@gmail.com', 0, 1, '2023-12-07 20:10:09.636001', NULL, '9841147588', NULL, NULL, NULL, 'staff', 1),
+	(17, 'pbkdf2_sha256$720000$Xoi4dQ9hpLHvCMs03BQ9U2$nzf1lalUN53eV6wTUlSDcfzpPSJG/m7/EDcir/VjVLM=', '2023-12-20 15:10:55.008105', 0, 'lbaj', 'Lujana', 'Bajracharya', 'lujanabajra@gmail.com', 0, 1, '2023-12-09 07:47:25.938782', NULL, '', '180120', '2023-12-11 11:10:05.136200', NULL, 'staff', 1),
+	(23, 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=', NULL, 0, 'test_448', 'test', 'test2', 'test3@gmail.com', 0, 1, NULL, NULL, '1234567890', NULL, NULL, NULL, 'staff', 1);
 
 -- Dumping structure for table ofs.app_ofs_customuser_groups
 CREATE TABLE IF NOT EXISTS `app_ofs_customuser_groups` (
@@ -144,7 +146,7 @@ CREATE TABLE IF NOT EXISTS `auth_permission` (
   CONSTRAINT `auth_permission_content_type_id_2f476e4b_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ofs.auth_permission: ~32 rows (approximately)
+-- Dumping data for table ofs.auth_permission: ~19 rows (approximately)
 INSERT INTO `auth_permission` (`id`, `name`, `content_type_id`, `codename`) VALUES
 	(1, 'Can add log entry', 1, 'add_logentry'),
 	(2, 'Can change log entry', 1, 'change_logentry'),
@@ -282,12 +284,15 @@ CREATE TABLE IF NOT EXISTS `django_session` (
   KEY `django_session_expire_date_a5c62663` (`expire_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ofs.django_session: ~9 rows (approximately)
+-- Dumping data for table ofs.django_session: ~12 rows (approximately)
 INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALUES
+	('6zq89pu786kt6d9cohzu9sm9u1hdlalj', '.eJxVjEEOwiAQRe_C2hBAKNSle89ApjODVA0kpV0Z7y5NutDte-__t4iwrTlujZc4k7gI7cXpF06ATy67oQeUe5VYy7rMk9wTedgmb5X4dT3av4MMLfe1t6goUNCoNCM640YL5Iyx4I3zAycYA1pSwOjPXnNKPWbQCjvnQXy-D2U4mw:1rFchq:Go4e07Ey0Teeb2KhtiH2Ipol6WZcBPR_SEbIiRf124o', '2024-01-02 16:12:30.088037'),
 	('bnsq0c36hfvbm9zgv4erftvpbdlmpr2e', '.eJxVjDsOwyAQBe9CHSEWDJiU6X0GxGc3OIlAMnYV5e6xJRdJOzPvvZkP21r81nHxc2ZXBuzyy2JIT6yHyI9Q742nVtdljvxI-Gk7n1rG1-1s_w5K6GVfu5hMlDKRUINzEEgBOp0JQEuhR2VxEBl2bgWRiToQylGCwWSUNmTZ5wvaeTeg:1r4wcO:aFTIxqa686fVkZf3eWSf9vVa4mXSrmdpDoxFkHjCs_c', '2023-12-04 05:14:44.933104'),
 	('fcckucwb9fwwzo7m2y4e1yktyslpydgk', '.eJxVjEsOwjAMBe-SNYrquElaluw5Q-TENimgVupnhbg7VOoCtm9m3ssk2taatkXmNLA5G4jm9DtmKg8Zd8J3Gm-TLdO4zkO2u2IPutjrxPK8HO7fQaWlfmtU1CY6JB-csPri2QWJgAgM0GTCSLEvKsigrrTic5tLHxrVDgJ35v0BC5A4YA:1rEViH:CI17TcuWR-myOWbeqRCFKA90BJh4-0g8NAtHRIvSr2c', '2023-12-30 14:32:21.999029'),
 	('hiqdm2b95v72msx8gutvbxox4rp0zlg7', '.eJxVjEsOwjAMBe-SNYrquElaluw5Q-TENimgVupnhbg7VOoCtm9m3ssk2taatkXmNLA5G4jm9DtmKg8Zd8J3Gm-TLdO4zkO2u2IPutjrxPK8HO7fQaWlfmtU1CY6JB-csPri2QWJgAgM0GTCSLEvKsigrrTic5tLHxrVDgJ35v0BC5A4YA:1rD4GP:j9N_4O0CUEorBlu4DU4mJChRnm4uG0yE7Py5E9EvfZg', '2023-12-26 15:01:37.652954'),
+	('keikphgkfgzqrydh0f8ub2603aa8y1zt', 'e30:1rFcWp:-8J28BtYzKmf6nHikkpqhMfbcjK0JtErbgIqZ1KyF1E', '2024-01-02 16:01:07.460288'),
 	('o6j2mei04pxh8ymi1806o4cgx4pu1bbt', '.eJxVjEsOwjAMBe-SNYrquElaluw5Q-TENimgVupnhbg7VOoCtm9m3ssk2taatkXmNLA5G4jm9DtmKg8Zd8J3Gm-TLdO4zkO2u2IPutjrxPK8HO7fQaWlfmtU1CY6JB-csPri2QWJgAgM0GTCSLEvKsigrrTic5tLHxrVDgJ35v0BC5A4YA:1rCeBa:wRWrX6Gqu3Jw368E9SkCUIyMsrzcsayj3mMs71kKC9M', '2023-12-25 11:10:54.962076'),
+	('p5xu0hvekmf2dx2b6bhyxtb7bclksjzh', '.eJxVjEEOwiAQRe_C2hBAKNSle89ApjODVA0kpV0Z7y5NutDte-__t4iwrTlujZc4k7gI7cXpF06ATy67oQeUe5VYy7rMk9wTedgmb5X4dT3av4MMLfe1t6goUNCoNCM640YL5Iyx4I3zAycYA1pSwOjPXnNKPWbQCjvnQXy-D2U4mw:1rFyDn:LdV2AD9DUvg2DhKsoymP06AEYrYO6trpO_LzUy-DGnQ', '2024-01-03 15:10:55.012619'),
 	('vzn2toyc48n60rpyx89hz1xi3m3u1skf', '.eJxVjMsOwiAQRf-FtSG8GsCle7-BDMyMVA0kpV0Z_12bdKHbe865L5FgW2vaBi1pRnEWRpx-twzlQW0HeId267L0ti5zlrsiDzrktSM9L4f7d1Bh1G8N1jBByVpn0NpbpCkSARsXGLMKwGCRlYreeYPKTFQiGmB02fuCQbw_GVg5Qg:1qpo7Z:6LsgfB9fL3FPCyxFxB31OmERhDfrjcSvpahbw20O6F8', '2023-10-23 11:08:21.389702'),
 	('wxdwsnzk3eb8ferm2ys63nu2pmkit1uy', '.eJxVjMsOwiAQRf-FtSG8GsCle7-BDMyMVA0kpV0Z_12bdKHbe865L5FgW2vaBi1pRnEWRpx-twzlQW0HeId267L0ti5zlrsiDzrktSM9L4f7d1Bh1G8N1jBByVpn0NpbpCkSARsXGLMKwGCRlYreeYPKTFQiGmB02fuCQbw_GVg5Qg:1quSTF:onsWLaFr0u0OoXliouFPRmz6xQPLW5bSw_R1jybxXOo', '2023-11-05 07:01:57.910094'),
 	('xzb13zmuzmat8ur4vxc50jllw1lq35ia', '.eJxVjMsOwiAQRf-FtSG8GsCle7-BDMyMVA0kpV0Z_12bdKHbe865L5FgW2vaBi1pRnEWRpx-twzlQW0HeId267L0ti5zlrsiDzrktSM9L4f7d1Bh1G8N1jBByVpn0NpbpCkSARsXGLMKwGCRlYreeYPKTFQiGmB02fuCQbw_GVg5Qg:1qpQpx:-R0TkGVjg1nycIvEAVYQK8LS1VF090bTiN3jSaUP-Sk', '2023-10-22 10:16:37.523625'),
@@ -327,9 +332,9 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `description` varchar(50) DEFAULT NULL,
   `logged_on` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=176 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=188 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ofs.logs: ~175 rows (approximately)
+-- Dumping data for table ofs.logs: ~186 rows (approximately)
 INSERT INTO `logs` (`id`, `username`, `ip`, `description`, `logged_on`) VALUES
 	(1, 'lujana', '127.0.0.1', 'logged in', '2023-10-02 11:07:16'),
 	(2, 'lujana', '127.0.0.1', 'Incorrect username/password', '2023-10-02 11:14:32'),
@@ -505,7 +510,19 @@ INSERT INTO `logs` (`id`, `username`, `ip`, `description`, `logged_on`) VALUES
 	(172, 'lbaj', '127.0.0.1', 'logged in', '2023-12-16 20:17:21'),
 	(173, 'lbaj', '127.0.0.1', 'logged in', '2023-12-18 21:34:53'),
 	(174, 'testing9968', '127.0.0.1', 'logged in', '2023-12-18 22:15:50'),
-	(175, 'lbaj', '127.0.0.1', 'logged in', '2023-12-18 22:17:30');
+	(175, 'lbaj', '127.0.0.1', 'logged in', '2023-12-18 22:17:30'),
+	(176, 'lbaj', '127.0.0.1', 'logged in', '2023-12-19 21:34:02'),
+	(177, 'manojgamer99@gmail.com', '127.0.0.1', 'Incorrect username/password', '2023-12-19 21:43:38'),
+	(178, 'manojgamer99@gmail.com', '127.0.0.1', 'Incorrect username/password', '2023-12-19 21:44:19'),
+	(179, 'manojgamer99@gmail.com', '127.0.0.1', 'Incorrect password', '2023-12-19 21:45:39'),
+	(180, 'manojgamer99@gmail.com', '127.0.0.1', 'Incorrect password', '2023-12-19 21:45:53'),
+	(181, 'lbaj', '127.0.0.1', 'Incorrect username/password', '2023-12-19 21:57:23'),
+	(182, 'lbaj', '127.0.0.1', 'logged in', '2023-12-19 21:57:30'),
+	(183, 'lbaj', '127.0.0.1', 'logged in', '2023-12-20 09:39:41'),
+	(184, 'lbaj', '127.0.0.1', 'logged in', '2023-12-20 09:43:37'),
+	(185, 'lbaj', '127.0.0.1', 'logged in', '2023-12-20 09:47:00'),
+	(186, 'lbaj', '127.0.0.1', 'logged in', '2023-12-20 09:54:27'),
+	(187, 'lbaj', '127.0.0.1', 'logged in', '2023-12-20 10:10:55');
 
 -- Dumping structure for table ofs.order_info
 CREATE TABLE IF NOT EXISTS `order_info` (
@@ -552,7 +569,7 @@ CREATE TABLE IF NOT EXISTS `product_info` (
   CONSTRAINT `userid` FOREIGN KEY (`userid`) REFERENCES `app_ofs_customuser` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ofs.product_info: ~9 rows (approximately)
+-- Dumping data for table ofs.product_info: ~0 rows (approximately)
 INSERT INTO `product_info` (`id`, `product_id`, `product_name`, `product_description`, `category`, `userid`) VALUES
 	(29, '15283', 'aedasd', 'sadf', '3922', NULL),
 	(32, '16119', 'Account', 'Account Book', '9512', 15),
@@ -563,25 +580,6 @@ INSERT INTO `product_info` (`id`, `product_id`, `product_name`, `product_descrip
 	(37, '13747', 'Large Size Copy', 'Large Size Copy', '9700', 17),
 	(38, '18858', 'Small Size Copy', 'Small Size Copy', '9700', 17),
 	(39, '13439', 'white pen', 'whitepen', '7087', 17);
-
--- Dumping structure for table ofs.staff_details
-CREATE TABLE IF NOT EXISTS `staff_details` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `first_name` varchar(50) DEFAULT NULL,
-  `last_name` varchar(50) DEFAULT NULL,
-  `email` varchar(50) DEFAULT NULL,
-  `password` varchar(128) DEFAULT 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=',
-  `phone` varchar(50) DEFAULT NULL,
-  `role` varchar(50) DEFAULT NULL,
-  `address` varchar(50) DEFAULT NULL,
-  `first_login` int(11) DEFAULT 1,
-  `updated_on` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Dumping data for table ofs.staff_details: ~1 rows (approximately)
-INSERT INTO `staff_details` (`id`, `first_name`, `last_name`, `email`, `password`, `phone`, `role`, `address`, `first_login`, `updated_on`) VALUES
-	(1, 'Manoj', 'Karki', 'manojgamer99@gmail.com', 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=', '9841147588', 'Recruit', 'Kalanki, Kathmandu', 1, '2023-12-18 22:12:17');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
