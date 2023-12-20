@@ -92,11 +92,13 @@
         <span class="text">Inventory</span>
       </a>
     </li>
-    <li>
-      <a href="{% url 'staff' %}">
-        <span class="icon"><i class="fa-solid fa-user-tie"></i></span>
-        <span class="text">Staff</span>
-      </a>
-    </li>
+    {% if user.is_authenticated and user.userrole == 'admin' %}
+      <li>
+        <a href="{% url 'staff' %}">
+          <span class="icon"><i class="fa-solid fa-user-tie"></i></span>
+          <span class="text">Staff</span>
+        </a>
+      </li>
+    {% endif %}
   </ul>
 </div>
