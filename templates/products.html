@@ -44,16 +44,18 @@
           placeholder="Search..."
         />
       </div>
-      <div class="text-end pt-md-0 pt-5">
-        <button
-          class="blue-btn"
-          data-bs-toggle="modal"
-          data-bs-target="#add_new_product"
-          data-bs-whatever="add_new_product"
-        >
-          Add New Product
-        </button>
-      </div>
+      {% if user.userrole == 'admin' %}
+        <div class="text-end pt-md-0 pt-5">
+          <button
+            class="blue-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#add_new_product"
+            data-bs-whatever="add_new_product"
+          >
+            Add New Product
+          </button>
+        </div>
+      {% endif %}
     </div>
 
     <div class="row pt-3">
@@ -67,7 +69,9 @@
                 <th scope="col">Category</th>
                 <th scope="col">Product</th>
                 <th scope="col">Description</th>
-                <th scope="col">Actions</th>
+                {% if user.userrole == 'admin' %}
+                  <th scope="col">Actions</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
@@ -79,58 +83,60 @@
                 <td>{{product.category}}</td>
                 <td>{{product.product_name}}</td>
                 <td>{{product.product_description}}</td>
-                <td>
-                  <div
-                    style="display: flex; align-items: center; margin-left: 35%"
-                  >
-                    <a
-                      href=""
-                      data-bs-toggle="modal"
-                      data-bs-target="#edit_product"
-                      data-bs-whatever="edit_product"
-                      data-product-id="{{ product.product_id }}"
-                      data-product-name="{{ product.product_name }}"
-                      data-product-description="{{ product.product_description }}"
-                      ><i
-                        class="fa-solid fa-pen-to-square pe-2"
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Edit"
-                      ></i
-                    ></a>
-
-                    <form
-                      method="post"
-                      action="{% url 'delete_product' product.product_id %}"
+                {% if user.userrole == 'admin' %}
+                  <td>
+                    <div
+                      style="display: flex; align-items: center; margin-left: 35%"
                     >
-                      {% csrf_token %}
-                      <input
-                        type="hidden"
-                        name="product_id"
-                        value="{{ product.product_id }}"
-                      />
-                      <button
-                        style="
-                          border: none;
-                          background-color: transparent;
-                          margin-left: 10px;
-                        "
-                        type="submit"
-                        class="text-danger delete-button"
+                      <a
+                        href=""
                         data-bs-toggle="modal"
-                        data-bs-target="#delete_product"
-                        data-bs-whatever="delete_product"
-                      >
-                        <i
-                          class="fa-solid fa-trash"
+                        data-bs-target="#edit_product"
+                        data-bs-whatever="edit_product"
+                        data-product-id="{{ product.product_id }}"
+                        data-product-name="{{ product.product_name }}"
+                        data-product-description="{{ product.product_description }}"
+                        ><i
+                          class="fa-solid fa-pen-to-square pe-2"
                           data-bs-toggle="tooltip"
                           data-bs-placement="top"
-                          title="Delete"
-                        ></i>
-                      </button>
-                    </form>
-                  </div>
-                </td>
+                          title="Edit"
+                        ></i
+                      ></a>
+
+                      <form
+                        method="post"
+                        action="{% url 'delete_product' product.product_id %}"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="product_id"
+                          value="{{ product.product_id }}"
+                        />
+                        <button
+                          style="
+                            border: none;
+                            background-color: transparent;
+                            margin-left: 10px;
+                          "
+                          type="submit"
+                          class="text-danger delete-button"
+                          data-bs-toggle="modal"
+                          data-bs-target="#delete_product"
+                          data-bs-whatever="delete_product"
+                        >
+                          <i
+                            class="fa-solid fa-trash"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Delete"
+                          ></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                {% endif %}
               </tr>
 
               {% endfor %}
