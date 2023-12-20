@@ -66,7 +66,7 @@ def login_view(request):
 
 @not_logged_in
 @never_cache
-def register(request): 
+def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -145,7 +145,7 @@ def inventory(request):
             'product_id': row[1],
             'product_name': row[2],
             'product_description': row[3],
-            'category': row[4],           
+            'category': row[4],
         }
         products.append(product)
 
@@ -166,19 +166,18 @@ def inventory(request):
 @login_required
 def staff(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM staff_details")
+        cursor.execute("SELECT * FROM app_ofs_customuser where userrole = 'staff'")
         staff_members = cursor.fetchall()
     
     staff_details = []
     for row in staff_members:
         staff = {
-            'fname': row[1],
-            'lname': row[2],
-            'email': row[3],
-            'phone': row[5],
-            'role': row[6],
-            'address': row[7],
-            'time': row[9],
+            'fname': row[5],
+            'lname': row[6],
+            'username': row[4],
+            'email': row[7],
+            'phone': row[12],
+            'role': row[16],
         }
         staff_details.append(staff)
     
@@ -193,12 +192,15 @@ def addStaff(request):
         fname = request.POST.get('first_name', '')
         lname = request.POST.get('last_name', '')
         email = request.POST.get('staff_email', '')
+        password = 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=' # ofs@12345
         phone = request.POST.get('staff_phone', '')
         role = request.POST.get('staff_role', '')
-        address = request.POST.get('staff_address', '')
 
-        sql_query = "INSERT INTO staff_details (first_name, last_name, email, phone, role, address) VALUES (%s, %s, %s, %s, %s, %s)"
-        sql_values = (fname, lname, email, phone, role, address)
+        randNumber = random.randint(100, 999)
+        username = f'{fname.lower()}_{randNumber}'
+
+        sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        sql_values = (fname, lname, username, email, password, phone, role)
 
         with connection.cursor() as cursor:
             cursor.execute(sql_query, sql_values)
