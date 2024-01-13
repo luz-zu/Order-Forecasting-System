@@ -16,6 +16,149 @@ from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
 
+# views.py
+from django.shortcuts import render
+from .models import SalesData
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller, acf, pacf
+from statsmodels.tsa.arima.model import ARIMA
+import statsmodels.api as sm
+import pmdarima as pm
+from io import BytesIO
+import base64
+
+def analyze_sales(request):
+    # Retrieve data from the database
+    data = SalesData.objects.all().order_by('month')
+
+    # Convert data to a pandas DataFrame
+    data_df = pd.DataFrame(list(data.values('month', 'sales')))
+    data_df['month'] = pd.to_datetime(data_df['month'])
+    data_df.set_index('month', inplace=True)
+
+    # Function to check stationarity using Augmented Dickey-Fuller test
+    def test_stationarity(timeseries):
+        # Dickey-Fuller test
+        result = adfuller(timeseries, autolag='AIC')
+        return result[0], result[1], result[4]
+
+    # Plot original time series
+    plt.figure(figsize=(10, 6))
+    plt.plot(data_df['sales'])
+    plt.title('Original Time Series')
+    plt.xlabel('Month')
+    plt.ylabel('Sales')
+    plt.grid(True)
+    plt.tight_layout()
+    original_plot = get_image()
+
+    # Check stationarity
+    adf_statistic, p_value, critical_values = test_stationarity(data_df['sales'])
+    stationarity_result = f'ADF Statistic: {adf_statistic}\n p-value: {p_value}\n Critical Values: {critical_values}'
+
+    # Perform differencing to make the time series stationary
+    data_diff = data_df['sales'].diff().dropna()
+
+    # Plot differenced time series
+    plt.figure(figsize=(10, 6))
+    plt.plot(data_diff)
+    plt.title('Differenced Time Series')
+    plt.xlabel('Month')
+    plt.ylabel('Sales Difference')
+    plt.grid(True)
+    plt.tight_layout()
+    differenced_plot = get_image()
+
+    # Check stationarity of differenced time series
+    adf_statistic_diff, p_value_diff, critical_values_diff = test_stationarity(data_diff)
+    stationarity_result_diff = f'ADF Statistic: {adf_statistic_diff}\n p-value: {p_value_diff}\n Critical Values: {critical_values_diff}'
+
+    # Calculate autocorrelation and partial autocorrelation functions
+    lag_acf = acf(data_diff, nlags=20)
+    lag_pacf = pacf(data_diff, nlags=20, method='ols')
+
+    # Plot ACF
+    plt.figure(figsize=(12, 4))
+    plt.subplot(121)
+    plt.stem(range(1, len(lag_acf) + 1), lag_acf)
+    plt.axhline(y=0, linestyle='--', color='gray')
+    plt.title('Autocorrelation Function')
+
+    # Plot PACF
+    plt.subplot(122)
+    plt.stem(range(1, len(lag_pacf) + 1), lag_pacf)
+    plt.axhline(y=0, linestyle='--', color='gray')
+    plt.title('Partial Autocorrelation Function')
+
+    acf_pacf_plot = get_image()
+
+    # Use pmdarima to automatically choose the best parameters for ARIMA
+    arima_model = pm.auto_arima(data_df['sales'], seasonal=False, suppress_warnings=True, stepwise=True)
+    arima_order = arima_model.get_params()['order']
+
+    # Fit ARIMA model
+    arima_result = ARIMA(data_df['sales'], order=arima_order).fit()
+
+    # Print ARIMA model summary
+    arima_model_summary = arima_result.summary()
+
+    # Use pmdarima to automatically choose the best parameters for SARIMAX
+    sarimax_model = pm.auto_arima(data_df['sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12)
+    sarimax_order = sarimax_model.get_params()['order']
+    sarimax_seasonal_order = sarimax_model.get_params()['seasonal_order']
+
+    # Fit SARIMAX model
+    sarimax_result = sm.tsa.statespace.SARIMAX(data_df['sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
+
+    # Print SARIMAX model summary
+    sarimax_model_summary = sarimax_result.summary()
+
+    # Forecast using ARIMA
+    arima_forecast_steps = 30
+    arima_forecast = arima_result.get_forecast(steps=arima_forecast_steps)
+    arima_confidence_intervals = arima_forecast.conf_int()
+
+    # Forecast using SARIMAX
+    sarimax_forecast_steps = 30
+    sarimax_forecast = sarimax_result.get_forecast(steps=sarimax_forecast_steps)
+    sarimax_confidence_intervals = sarimax_forecast.conf_int()
+
+    # Plot the ARIMA and SARIMAX forecasts
+    plt.figure(figsize=(12, 6))
+    plt.plot(data_df['sales'], label='Actual')
+    plt.plot(arima_forecast.predicted_mean, color='red', label='ARIMA Forecast')
+    plt.fill_between(arima_confidence_intervals.index, arima_confidence_intervals.iloc[:, 0], arima_confidence_intervals.iloc[:, 1], color='pink', alpha=0.3, label='ARIMA Confidence Intervals')
+    plt.plot(sarimax_forecast.predicted_mean, color='blue', label='SARIMAX Forecast')
+    plt.fill_between(sarimax_confidence_intervals.index, sarimax_confidence_intervals.iloc[:, 0], sarimax_confidence_intervals.iloc[:, 1], color='lightblue', alpha=0.3, label='SARIMAX Confidence Intervals')
+    plt.title('ARIMA and SARIMAX Forecasts')
+    plt.legend()
+    forecast_plot = get_image()
+# return render(request, 'dashboard/dashboard.html', context)
+    # Render the results
+    return render(request, 'dashboard/dashboard.html', {
+        'original_plot': original_plot,
+        'stationarity_result': stationarity_result,
+        'differenced_plot': differenced_plot,
+        'stationarity_result_diff': stationarity_result_diff,
+        'acf_pacf_plot': acf_pacf_plot,
+        'arima_model_summary': arima_model_summary,
+        'sarimax_model_summary': sarimax_model_summary,
+        'forecast_plot': forecast_plot,
+    })
+
+def get_image():
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    graphic = base64.b64encode(image_png)
+    graphic = graphic.decode('utf-8')
+    return graphic
+
+
 def previous_pg(request):
     previous_page = request.META.get('HTTP_REFERER')
     return HttpResponseRedirect(previous_page)

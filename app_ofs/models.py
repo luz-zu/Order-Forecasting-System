@@ -2,6 +2,13 @@ from django.db import models
 
 from django.contrib.auth.models import AbstractUser
 
+# models.py
+
+class SalesData(models.Model):
+    month = models.DateTimeField()
+    sales = models.FloatField()
+
+
 class CustomUser(AbstractUser):
     dob = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
