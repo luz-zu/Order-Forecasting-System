@@ -64,7 +64,15 @@
             <div class="card">
                 <div class="card-body">
                     <div class="card-title fs-5">Monthly Prediction</div>
-                    <canvas id="monthly"></canvas>
+                    <div>
+                        <h2>ARIMA Forecast</h2>
+                        <p>{{ results.arima_forecast }}</p>
+                    </div>
+                
+                    <div>
+                        <h2>SARIMAX Forecast</h2>
+                        <p>{{ results.sarimax_forecast }}</p>
+                    </div>
                 </div>
             </div>
         </div>
