@@ -139,15 +139,51 @@ def user_dashboard(request):
         cursor.execute("SELECT COUNT(*) FROM order_info")
         totalOrders = cursor.fetchone()[0]
 
-        
+        # Create SARIMAX Forecast Chart
+    sarimax_chart = go.Figure()
 
-        context = {
+    # Plot actual data
+    sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+
+    # Plot SARIMAX Forecast
+    sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=12 + 1, freq='M')[1:]
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+
+    # Plot confidence intervals
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+                                       y=results['sarimax_confidence_intervals']['lower Sales'],
+                                       fill=None,
+                                       mode='lines',
+                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                       name='SARIMAX Lower CI'))
+
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+                                       y=results['sarimax_confidence_intervals']['upper Sales'],
+                                       fill='tonexty',
+                                       mode='lines',
+                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                       name='SARIMAX Upper CI'))
+
+    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+    # Convert SARIMAX chart to HTML
+    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+  
+
+    context = {
             'pendingOrder': pendingOrders,
             'ongoingOrder': ongoingOrders,
             'completedOrder': completedOrders,
             'totalOrder': totalOrders,
             'results': results,
-        }
+            'pendingOrder': pendingOrders,
+            'ongoingOrder': ongoingOrders,
+            'completedOrder': completedOrders,
+            'totalOrder': totalOrders,
+            'results': results,
+            'sarimax_chart_html': sarimax_chart_html,                                                           
+    }
 
     return render(request, 'dashboard/dashboard.html', {'results': results})
     
@@ -1055,63 +1091,63 @@ def arima_sarimax_forecast(data):
 
 
 
-  # Plotting ARIMA Forecast
-    arima_fig = go.Figure()
+#   # Plotting ARIMA Forecast
+#     arima_fig = go.Figure()
 
-    # Plot actual data
-    arima_fig.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+#     # Plot actual data
+#     arima_fig.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
 
-    # Plot ARIMA Forecast
-    arima_forecast_index = pd.date_range(start=data.index[-1], periods=arima_forecast_steps + 1, freq='M')[1:]
-    arima_fig.add_trace(go.Scatter(x=arima_forecast_index, y=arima_forecast.predicted_mean, mode='lines', name='ARIMA Forecast'))
+#     # Plot ARIMA Forecast
+#     arima_forecast_index = pd.date_range(start=data.index[-1], periods=arima_forecast_steps + 1, freq='M')[1:]
+#     arima_fig.add_trace(go.Scatter(x=arima_forecast_index, y=arima_forecast.predicted_mean, mode='lines', name='ARIMA Forecast'))
 
-    # Plot confidence intervals
-    arima_fig.add_trace(go.Scatter(x=arima_forecast_index,
-                                  y=arima_confidence_intervals['lower Sales'],
-                                  fill=None,
-                                  mode='lines',
-                                  line=dict(color='rgba(255, 100, 100, 0.3)'),
-                                  name='ARIMA Lower CI'))
+#     # Plot confidence intervals
+#     arima_fig.add_trace(go.Scatter(x=arima_forecast_index,
+#                                   y=arima_confidence_intervals['lower Sales'],
+#                                   fill=None,
+#                                   mode='lines',
+#                                   line=dict(color='rgba(255, 100, 100, 0.3)'),
+#                                   name='ARIMA Lower CI'))
 
-    arima_fig.add_trace(go.Scatter(x=arima_forecast_index,
-                                  y=arima_confidence_intervals['upper Sales'],
-                                  fill='tonexty',
-                                  mode='lines',
-                                  line=dict(color='rgba(255, 100, 100, 0.3)'),
-                                  name='ARIMA Upper CI'))
+#     arima_fig.add_trace(go.Scatter(x=arima_forecast_index,
+#                                   y=arima_confidence_intervals['upper Sales'],
+#                                   fill='tonexty',
+#                                   mode='lines',
+#                                   line=dict(color='rgba(255, 100, 100, 0.3)'),
+#                                   name='ARIMA Upper CI'))
 
-    arima_fig.update_layout(title='ARIMA Forecast with Confidence Intervals')
-    arima_fig.show()
+#     arima_fig.update_layout(title='ARIMA Forecast with Confidence Intervals')
+#     arima_fig.show()
 
-    # ... (similar code for SARIMAX plotting)
+#     # ... (similar code for SARIMAX plotting)
 
-    # Plotting SARIMAX Forecast
-    sarimax_fig = go.Figure()
+#     # Plotting SARIMAX Forecast
+#     sarimax_fig = go.Figure()
 
-    # Plot actual data
-    sarimax_fig.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+#     # Plot actual data
+#     sarimax_fig.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
 
-    # Plot SARIMAX Forecast
-    sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=sarimax_forecast_steps + 1, freq='M')[1:]
-    sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index, y=sarimax_forecast.predicted_mean, mode='lines', name='SARIMAX Forecast'))
+#     # Plot SARIMAX Forecast
+#     sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=sarimax_forecast_steps + 1, freq='M')[1:]
+#     sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index, y=sarimax_forecast.predicted_mean, mode='lines', name='SARIMAX Forecast'))
 
-    # Plot confidence intervals
-    sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                    y=sarimax_confidence_intervals['lower Sales'],
-                                    fill=None,
-                                    mode='lines',
-                                    line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                    name='SARIMAX Lower CI'))
+#     # Plot confidence intervals
+#     sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                     y=sarimax_confidence_intervals['lower Sales'],
+#                                     fill=None,
+#                                     mode='lines',
+#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                     name='SARIMAX Lower CI'))
 
-    sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                    y=sarimax_confidence_intervals['upper Sales'],
-                                    fill='tonexty',
-                                    mode='lines',
-                                    line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                    name='SARIMAX Upper CI'))
+#     sarimax_fig.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                     y=sarimax_confidence_intervals['upper Sales'],
+#                                     fill='tonexty',
+#                                     mode='lines',
+#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                     name='SARIMAX Upper CI'))
 
-    sarimax_fig.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-    sarimax_fig.show()
+#     sarimax_fig.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+#     sarimax_fig.show()
     return {
         'arima_forecast': arima_forecast.predicted_mean,
         'arima_confidence_intervals': arima_confidence_intervals,
