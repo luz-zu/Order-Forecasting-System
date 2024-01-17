@@ -8,9 +8,11 @@
     >
       <div class="d-flex align-items-center">
         <div class="pe-3">
-        <button class="sidebar-toggle-btn btns" onclick="toggleSidebar()">
+        <!-- <button class="sidebar-toggle-btn btns" onclick="toggleSidebar()">
           <i class="fa-solid fa-bars"></i>
-        </button>
+        </button> -->
+        <span class="d-lg-none d-flex" style="font-size: 24px; cursor: pointer; color: white;" onclick="toggleNav()"
+        >&#9776; </span>
       </div>
       <div>
         <h3 class="fw-bold text-white">OFS</h3>
@@ -44,17 +46,16 @@
         <!-- <i class="fa-solid fa-caret-down text-blue"></i> -->
         <div class="d-flex">
 
-        <div class="pe-3">
+        <div class="pe-3 text-white">
           Hi, {{user.username}}
         </div>
-        <div class="dropdown">
+        <div class="dropdown ">
           <a
-            class=""
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
           >
-            <i class="fa-solid fa-caret-down text-blue"></i>
+            <i class="fa-solid fa-caret-down text-white"></i>
           </a>
           <ul class="dropdown-menu">
             <!-- <li><a class="dropdown-item text-blue fs-5" style=" text-transform: capitalize;" href="#"><i class="fa-solid fa-user pe-2 "></i>Hi, {{user.username}}</a></li> -->

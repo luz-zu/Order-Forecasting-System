@@ -112,66 +112,6 @@ body {
   padding-top: 1rem;
 }
 
-.sidebar {
-  position: absolute;
-  width: 15rem;
-  height: 100vh;
-  background: #1d2951;
-  overflow: hidden;
-  transition: 0.5s;
-}
-
-.sidebar:hover {
-  width: 15rem;
-}
-
-.sidebar ul {
-  position: relative;
-  height: 100vh;
-}
-
-.sidebar ul li {
-  list-style: none;
-  padding: 0rem 1rem;
-}
-
-.sidebar ul list-style:hover {
-  background: #f3f3f3;
-}
-
-.sidebar ul li a {
-  position: relative;
-  display: flex;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.sidebar ul li:hover {
-  background: #384e96;
-  border-radius: 10px;
-}
-
-.sidebar ul li a .icon {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 40px;
-  padding-right: 1rem;
-  height: 60px;
-  font-size: 1.5em;
-  color: #fff;
-}
-
-.sidebar ul li a .text {
-  position: relative;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  font-size: 1em;
-  color: #fff;
-  text-transform: uppercase;
-}
 
 .blue-btn {
   background-color: #1d2951;

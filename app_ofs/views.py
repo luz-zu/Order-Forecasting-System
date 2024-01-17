@@ -120,6 +120,8 @@ import os
 @login_required
 def user_dashboard(request):
     # os.chdir("/data")
+    current_user_id = request.user.id
+
     data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
     data.columns = ["Month", "Sales"]
     data = data.dropna()
@@ -130,16 +132,16 @@ def user_dashboard(request):
     results = arima_sarimax_forecast(data, forecast_steps=forecast_steps)
 
     with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending'")
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
         pendingOrders = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing'")
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
         ongoingOrders = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed'")
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
         completedOrders = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM order_info")
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
         totalOrders = cursor.fetchone()[0]
 
 
@@ -174,7 +176,6 @@ def user_dashboard(request):
     # Convert SARIMAX chart to HTML
     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
 
-    print(sarimax_chart_html)
 
     context = {
             'pendingOrder': pendingOrders,
