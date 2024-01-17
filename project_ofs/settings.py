@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'app_ofs',
     'crispy_forms',
     'chartjs',
+
 ]
 
 
