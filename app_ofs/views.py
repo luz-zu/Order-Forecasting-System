@@ -736,9 +736,8 @@ def addOrder(request):
         delivery_date = timezone.datetime.strptime(delivery_date, '%Y-%m-%d').date()
 
         if delivery_date <= ordered_date:
-            error_message = "Delivery date must be later than the order date."
-
-            return HttpResponse("Delivery date must be later than the order date.")
+            messages.error(request, 'Delivery date must be later than the order date.')
+            return render(request, 'orders.html')
 
         sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         values = (order_id, order_product_name, quantity,ordered_date , price, delivery_date, status, current_user_id)
@@ -752,7 +751,7 @@ def addOrder(request):
         except IntegrityError:
             return HttpResponse("An error occurred while adding the product")
             
-    return render(request, 'orders.html', {'error_message':error_message})
+    return render(request, 'orders.html')
 
 
 

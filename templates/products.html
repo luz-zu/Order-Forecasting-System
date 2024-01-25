@@ -2,7 +2,7 @@
 
 <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
-<nav>{%include "components/navbar.html" %}</nav>
+<nav class="position-sticky">{%include "components/navbar.html" %}</nav>
 <div>{%include "components/sidebar.html" %}</div>
 
 <div id="messages" style="display: none">
@@ -103,7 +103,7 @@
                       type="button"
                       class="text-danger delete-button"
                       data-bs-toggle="modal"
-                      data-bs-target="#deleteProductModal"
+                      data-bs-target="#delete_Product"
                       data-product-id="{{ product.product_id }}"
                       data-product-name="{{ product.product_name }}"
                       data-product-description="{{ product.product_description }}"
@@ -286,11 +286,11 @@
 
 
 <!-- Delete Product Modal -->
-<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+<div class="modal fade" id="delete_Product" tabindex="-1" aria-labelledby="delete_ProductLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="deleteProductModalLabel">Delete Product</h5>
+        <h5 class="modal-title" id="delete_ProductLabel">Delete Product</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -331,7 +331,7 @@
       .then(response => {
         if (response.ok) {
           // Optionally, you can close the modal here
-          document.getElementById('deleteProductModal').classList.remove('show');
+          document.getElementById('delete_Product').classList.remove('show');
           document.body.classList.remove('modal-open');
           return response.json();
         } else {
@@ -350,7 +350,7 @@
       });
   }
 
-  document.getElementById('deleteProductModal').addEventListener('show.bs.modal', function (event) {
+  document.getElementById('delete_Product').addEventListener('show.bs.modal', function (event) {
     var button = event.relatedTarget;
     var productId = button.getAttribute('data-product-id');
     var productName = button.getAttribute('data-product-name');

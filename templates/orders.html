@@ -19,7 +19,7 @@
         placeholder="Search..."
       />
     </div>
-    <div class="d-flex justify-content-end">
+    <div class="d-flex align-items-center justify-content-end w-100">
       <div class="pt-md-0 pt-3">
         <button
           class="blue-btn"
@@ -302,7 +302,7 @@
             >
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary">Add Order</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Add Order</button>
           </div>
         </form>
       </div>
@@ -332,15 +332,7 @@
         <form method="post" action="{% url 'editOrder' %}">
           {% csrf_token %}
           <input type="hidden" name="old_orderid" id="old_orderid" />
-          <!-- <div class="mb-3">
-                        <label for="order_product_name" class="col-form-label">Product:</label>
-                        <select name="order_product_name" id="product_dropdown" class="form-control">
-                            <option value="">Select a product</option>
-                            {% for product in products %}
-                                <option value="{{ product.product_id }}">{{ product.product_name }}</option>
-                            {% endfor%}
-                        </select>
-                    </div> -->
+        
 
           <div class="mb-3">
             <label for="edit_quantity" class="col-form-label">Quantity:</label>
@@ -352,10 +344,7 @@
             />
           </div>
 
-          <!-- <div class="mb-3">
-                        <label for="ordered_date" class="form-label">Ordered Date:</label>
-                        <input type="date" class="form-control datepicker" name="ordered_date" id="ordered_date" required>
-                    </div> -->
+        
 
           <div class="mb-3">
             <label for="edit_price" class="form-label">Price:</label>
@@ -377,6 +366,9 @@
               name="edit_delivery_date"
               id="edit_delivery_date"
             />
+
+            <div class="text-danger" id="deliveryDateError"></div>
+
           </div>
 
           <div class="mb-3">
@@ -405,8 +397,27 @@
 </div>
 
 
+<script>
+  // document.addEventListener('DOMContentLoaded', function () {
+  //   var orderedDateInput = document.getElementById('ordered_date');
+  //   var deliveryDateInput = document.getElementById('delivery_date');
 
+  //   orderedDateInput.addEventListener('input', function () {
+  //     var orderedDate = new Date(orderedDateInput.value);
+  //     var formattedOrderedDate = orderedDate.toISOString().split('T')[0];
+      
+  //     // Set the min attribute for delivery date
+  //     deliveryDateInput.setAttribute('min', formattedOrderedDate);
 
+  //     // Clear the value if it's invalid
+  //     if (new Date(deliveryDateInput.value) < orderedDate) {
+  //       deliveryDateInput.value = formattedOrderedDate;
+  //     }
+  //   });
+
+   
+  // });
+</script>
 
 
 <script src="{% static 'script.js' %}"></script>
