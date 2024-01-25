@@ -406,7 +406,8 @@ def addProduct(request):
 
         
             if getExistingProductData:
-                return HttpResponse("Product already exists")
+                messages.info(request, 'Product Already Existed!')
+                return HttpResponseRedirect('/products')
 
 
             sql_query = "INSERT INTO product_info (product_id, product_name, product_description, category, userid) VALUES (%s, %s, %s, %s,%s)"
@@ -416,7 +417,7 @@ def addProduct(request):
                 with connection.cursor() as cursor:
                     cursor.execute(sql_query, values)
                     connection.commit()
-
+                messages.success(request, 'Product Added successfully!')
                 return HttpResponseRedirect('/products')
             except IntegrityError:
                 return HttpResponse("An error occurred while adding the product")
@@ -484,7 +485,7 @@ def editProduct(request):
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-
+            messages.info(request, 'Product Edited successfully!')
             return HttpResponseRedirect('/products')
         except IntegrityError:
             return HttpResponse("An error occurred while editing the product details")

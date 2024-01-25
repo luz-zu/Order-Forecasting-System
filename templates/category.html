@@ -9,22 +9,29 @@
 <div>
     {%include "components/sidebar.html" %}
 </div>
-
-
+<script>
+  // Hide messages after 10 seconds
+  setTimeout(function() {
+      var messagesContainer = document.querySelector('.messages');
+      if (messagesContainer) {
+          messagesContainer.style.display = 'none';
+      }
+  }, 10000); // 10 seconds
+</script>
 
     <div class="d-block" id="main">
-
-      {% if messages %}
+    <div class=" container pt-3" >
+      <!-- <div class="d-flex justify-content-end alert_msg" >
+        {% if messages %}
 		<div class="messages">
 		{% for message in messages %}
-			<div class="alert {% if message.tags %}alert-{{ message.tags }}"{% endif %}>
+			<div class="alert {% if message.tags %}alert-{{ message.tags }}" {% endif %}>
 				{{ message }}
 			</div>
 		{% endfor %}
 		</div>
 	{% endif %}
-    <div class=" container pt-3" >
-      
+      </div> -->
       <hr>
       <div class="d-md-flex d-block pt-3 justify-content-between">
         <div>

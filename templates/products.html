@@ -1,9 +1,6 @@
-{%extends "base.html" %} {% block title %} Products {% endblock %} 
-{% block content %}
-{% load static %}
+{%extends "base.html" %} {% block title %} Products {% endblock %} {% block content %} {% load static %}
 
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
 <nav>{%include "components/navbar.html" %}</nav>
 <div>{%include "components/sidebar.html" %}</div>
@@ -14,21 +11,19 @@
   {% endfor %}
 </div>
 <div class="d-flex" id="main">
-
-<div class="container pt-3">
- 
-  <div class="pt-3">
-    <hr />
-    <div class="d-md-flex d-block pt-3 justify-content-between">
-      <div>
-        <input
-          type="text"
-          class="form-control"
-          id="table-filter"
-          placeholder="Search..."
-        />
-      </div>
-      {% if user.userrole == 'admin' %}
+  <div class="container pt-3">
+    <div class="pt-3">
+      <hr />
+      <div class="d-md-flex d-block pt-3 justify-content-between">
+        <div>
+          <input
+            type="text"
+            class="form-control"
+            id="table-filter"
+            placeholder="Search..."
+          />
+        </div>
+        {% if user.userrole == 'admin' %}
         <div class="text-end pt-md-0 pt-5">
           <button
             class="blue-btn"
@@ -39,38 +34,42 @@
             Add New Product
           </button>
         </div>
-      {% endif %}
-    </div>
+        {% endif %}
+      </div>
 
-    <div class="row pt-3">
-      <div class="col-12">
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Product Id</th>
-                <th scope="col">Category</th>
-                <th scope="col">Product</th>
-                <th scope="col">Description</th>
-                {% if user.userrole == 'admin' %}
+      <div class="row pt-3">
+        <div class="col-12">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Product Id</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Product</th>
+                  <th scope="col">Description</th>
+                  {% if user.userrole == 'admin' %}
                   <th scope="col">Actions</th>
-                {% endif %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for product in products %}
+                  {% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for product in products %}
 
-              <tr>
-                <td scope="row">{{ forloop.counter }}</td>
-                <td>{{product.product_id}}</td>
-                <td>{{product.category}}</td>
-                <td>{{product.product_name}}</td>
-                <td>{{product.product_description}}</td>
-                {% if user.userrole == 'admin' %}
+                <tr>
+                  <td scope="row">{{ forloop.counter }}</td>
+                  <td>{{product.product_id}}</td>
+                  <td>{{product.category}}</td>
+                  <td>{{product.product_name}}</td>
+                  <td>{{product.product_description}}</td>
+                  {% if user.userrole == 'admin' %}
                   <td>
                     <div
-                      style="display: flex; align-items: center; margin-left: 35%"
+                      style="
+                        display: flex;
+                        align-items: center;
+                        margin-left: 35%;
+                      "
                     >
                       <a
                         href=""
@@ -87,51 +86,61 @@
                           title="Edit"
                         ></i
                       ></a>
-
+                      
                       <form
                         method="post"
                         action="{% url 'delete_product' product.product_id %}"
                       >
-                        {% csrf_token %}
-                        <input
-                          type="hidden"
-                          name="product_id"
-                          value="{{ product.product_id }}"
-                        />
-                        <button
-                          style="
-                            border: none;
-                            background-color: transparent;
-                            margin-left: 10px;
-                          "
-                          type="submit"
-                          class="text-danger delete-button"
-                          data-bs-toggle="modal"
-                          data-bs-target="#delete_product"
-                          data-bs-whatever="delete_product"
-                        >
-                          <i
-                            class="fa-solid fa-trash"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Delete"
-                          ></i>
-                        </button>
+                      {% csrf_token %}
+                      <input
+                        type="hidden"
+                        name="product_id"
+                        value="{{ product.product_id }}"
+                      />
+                      <button
+                        style="
+                          border: none;
+                          background-color: transparent;
+                          margin-left: 10px;
+                        "
+                        type="submit"
+                        class="text-danger delete-button"
+                      
+                      >
+                        <i
+                          class="fa-solid fa-trash"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Delete"
+                        ></i>
+                      </button>
+                      <button
+                      style="border: none; background-color: transparent; margin-left: 10px;"
+                      type="button"
+                      class="text-danger delete-button"
+                      data-bs-toggle="modal"
+                      data-bs-target="#deleteProductModal"
+                      data-product-id="{{ product.product_id }}"
+                      data-product-name="{{ product.product_name }}"
+                      data-product-description="{{ product.product_description }}"
+                    >
+                      <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
+                    </button>
+
                       </form>
                     </div>
                   </td>
-                {% endif %}
-              </tr>
+                  {% endif %}
+                </tr>
 
-              {% endfor %}
-            </tbody>
-          </table>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
-
 </div>
 
 <div
@@ -165,7 +174,6 @@
               >Category:</label
             >
             <div>
-
               <select
                 name="product_category"
                 id="category_dropdown"
@@ -173,7 +181,9 @@
               >
                 <option value="">Select a category</option>
                 {% for category in categories %}
-                <option value="{{ category.category_id }}">{{ category.category }}</option>
+                <option value="{{ category.category_id }}">
+                  {{ category.category }}
+                </option>
 
                 {% endfor%}
               </select>
@@ -242,7 +252,12 @@
         <form method="POST" action="{% url 'editProduct' %}">
           {% csrf_token %}
 
-          <input type="hidden" name="product_id" id="product_id" value="{{ products.product_id }}" />
+          <input
+            type="hidden"
+            name="product_id"
+            id="product_id"
+            value="{{ products.product_id }}"
+          />
 
           <div class="mb-3">
             <label for="new_product_name" class="col-form-label"
@@ -284,6 +299,126 @@
   </div>
 </div>
 
-<script src="{% static 'script.js' %}"> </script>
-{% load static %} 
-{% endblock %}
+<div
+  class="modal fade"
+  id="delete_product"
+  tabindex="-1"
+  aria-labelledby="delete_product"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Delete Product</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{% url 'editProduct' %}">
+          {% csrf_token %}
+
+          <input
+            type="hidden"
+            name="product_id"
+            id="product_id"
+            value="{{ products.product_id }}"
+          />
+          <div>Do you want to delete this product</div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Product Modal -->
+<!-- Your modal structure -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteProductModalLabel">Delete Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="deleteProductId" name="product_id" value="">
+        <p>Are you sure you want to delete the product <strong id="deleteProductName"></strong>?</p>
+      </div>
+      <form id="deleteProductForm" action="{% url 'delete_product' product_id=0 %}" method="post">
+        {% csrf_token %}
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Your script -->
+<script>
+  function setProductDetails(productId, productName, productDescription) {
+    document.getElementById('deleteProductId').value = productId;
+    document.getElementById('deleteProductName').innerText = productName;
+  }
+
+  function deleteProduct() {
+    var productId = document.getElementById('deleteProductId').value;
+
+    // Perform an AJAX request to delete the product
+    // Replace the following line with your preferred method for making an AJAX request
+    fetch(`/delete_product/${productId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      },
+    })
+      .then(response => {
+        if (response.ok) {
+          // Optionally, you can close the modal here
+          document.getElementById('deleteProductModal').classList.remove('show');
+          document.body.classList.remove('modal-open');
+          return response.json();
+        } else {
+          throw new Error('Failed to delete product');
+        }
+      })
+      .then(data => {
+        // Optionally, you can handle the response data here
+        console.log(data);
+        // Reload the page or update the UI as needed
+        location.reload(); // Reload the page
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        // Handle the error as needed
+      });
+  }
+
+  document.getElementById('deleteProductModal').addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var productId = button.getAttribute('data-product-id');
+    var productName = button.getAttribute('data-product-name');
+    var productDescription = button.getAttribute('data-product-description');
+    setProductDetails(productId, productName, productDescription);
+  });
+</script>
+
+
+<script src="{% static 'script.js' %}"></script>
+{% load static %} {% endblock %}

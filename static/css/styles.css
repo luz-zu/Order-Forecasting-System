@@ -105,13 +105,13 @@ body {
 .login_body a {
   color: blue;
 }
-
-.error-message {
-  color: rgb(233, 7, 7);
-  text-align: end;
-  padding-top: 1rem;
+/* alert */
+.alert_msg {
+  position: fixed;
+  top: 3rem;
+  right: 0;
+  height: 1rem;
 }
-
 
 .blue-btn {
   background-color: #1d2951;

@@ -29,12 +29,13 @@ window.onload = function () {
     // });
 
 
-    // flash messages
-    // document.getElementById("messages").style.display = "block";
-    // setTimeout(function() {
-    //     document.getElementById("messages").style.display = "none";
-    // }, 10000); // Display the messages for 10 seconds (10000 milliseconds)
-
+      // Hide messages after 10 seconds
+  setTimeout(function() {
+    var messagesContainer = document.querySelector('.messages');
+    if (messagesContainer) {
+        messagesContainer.style.display = 'none';
+    }
+}, 10000); // 10 seconds
     function toggleSidebar() {
         var sidebar = document.querySelector('.sidebar');
         sidebar.classList.toggle('hide-sidebar');
