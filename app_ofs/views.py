@@ -493,6 +493,26 @@ def editProduct(request):
     return render(request, 'products.html')
 
 @login_required
+# def delete_product(request, product_id):
+#     current_user_id = request.user.id
+#     if request.method == 'POST':
+#         getProductID = request.POST.get('product_id', '')
+
+#         sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
+#         values = (getProductID, current_user_id)
+
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute(sql_query, values)
+#                 connection.commit()
+#                 messages.success(request, "Product Deleted.")
+    
+#             return HttpResponseRedirect('/products')
+#         except IntegrityError:
+#             return HttpResponse("An error occurred while deleting the products")
+        
+        
+#     return render(request, 'products.html')
 def delete_product(request, product_id):
     current_user_id = request.user.id
     if request.method == 'POST':
@@ -507,12 +527,12 @@ def delete_product(request, product_id):
                 connection.commit()
                 messages.success(request, "Product Deleted.")
     
-            return HttpResponseRedirect('/products')
+            return JsonResponse({'status': 'success'})  # Return a JSON response on success
         except IntegrityError:
-            return HttpResponse("An error occurred while deleting the products")
-        
-        
+            return JsonResponse({'status': 'error', 'message': 'An error occurred while deleting the product'})
+
     return render(request, 'products.html')
+
 
 @login_required
 def getOrder(request):
