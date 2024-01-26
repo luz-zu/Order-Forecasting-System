@@ -18,6 +18,14 @@
     <title>{% block title %}My App{% endblock %}</title>
 </head>
 <body>
+    <style>
+        .alert-error {
+            background-color: #f8d7da;  /* Bootstrap's danger background color */
+            color: #721c24;            /* Bootstrap's danger text color */
+            border-color: #f5c6cb;      /* Bootstrap's danger border color */
+        }
+
+    </style>
     <div class="d-flex justify-content-end alert_msg" >
         {% if messages %}
 		<div class="messages">

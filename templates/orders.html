@@ -62,7 +62,7 @@
                   <tr>
                       <td scope="row">{{ forloop.counter }}</td>
                       <td>{{ order.order_id }}</td>
-                      <td>{{ order.order_product_name }}</td>
+                      <td>{{ order.product_name }}</td>
                       <td>{{ order.quantity }}</td>
                       <td>{{ order.ordered_date }}</td>
                       <td>{{ order.price }}</td>
@@ -126,7 +126,7 @@
                   <tr>
                       <td scope="row">{{ forloop.counter }}</td>
                       <td>{{ order.order_id }}</td>
-                      <td>{{ order.order_product_name }}</td>
+                      <td>{{ order.product_name }}</td>
                       <td>{{ order.quantity }}</td>
                       <td>{{ order.ordered_date }}</td>
                       <td>{{ order.price }}</td>
@@ -398,25 +398,25 @@
 
 
 <script>
-  // document.addEventListener('DOMContentLoaded', function () {
-  //   var orderedDateInput = document.getElementById('ordered_date');
-  //   var deliveryDateInput = document.getElementById('delivery_date');
+  document.addEventListener('DOMContentLoaded', function () {
+    var orderedDateInput = document.getElementById('ordered_date');
+    var deliveryDateInput = document.getElementById('delivery_date');
 
-  //   orderedDateInput.addEventListener('input', function () {
-  //     var orderedDate = new Date(orderedDateInput.value);
-  //     var formattedOrderedDate = orderedDate.toISOString().split('T')[0];
+    orderedDateInput.addEventListener('input', function () {
+      var orderedDate = new Date(orderedDateInput.value);
+      var formattedOrderedDate = orderedDate.toISOString().split('T')[0];
       
-  //     // Set the min attribute for delivery date
-  //     deliveryDateInput.setAttribute('min', formattedOrderedDate);
+      // Set the min attribute for delivery date
+      deliveryDateInput.setAttribute('min', formattedOrderedDate);
 
-  //     // Clear the value if it's invalid
-  //     if (new Date(deliveryDateInput.value) < orderedDate) {
-  //       deliveryDateInput.value = formattedOrderedDate;
-  //     }
-  //   });
+      // Clear the value if it's invalid
+      if (new Date(deliveryDateInput.value) < orderedDate) {
+        deliveryDateInput.value = formattedOrderedDate;
+      }
+    });
 
    
-  // });
+  });
 </script>
 
 

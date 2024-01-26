@@ -15,7 +15,6 @@ from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
-from django.db.models import Count
 
 # views.py
 from django.shortcuts import render
@@ -254,7 +253,7 @@ def addnewproduct(request):
 
 def inventory(request):
     current_user_id = request.user.id
-    sql_category = "SELECT * FROM category_info WHERE userid = %s"
+    # sql_category = "SELECT * FROM category_info WHERE userid = %s"
 
     # Use a SQL query to get the category and count of products for each category
     sql_category_with_count = """
@@ -471,13 +470,80 @@ def addProduct(request):
 
 
 @login_required
+# def getProduct(request):
+#     current_user_id = request.user.id
+#     sql_query_product = "SELECT * FROM product_info where userid = %s"
+
+#      # Use a SQL JOIN to retrieve order information along with product names
+#     sql_query = """
+#         SELECT
+#             *
+#         FROM
+#             product_info p
+#         LEFT JOIN
+#             category_info c ON p.category = c.category_id
+#         WHERE
+#             p.userid = %s
+#     """
+#     sql_query_category = "SELECT * FROM category_info where userid = %s"
+
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query_product, (current_user_id,))
+#         data = cursor.fetchall()
+
+#         cursor.execute(sql_query_category, (current_user_id,))
+#         category_data = cursor.fetchall()
+
+#     products = []
+#     for row in data:
+#         product = {
+#             'product_id': row[1],
+#             'product_name': row[2],
+#             'product_description': row[3],
+#             'category': row[4],           
+#         }
+#         products.append(product)
+      
+
+#     categories = []
+#     for row in category_data:
+#         category = {
+#             'category_id': row[1],  # Assuming category_id is in the first column (index 0)
+#             'category': row[2],     # Assuming category name is in the second column (index 1)
+#         }
+#         categories.append(category)
+#     context = {
+#         'categories': categories,
+#         'products': products,
+#     }
+
+#     # print(context_category)
+
+#     return render(request, 'products.html', context)
+
+
 def getProduct(request):
     current_user_id = request.user.id
-    sql_query_product = "SELECT * FROM product_info where userid = %s"
-    sql_query_category = "SELECT * FROM category_info where userid = %s"
+
+    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
+
+    # Use a SQL JOIN to retrieve product information along with category names
+    sql_query = """
+        SELECT
+            p.*,
+            c.category  # Adjust this index based on the structure of your tables
+        FROM
+            product_info p
+        LEFT JOIN
+            category_info c ON p.category = c.category_id
+        WHERE
+            p.userid = %s
+    """
+
+    sql_query_category = "SELECT * FROM category_info WHERE userid = %s"
 
     with connection.cursor() as cursor:
-        cursor.execute(sql_query_product, (current_user_id,))
+        cursor.execute(sql_query, (current_user_id,))
         data = cursor.fetchall()
 
         cursor.execute(sql_query_category, (current_user_id,))
@@ -489,24 +555,22 @@ def getProduct(request):
             'product_id': row[1],
             'product_name': row[2],
             'product_description': row[3],
-            'category': row[4],           
+            'category_name': row[6],  # Assuming category name is retrieved from the JOIN
         }
         products.append(product)
-      
 
     categories = []
     for row in category_data:
         category = {
-            'category_id': row[1],  # Assuming category_id is in the first column (index 0)
-            'category': row[2],     # Assuming category name is in the second column (index 1)
+            'category_id': row[1],
+            'category_name': row[2],
         }
         categories.append(category)
+
     context = {
         'categories': categories,
         'products': products,
     }
-
-    # print(context_category)
 
     return render(request, 'products.html', context)
 
@@ -576,48 +640,56 @@ def delete_product(request, product_id):
 
 
 @login_required
+
 def getOrder(request):
     current_user_id = request.user.id
-    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Ongoing' OR status = 'Pending')"
 
-    values_order = (current_user_id)
-    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
-    values_product = (current_user_id)
+    # Use a SQL JOIN to retrieve order information along with product names
+    sql_query = """
+        SELECT
+            o.order_id,
+            o.productid,
+            o.quantity,
+            o.ordered_date,
+            o.price,
+            o.delivery_date,
+            o.status,
+            p.product_name
+        FROM
+            order_info o
+        LEFT JOIN
+            product_info p ON o.productid = p.product_id
+        WHERE
+            o.userid = %s
+            AND (o.status = 'Ongoing' OR o.status = 'Pending')
+    """
+
+    values = (current_user_id,)
 
     with connection.cursor() as cursor:
-        cursor.execute(sql_query_order, values_order)
-        data = cursor.fetchall()
-
-        cursor.execute(sql_query_product, values_product)
-        product_data = cursor.fetchall()
+        cursor.execute(sql_query, values)
+        result_set = cursor.fetchall()
 
     orders = []
-    for row in data:
+    for row in result_set:
         order = {
-            'order_id': row[1],
-            'order_product_name': row[7],
+            'order_id': row[0],
+            'product_id': row[1],
             'quantity': row[2],
             'ordered_date': row[3],
-            'price': row[5],
-            'delivery_date': row[4],
+            'price': row[4],
+            'delivery_date': row[5],
             'status': row[6],
+            'product_name': row[7] if row[7] else 'Unknown Product',
         }
         orders.append(order)
 
-    products = []
-    for row in product_data:
-        product = {
-            'product_id': row[1],
-            'product_name': row[2],
-        }
-        products.append(product)
     context = {
         'orders': orders,
-        'products': products,
-
     }
 
     return render(request, 'orders.html', context)
+
 
 
 @login_required
@@ -966,7 +1038,6 @@ def verify_otp(request):
     else:
         return render(request, 'forgetpassword.html', {'otp_verified': False, 'otp_sent': False})
 
-@login_required
 def reset_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -981,6 +1052,7 @@ def reset_password(request):
             hashed_password = make_password(new_password)
             with connection.cursor() as cursor:
                 cursor.execute("UPDATE app_ofs_customuser SET password = %s WHERE email = %s", [hashed_password, email])
+                messages.success(request, "Password changed successfully!")
 
             return render(request, 'login.html')
         else:
@@ -1009,9 +1081,12 @@ def editprofile(request):
             changed_fields.append('Email')
 
         if new_phonenumber != user.phone_number:
-            user.phone_number = new_phonenumber
-            changed_fields.append('Phone Number')
-
+            if len(new_phonenumber) == 10:
+                user.phone_number = new_phonenumber
+                changed_fields.append('Phone Number')
+            else:
+                messages.error(request, 'Phone number should be 10 digits. Please correct and try again.')
+                return render(request, 'editprofile.html')
         if changed_fields:
             user.save()
             changed_fields_str = ' & '.join(changed_fields)

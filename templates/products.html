@@ -59,7 +59,7 @@
                 <tr>
                   <td scope="row">{{ forloop.counter }}</td>
                   <td>{{product.product_id}}</td>
-                  <td>{{product.category}}</td>
+                  <td>{{product.category_name}}</td>
                   <td>{{product.product_name}}</td>
                   <td>{{product.product_description}}</td>
                   {% if user.userrole == 'admin' %}
@@ -166,7 +166,7 @@
                 <option value="">Select a category</option>
                 {% for category in categories %}
                 <option value="{{ category.category_id }}">
-                  {{ category.category }}
+                  {{ category.category_name }}
                 </option>
 
                 {% endfor%}
