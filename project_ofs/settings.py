@@ -136,6 +136,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static/css'),  # This assumes your static files are in a 'static' folder in your project
     os.path.join(BASE_DIR, 'static/js'),
+    os.path.join(BASE_DIR, 'static/images'),
 ]
 # Define the directory where collected static files will be stored
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

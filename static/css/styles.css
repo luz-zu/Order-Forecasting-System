@@ -184,3 +184,35 @@ form .custom-input {
   border-radius: 5px;
   padding: 5px;
 }
+
+.large-fs{
+  font-size: 3rem;
+}
+
+.banner_img{
+  height: 25rem;
+  width: 30rem;
+}
+
+.feature{
+  height: 2rem;
+}
+
+@media screen and (max-width: 1400px) and (min-width:992px){
+  .feature{
+    height: 3rem;
+  }
+}
+
+@media screen and (max-width: 767px) and (min-width:558px){
+  .feature{
+    height: 3rem;
+  }
+}
+
+@media screen and (max-width: 480px){
+  .banner_img{
+    height: 15rem;
+    width: 20rem;
+  }
+}

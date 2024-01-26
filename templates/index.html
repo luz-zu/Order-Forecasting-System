@@ -1,24 +1,61 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %} Order Forecasting System {% endblock %} {% block content %} {% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
-{% block title %} Register {% endblock %}
-
-{% block content %}
-{% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-
-<style>
-
-</style>
+<style></style>
 <header>
-  <div>
-      {% include 'components/navbar.html' %}
-
-  </div>
- 
+  <div>{% include 'components/navbar.html' %}</div>
 </header>
 
-<div class="bg-grad p-5 text-white appname text-center" >
-    <div>
+<div class="bg-grad p-5 text-white appname text-center">
+  <div class="container">
+    <div class="row py-5">
+      <!-- <div class="col-lg-6">
+            <div class="large-fs  text-center ">
+                Your Orders Anticipated, Our System Innovated
+        
+            </div>
+            
+            <div class="pt-5 fs-5" >
+                Revolutionize your business with our cutting-edge Order Forecasting System. Unleash the power of predictive analytics to optimize inventory, enhance resource planning, and make informed decisions. 
+            </div>
+        
+            <div class="pt-5 text-center">
+                <a href="" class="px-4 py-2 bg-white rounded text-blue">Learn More <span><i class="fa-solid fa-arrow-right ps-2"></i></span></a>
+                
+            </div>
+        </div> -->
+      <div class="col-lg-6">
+        <div id="animatedText" class="large-fs text-center animate-hidden">
+          Your Orders Anticipated, Our System Innovated
+        </div>
+
+        <div id="animatedText2" class="pt-5 fs-5 animate-hidden">
+          Revolutionize your business with our cutting-edge Order Forecasting
+          System. Unleash the power of predictive analytics to optimize
+          inventory, enhance resource planning, and make informed decisions.
+        </div>
+
+        <div id="animatedText3" class="pt-5 text-center animate-hidden">
+          <a href="" class="px-4 py-2 bg-white rounded text-blue"
+            >Learn More <span><i class="fa-solid fa-arrow-right ps-2"></i></span
+          ></a>
+        </div>
+      </div>
+
+      <div class="col-lg-6 px-lg-5 px-0 pt-lg-0 pt-5">
+        <div>
+          <img
+            src="{% static 'banner.jpg' %}"
+            alt="Banner"
+            class="banner_img rounded"
+          />
+        </div>
+      </div>
+      <!-- <div>
+        <div>
+            <img src="{% static 'banner.jpg' %}" alt="Your Image Alt Text" class="w-50">
+
+        </div>
         <div class="fs-1  text-center py-2 ">
             Your Orders Anticipated, Our System Innovated
     
@@ -31,8 +68,71 @@
             <a href="" class="px-4 py-2 bg-white rounded text-blue">Learn More <span><i class="fa-solid fa-arrow-right ps-2"></i></span></a>
             
         </div>
+    </div> -->
     </div>
-   
-
+  </div>
 </div>
-{% endblock content%}
+<div class="container">
+  <div>
+    <div class="py-5">
+      <div class="fs-1 text-blue fw-light">Our Feature</div>
+      <div class="row">
+        <div class="col-lg-3 col-sm-6 col-12 pt-5">
+          <div class="card" style="border: 1px solid #1d2951">
+            <div class="card-body text-center">
+              <div
+                class="d-block align-items-center justify-content-start text-blue"
+              >
+                <div class="fs-1 pe-2">
+                  <i class="fa-regular fa-chart-bar"></i>
+                </div>
+                <div class="fs-5 feature">Predict Order For You</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 col-12 pt-5">
+          <div class="card" style="border: 1px solid #1d2951">
+            <div class="card-body text-center">
+              <div
+                class="d-block align-items-center justify-content-start text-blue"
+              >
+                <div class="fs-1"><i class="fa-solid fa-gears"></i></div>
+                <div class="fs-5 feature">Optimize Your Inventory</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 col-12 pt-5">
+          <div class="card" style="border: 1px solid #1d2951">
+            <div class="card-body text-center">
+              <div
+                class="d-block align-items-center justify-content-start text-blue"
+              >
+                <div class="fs-1"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="fs-5 feature">Visualize Your Data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6 col-12 pt-5">
+          <div class="card" style="border: 1px solid #1d2951">
+            <div class="card-body text-center">
+              <div
+                class="d-block align-items-center justify-content-start text-blue"
+              >
+                <div class="fs-1"><i class="fa-solid fa-user-group"></i></div>
+                <div class="fs-5 feature">User Friendly Interface</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% load static %} {% endblock content%}
