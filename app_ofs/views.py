@@ -15,6 +15,7 @@ from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
+from django.db.models import Count
 
 # views.py
 from django.shortcuts import render
@@ -214,39 +215,79 @@ def addnewproduct(request):
 
 
 @login_required
+# def inventory(request):
+#     current_user_id = request.user.id
+#     sql_category = "SELECT * FROM category_info where userid = %s"
+
+#     sql_product = "SELECT * FROM product_info where userid = %s"
+#     value = (current_user_id,)
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_category, value)
+#         data = cursor.fetchall()
+#         cursor.execute(sql_product, value)
+#         product_data = cursor.fetchall()
+
+
+#     products = []
+#     for row in product_data:
+#         product = {
+#             'product_id': row[1],
+#             'product_name': row[2],
+#             'product_description': row[3],
+#             'category': row[4],
+#         }
+#         products.append(product)
+
+#     categories = []
+#     for row in data:
+#         category = {
+#             'category_id': row[1],  # Assuming category_id is in the first column (index 0)
+#             'category': row[2],     # Assuming category name is in the second column (index 1)
+#         }
+#         categories.append(category)
+#     context = {
+#         'categories': categories,
+#         'products':products,
+#     }
+
+#     return render(request, 'inventory.html', context)
+
 def inventory(request):
     current_user_id = request.user.id
-    sql_category = "SELECT * FROM category_info where userid = %s"
+    sql_category = "SELECT * FROM category_info WHERE userid = %s"
 
-    sql_product = "SELECT * FROM product_info where userid = %s"
+    # Use a SQL query to get the category and count of products for each category
+    sql_category_with_count = """
+        SELECT
+            c.category_id,
+            c.category,
+            COUNT(p.product_id) AS total_products
+        FROM
+            category_info c
+        LEFT JOIN
+            product_info p ON c.category_id = p.category
+        WHERE
+            c.userid = %s
+        GROUP BY
+            c.category_id, c.category
+    """
+
     value = (current_user_id,)
     with connection.cursor() as cursor:
-        cursor.execute(sql_category, value)
-        data = cursor.fetchall()
-        cursor.execute(sql_product, value)
-        product_data = cursor.fetchall()
-
-
-    products = []
-    for row in product_data:
-        product = {
-            'product_id': row[1],
-            'product_name': row[2],
-            'product_description': row[3],
-            'category': row[4],
-        }
-        products.append(product)
+        cursor.execute(sql_category_with_count, value)
+        categories_with_count = cursor.fetchall()
 
     categories = []
-    for row in data:
+    for row in categories_with_count:
         category = {
-            'category_id': row[1],  # Assuming category_id is in the first column (index 0)
-            'category': row[2],     # Assuming category name is in the second column (index 1)
+            'category_id': row[0],
+            'category': row[1],
+            'total_products': row[2],  # Count products for each category
         }
         categories.append(category)
+
     context = {
         'categories': categories,
-        'products':products,
     }
 
     return render(request, 'inventory.html', context)
