@@ -694,7 +694,6 @@ def getOrder(request):
 @login_required
 def getCompletedOrder(request):
     current_user_id = request.user.id
-    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Completed') ORDER BY ordered_date DESC LIMIT 2"
 
     sql_query = """
         SELECT
@@ -745,43 +744,47 @@ def getCompletedOrder(request):
 @login_required
 def getCancelledOrder(request):
     current_user_id = request.user.id
-    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Cancelled') ORDER BY ordered_date DESC LIMIT 2"
+    sql_query = """
+        SELECT
+            o.order_id,
+            o.productid,
+            o.quantity,
+            o.ordered_date,
+            o.price,
+            o.delivery_date,
+            o.status,
+            p.product_name
+        FROM
+            order_info o
+        LEFT JOIN
+            product_info p ON o.productid = p.product_id
+        WHERE
+            o.userid = %s
+            AND (o.status = 'Cancelled')
+    """
 
-    values_order = (current_user_id)
-    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
-    values_product = (current_user_id)
+    values = (current_user_id,)
 
     with connection.cursor() as cursor:
-        cursor.execute(sql_query_order, values_order)
-        data = cursor.fetchall()
-
-        cursor.execute(sql_query_product, values_product)
-        product_data = cursor.fetchall()
+        cursor.execute(sql_query, values)
+        result_set = cursor.fetchall()
 
     orders = []
-    for row in data:
+    for row in result_set:
         order = {
-            'order_id': row[1],
-            'order_product_name': row[7],
+            'order_id': row[0],
+            'product_id': row[1],
             'quantity': row[2],
             'ordered_date': row[3],
-            'price': row[5],
-            'delivery_date': row[4],
+            'price': row[4],
+            'delivery_date': row[5],
             'status': row[6],
+            'product_name': row[7] if row[7] else 'Unknown Product',
         }
         orders.append(order)
 
-    products = []
-    for row in product_data:
-        product = {
-            'product_id': row[1],
-            'product_name': row[2],
-        }
-        products.append(product)
     context = {
         'orders': orders,
-        'products': products,
-
     }
 
     return render(request, 'cancelledorder.html', context)
@@ -790,6 +793,7 @@ def getCancelledOrder(request):
 @login_required
 def editOrder(request):
     current_user_id = request.user.id
+
     if request.method == 'POST':
         old_orderid = request.POST.get('old_orderid', '')
         edit_quantity = request.POST.get('edit_quantity', '')
@@ -797,6 +801,7 @@ def editOrder(request):
         edit_delivery_date = request.POST.get('edit_delivery_date', '')
         edit_status = request.POST.get('edit_status', '')
 
+        # Assuming product_id is already in the order_info table
         sql_query = "UPDATE order_info SET quantity = %s, price = %s, delivery_date = %s, status = %s WHERE order_id = %s and userid = %s"
         values = (edit_quantity, edit_price, edit_delivery_date, edit_status, old_orderid, current_user_id)
 
@@ -808,8 +813,9 @@ def editOrder(request):
             return HttpResponseRedirect('/orders')
         except IntegrityError:
             return HttpResponse("An error occurred while editing the order details")
-        
+
     return render(request, 'orders.html')
+
 
 
 def order_filter(request):
@@ -923,20 +929,25 @@ def addOrder(request):
 
 @login_required
 def delete_order(request, order_id):
-    current_user_id =  request.user.id
+    current_user_id = request.user.id
+
     if request.method == 'POST':
         sql_query = "DELETE from order_info WHERE order_id = %s and userid = %s"
         values = (order_id, current_user_id)
-        
 
         try:
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-            return HttpResponseRedirect('/orders')
+                
+            # Get the referer from the request headers
+            referer = request.META.get('HTTP_REFERER')
+            
+            # Redirect to the referer or a default URL if referer is not available
+            return HttpResponseRedirect(referer or '/default-url/')
         except IntegrityError:
             return HttpResponse("An error occurred while deleting the orders")
-        
+
     return render(request, 'orders.html')
 
 @login_required
