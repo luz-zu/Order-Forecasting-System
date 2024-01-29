@@ -77,6 +77,7 @@
                               data-bs-target="#edit_order"
                               data-bs-whatever="edit_order"
                               data-order-id="{{ order.order_id }}"
+                              
                               ><i
                                 class="fa-solid fa-pen-to-square pe-2"
                                 data-bs-toggle="tooltip"
@@ -141,6 +142,12 @@
                               data-bs-target="#edit_order"
                               data-bs-whatever="edit_order"
                               data-order-id="{{ order.order_id }}"
+                              data-product-name="{{ order.product_name }}"
+                              data-order-quantity ="{{ order.quantity }}"
+                              data-ordered-date ="{{ order.ordered_date }}"
+                              data-order-price ="{{ order.price }}"
+                              data-delivery-date="{{ order.delivery_date }}"
+                              data-order-status="{{ order.status }}"
                               ><i
                                 class="fa-solid fa-pen-to-square pe-2"
                                 data-bs-toggle="tooltip"
@@ -150,36 +157,35 @@
                             ></a>
                           </div>
                           <div>
-                            <form
+                            <!-- <form
                               method="post"
                               action="{% url 'delete_order' order.order_id %}"
                             >
-                              {% csrf_token %}
+                              {% csrf_token %} -->
                               <input
                                 type="hidden"
                                 name="order_id"
                                 value="{{ order.order_id }}"
                               />
                               <button
-                                style="
-                                  border: none;
-                                  background-color: transparent;
-                                  margin-left: 10px;
-                                "
-                                type="submit"
+                                style="border: none; background-color: transparent; margin-left: 10px;"
+                                type="button"
                                 class="text-danger delete-button"
                                 data-bs-toggle="modal"
                                 data-bs-target="#delete_order"
                                 data-bs-whatever="delete_order"
-                              >
-                                <i
-                                  class="fa-solid fa-trash"
-                                  data-bs-toggle="tooltip"
-                                  data-bs-placement="top"
-                                  title="Delete"
-                                ></i>
-                              </button>
-                            </form>
+                                data-order-id="{{ order.order_id }}"
+                                data-product-name="{{ order.product_name }}"
+                                data-order-quantity="{{ order.quantity }}"
+                                data-ordered-date="{{ order.ordered_date }}"
+                                data-order-price="{{ order.price }}"
+                                data-delivery-date="{{ order.delivery_date }}"
+                                data-order-status="{{ order.status }}"
+                            >
+                                <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
+                            </button>
+
+                            <!-- </form> -->
                           </div>
                         </div>
                       </td>
@@ -334,7 +340,7 @@
         <form method="post" action="{% url 'editOrder' %}">
           {% csrf_token %}
           <input type="hidden" name="old_orderid" id="old_orderid" />
-        
+          <input type="hidden" name="new_product_name" id="new_product_name" />
 
           <div class="mb-3">
             <label for="edit_quantity" class="col-form-label">Quantity:</label>
@@ -397,6 +403,37 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="delete_order" tabindex="-1" aria-labelledby="delete_order" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="delete_OrderLabel">Delete Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="deleteOrderId" name="product_id" value="">
+        <p>Are you sure you want to delete the order?</p>
+      </div>
+      <!-- <form id="deleteOrderForm" action="{% url 'delete_order' 0 %}" method="post">
+        {% csrf_token %}
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="deleteOrder()">Delete</button>
+        </div>
+      </form> -->
+      <form id="deleteOrderForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="order_id" id="deleteOrderId" value="0"> <!-- Default value set to 0, will be updated dynamically -->
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="deleteOrder()">Delete</button>
+        </div>
+    </form> 
+    </div>
+  </div>
+</div>
+
 </div>
 
 
@@ -420,6 +457,23 @@
 
    
   });
+
+  function deleteOrder() {
+    // Get the order ID from the data attribute
+    var orderId = document.querySelector(".delete-button").dataset.orderId;
+
+    // Log the orderId to the console for debugging
+    console.log("Order ID to delete:", orderId);
+
+    // Set the order ID in the hidden input field
+    document.getElementById("deleteOrderId").value = orderId;
+
+    // Set the action URL for the form with the correct order ID
+    document.getElementById("deleteOrderForm").action = "{% url 'delete_order' 0 %}".replace('0', orderId);
+
+    // Submit the form
+    document.getElementById("deleteOrderForm").submit();
+}
 </script>
 
 

@@ -62,8 +62,19 @@ window.onload = function () {
     // order.html
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_order"]').on('click', function () {
         var currOrderId = $(this).data('order-id');
+        var currProduct = $(this).data('product-name');
+        var currQuantity = $(this).data('order-quantity');
+        var currOrderPrice = $(this).data('order-price');
+        var currDeliveryDate = $(this).data('delivery-date');
+        var currOrderStatus = $(this).data('order-status');
         document.getElementById('old_orderid').value = currOrderId;
-        console.log(currOrderId);
+        document.getElementById('new_product_name').value = currProduct;
+        document.getElementById('edit_quantity').value = currQuantity;
+        document.getElementById('edit_price').value = currOrderPrice;
+        document.getElementById('edit_delivery_date').value = currDeliveryDate;
+        document.getElementById('edit_status').value = currOrderStatus;
+        
+        console.log(currDeliveryDate);
     });
      
 
