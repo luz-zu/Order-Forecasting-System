@@ -250,12 +250,8 @@ def addnewproduct(request):
 #     return render(request, 'inventory.html', context)
 
 def inventory(request):
-
-    print("here")
     current_user_id = request.user.id
-    # sql_category = "SELECT * FROM category_info WHERE userid = %s"
-
-    # Use a SQL query to get the category and count of products for each category
+  
     sql_category_with_count = """
         SELECT
             c.category_id,
@@ -278,12 +274,18 @@ def inventory(request):
 
     categories = []
     for row in categories_with_count:
-        category = {
-            'category_id': row[0],
-            'category': row[1],
-            'total_products': row[2],  # Count products for each category
-        }
-        categories.append(category)
+        category_id = row[0]
+        category_name = row[1]
+        total_products = row[2]
+
+        # Only include categories with a count greater than 0
+        if total_products > 0:
+            category = {
+                'category_id': category_id,
+                'category': category_name,
+                'total_products': total_products,
+            }
+            categories.append(category)
 
     context = {
         'categories': categories,
@@ -967,35 +969,84 @@ def getProductCategory(request):
     return JsonResponse(product_list, safe=False)
 
 @login_required
+
 def addItems(request):
     if request.method == 'POST':
         product = request.POST.get('getProductCategory', '')
         quantity = request.POST.get('quantity', '')
         price = request.POST.get('price', '')
         current_user_id = request.user.id
+        current_date = timezone.now().date()
 
-        new_query = "SELECT product_name from product_info WHERE product_name = %s and userid = %s"
-        values = (product,current_user_id,)
+        existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE product_id = %s AND date = %s AND user_id = %s"
+        existing_values_history = (product, current_date, current_user_id)
 
         with connection.cursor() as cursor:
-            cursor.execute(new_query, values)
-            getCategoryId = cursor.fetchone()
-        
-            print("Product Name", getCategoryId)
+            cursor.execute(existing_query_history, existing_values_history)
+            existing_data_history = cursor.fetchone()
 
-        sql_query = "INSERT INTO inventory_details (productid, quantity, price, categoryid, userid) VALUES (%s, %s, %s,%s,%s)"
-        values = (product, quantity, price, getCategoryId,current_user_id)
+        if existing_data_history:
+            # If the entry exists, update the quantity by adding the new quantity
+            updated_quantity = int(existing_data_history[1]) + int(quantity)
 
-        try:
+            update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s WHERE product_id = %s AND date = %s AND user_id = %s"
+            update_values = (updated_quantity, price, product, current_date, current_user_id)
+
             with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
+                    cursor.execute(update_query, update_values)
+                    connection.commit()
+                    messages.success(request, "Inventory Updated")
+        else:
+            # If no entry exists, insert a new row
+            insert_query = "INSERT INTO inventorydetails_date (product_id, quantity, price, user_id, date) VALUES (%s, %s, %s, %s, %s)"
+            insert_values = (product, quantity, price, current_user_id, current_date)
 
-            return HttpResponseRedirect('/inventory')
-        except IntegrityError:
-            return HttpResponse("An error occurred while adding items into the inventory")
+            with connection.cursor() as cursor:
+                    cursor.execute(insert_query, insert_values)
+                    connection.commit()
+                    messages.success(request, "Inventory Added")
+        existing_query = "SELECT productid, quantity FROM inventory_details WHERE productid = %s AND userid = %s"
+        existing_values = (product, current_user_id)
+
+        with connection.cursor() as cursor:
+            cursor.execute(existing_query, existing_values)
+            existing_data = cursor.fetchone()
+
+        
+
+        if existing_data:
+            # If the product exists, update the quantity
+            updated_quantity = int(existing_data[1]) + int(quantity)
+
+            update_query = "UPDATE inventory_details SET quantity = %s, price=%s WHERE productid = %s AND userid = %s"
+            update_values = (updated_quantity, price, product, current_user_id)
+
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(update_query, update_values)
+                    connection.commit()
+                    messages.success(request, "Inventory Updated")
+
+                return HttpResponseRedirect('/inventory')
+            except IntegrityError:
+                return HttpResponse("An error occurred while updating the inventory quantity")
+        else:
+            # If the product doesn't exist, insert a new row
+            insert_query = "INSERT INTO inventory_details (productid, quantity, price, userid) VALUES (%s, %s, %s, %s)"
+            insert_values = (product, quantity, price, current_user_id)
+
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(insert_query, insert_values)
+                    connection.commit()
+                    messages.success(request, "Inventory Added")
+
+                return HttpResponseRedirect('/inventory')
+            except IntegrityError:
+                return HttpResponse("An error occurred while adding items into the inventory")
 
     return render(request, 'inventory.html')
+
 
 @login_required
 def getItems(request):
@@ -1192,14 +1243,30 @@ def inventorylist(request, category_name):
     current_user_id = request.user.id
     sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
     values = (category_name,current_user_id)
+    
 
-    print(category_name)
 
     with connection.cursor() as cursor:
         cursor.execute(sql_query, values)
         getCategoryId = cursor.fetchone()
-    print("pro", getCategoryId)
-    sql_query_product = "SELECT i.quantity, i.price, i.productid, p.product_name " \
+
+    sql_query_product = "SELECT product_id,product_name from product_info WHERE category= %s and userid =%s"
+    values_product = (getCategoryId,current_user_id) 
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_product, values_product)
+        product_info = cursor.fetchall()
+
+    products = []
+    for row in product_info:
+        product = {
+            'product_id': row[0],
+            'product_name': row[1],
+        }
+        products.append(product)
+
+
+    sql_query_product = "SELECT i.quantity, i.price, i.productid, p.product_name, p.product_id " \
                         "FROM inventory_details i " \
                         "INNER JOIN product_info p ON i.productid = p.product_id " \
                         "WHERE p.category = %s"  # Filter by category name instead of category_id
@@ -1214,44 +1281,75 @@ def inventorylist(request, category_name):
         items = {
             'quantity': row[0],
             'price': row[1],
-            'product_name': row[3],  # Index 3 holds the product_name
+            'product_id': row[4],
+            'product_name': row[3],  
         }
         itemList.append(items)
+   
 
     context = {
         'items': itemList,
+        'product': products,
+        'category_name': category_name
     } 
     return render(request, 'inventorylist.html', context)
 
+@login_required
+def inventoryhistory(request, category_name): 
+    current_user_id = request.user.id
+    sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
+    values = (category_name,current_user_id)
 
-    # sql_query_product = "SELECT * from inventory_details WHERE categoryid= %s"
-    # value_inventory = (getCategoryId,)
 
-    # sql_query_product = "SELECT i.quantity, i.price, i.productid, i.categoryid, p.product_name " \
-    #                         "FROM inventory_details i " \
-    #                         "INNER JOIN product_info p ON i.productid = p.product_id " \
-    #                         "WHERE i.categoryid = %s"
-    # value_inventory = (getCategoryId,)
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query, values)
+        getCategoryId = cursor.fetchone()
 
-    # with connection.cursor() as cursor:
-    #     cursor.execute(sql_query_product, value_inventory)
-    #     getInventoryData = cursor.fetchall()
-    # print(getInventoryData)
+    sql_query_product = "SELECT product_id,product_name from product_info WHERE category= %s and userid =%s"
+    values_product = (getCategoryId,current_user_id) 
 
-    # itemList = []
-    # for row in getInventoryData:
-    #     items = {
-    #         'quantity': row[0],
-    #         'price': row[1],
-    #         'product_name': row[4],
-    #     }
-    #     itemList.append(items)
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_product, values_product)
+        product_info = cursor.fetchall()
 
-    # context = {
-    #     'items': itemList,
-    # } 
-    # return render(request, 'inventorylist.html', context)
+    products = []
+    for row in product_info:
+        product = {
+            'product_id': row[0],
+            'product_name': row[1],
+        }
+        products.append(product)
 
+
+    sql_query_product = "SELECT i.quantity, i.price, i.product_id, p.product_name, p.product_id " \
+                        "FROM inventorydetails_date i " \
+                        "INNER JOIN product_info p ON i.product_id = p.product_id " \
+                        "WHERE p.category = %s"  # Filter by category name instead of category_id
+    value_inventory = (getCategoryId,)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_product, value_inventory)
+        getInventoryData = cursor.fetchall()
+
+    itemList = []
+    for row in getInventoryData:
+        items = {
+            'quantity': row[0],
+            'price': row[1],
+            'product_id': row[4],
+            'product_name': row[3],  
+        }
+        itemList.append(items)
+   
+
+    context = {
+        'items': itemList,
+        'product': products
+    } 
+    return render(request, 'inventoryhistory.html', context)
+
+
+   
 
 
 def arima_sarimax_forecast(data, forecast_steps=12):

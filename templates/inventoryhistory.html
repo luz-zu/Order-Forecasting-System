@@ -17,16 +17,9 @@
             <div >
                 <input type="text" class="form-control" id="table-filter" placeholder="Search...">
             </div>
-            <div class="d-md-flex d-block pt-2">
-                <div class="text-end pe-md-3 ">
-                    <a href="{% url 'inventoryhistory' category_name=category_name%}">
-                    <button class="blue-btn">History</button>
-                </a>
-                </div>
-                <div class="text-end pt-md-0 pt-md-0 pt-2">
+                <div class="text-end ">
                     <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
                 </div>
-            </div>
             
         </div>
     
@@ -40,8 +33,6 @@
                                 <th scope="col">Product</th>
                                 <th scope="col">Quantity</th>
                                 <th scope="col">Price</th>
-                                <th scope="col">Action</th>
-
                             </tr>
                         </thead>
                         <tbody>
@@ -51,53 +42,6 @@
                                 <td>{{ item.product_name }}</td>
                                 <td>{{ item.quantity }}</td>
                                 <td>{{ item.price }}</td>
-                                <td>
-                                    <div class="d-flex justify-content-center align-items-center">
-                                      <div>
-                                        <a
-                                          href=""
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#edit_inventory"
-                                          data-bs-whatever="edit_inventory"
-                                          data-order-id="{{ order.order_id }}"
-                                          
-                                          ><i
-                                            class="fa-solid fa-pen-to-square pe-2"
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                            title="Edit"
-                                          ></i
-                                        ></a>
-                                      </div>
-                                      <div>
-                                       
-                                          <input
-                                            type="hidden"
-                                            name="order_id"
-                                            value="{{ order.order_id }}"
-                                          />
-                                          <button
-                                            style="
-                                              border: none;
-                                              background-color: transparent;
-                                              margin-left: 10px;
-                                            "
-                                            type="submit"
-                                            class="text-danger delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#delete_order"
-                                            data-bs-whatever="delete_order"
-                                          >
-                                            <i
-                                              class="fa-solid fa-trash"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="top"
-                                              title="Delete"
-                                            ></i>
-                                          </button>
-                                      </div>
-                                    </div>
-                                  </td>
                             </tr>
                             {% endfor %}
                         </tbody>

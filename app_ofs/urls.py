@@ -39,4 +39,6 @@ urlpatterns = [
     path('editprofile/', views.editprofile, name='editprofile'),
     path('changepassword/', views.changepassword, name='changepassword'),
     path('inventorylist/<str:category_name>/', views.inventorylist, name='inventorylist'),
+    path('inventoryhistory/<str:category_name>/', views.inventoryhistory, name='inventoryhistory'),
+
 ]
