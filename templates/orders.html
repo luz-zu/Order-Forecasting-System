@@ -86,11 +86,11 @@
                             ></a>
                           </div>
                           <div>
-                            <form
+                            <!-- <form
                               method="post"
                               action="{% url 'delete_order' order.order_id %}"
                             >
-                              {% csrf_token %}
+                              {% csrf_token %} -->
                               <input
                                 type="hidden"
                                 name="order_id"
@@ -115,7 +115,7 @@
                                   title="Delete"
                                 ></i>
                               </button>
-                            </form>
+                            <!-- </form> -->
                           </div>
                         </div>
                       </td>
@@ -292,6 +292,8 @@
               <option value="Ongoing">Ongoing</option>
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+
             </select>
           </div>
           <div class="modal-footer">
@@ -377,6 +379,7 @@
               <option value="Ongoing">Ongoing</option>
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
           <div class="modal-footer">

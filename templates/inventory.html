@@ -138,7 +138,7 @@
                     {% csrf_token %}
                     <input type="hidden" id="category_url" value="{% url 'product_category' %}">
                     <div class="mb-3">
-                      <label for="product_category" class="col-form-label">Category:</label>
+                      <!-- <label for="product_category" class="col-form-label">Category:</label>
                       <div>
                         <select name="product_category" id="category_dropdown" class="form-control">
                           <option value="">Select a category</option>
@@ -147,16 +147,17 @@
                           {% endfor %}
                         </select>
                       </div>
-                    </div>
+                    </div> -->
 
-                    <input type="hidden" id="product_url" value="{% url 'getProductCategory' %}">
+                    <input type="hidden" id="product_url" value="">
+                    
                     <div class="mb-3">
                       <label for="getProductCategory" class="col-form-label">Product:</label>
                       <div>
-                        <select name="getProductCategory" id="product_dropdown2" class="form-control">
+                        <select name="getProductCategory" id="product_dropdown" class="form-control">
                             {% for product in products %}
 
-                          <option value="{{ product.product_id }}">{{product.product_name}}</option>
+                          <option value="{{ product.product_id }}">{{product.product_id}}</option>
                           {% endfor %}
                         </select>
                       </div>

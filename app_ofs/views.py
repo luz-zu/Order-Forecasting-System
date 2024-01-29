@@ -122,15 +122,18 @@ def user_dashboard(request):
     # os.chdir("/data")
     current_user_id = request.user.id
 
-    data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
-    data.columns = ["Month", "Sales"]
-    data = data.dropna()
-    # results = arima_sarimax_forecast(data)
-    forecast_steps = int(request.GET.get('forecast_steps', 6))
+    """
+        data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
+        data.columns = ["Month", "Sales"]
+        data = data.dropna()
+        # results = arima_sarimax_forecast(data)
+        forecast_steps = int(request.GET.get('forecast_steps', 6))
+    
 
     # Generate ARIMA and SARIMAX forecasts with the specified number of steps
     results = arima_sarimax_forecast(data, forecast_steps=forecast_steps)
-
+    
+    """
     with connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
         pendingOrders = cursor.fetchone()[0]
@@ -145,7 +148,7 @@ def user_dashboard(request):
         totalOrders = cursor.fetchone()[0]
 
 
-    
+    """
         # Create SARIMAX Forecast Chart
     sarimax_chart = go.Figure()
 
@@ -175,20 +178,15 @@ def user_dashboard(request):
 
     # Convert SARIMAX chart to HTML
     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
-
+    """
 
     context = {
             'pendingOrder': pendingOrders,
             'ongoingOrder': ongoingOrders,
             'completedOrder': completedOrders,
             'totalOrder': totalOrders,
-            'results': results,
-            'pendingOrder': pendingOrders,
-            'ongoingOrder': ongoingOrders,
-            'completedOrder': completedOrders,
-            'totalOrder': totalOrders,
-            'results': results,
-            'sarimax_chart_html': sarimax_chart_html,                                                           
+            # 'results': results,
+            # 'sarimax_chart_html': sarimax_chart_html,
     }
 
     return render(request, 'dashboard/dashboard.html',  context)
@@ -252,6 +250,8 @@ def addnewproduct(request):
 #     return render(request, 'inventory.html', context)
 
 def inventory(request):
+
+    print("here")
     current_user_id = request.user.id
     # sql_category = "SELECT * FROM category_info WHERE userid = %s"
 
@@ -734,7 +734,53 @@ def getCompletedOrder(request):
 
     }
 
-    return render(request, 'getCompletedOrder.html', context)
+    return render(request, 'completedorder.html', context)
+
+
+@login_required
+def getCancelledOrder(request):
+    current_user_id = request.user.id
+    sql_query_order = "SELECT * FROM order_info WHERE userid = %s AND (status = 'Cancelled') ORDER BY ordered_date DESC LIMIT 2"
+
+    values_order = (current_user_id)
+    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
+    values_product = (current_user_id)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_order, values_order)
+        data = cursor.fetchall()
+
+        cursor.execute(sql_query_product, values_product)
+        product_data = cursor.fetchall()
+
+    orders = []
+    for row in data:
+        order = {
+            'order_id': row[1],
+            'order_product_name': row[7],
+            'quantity': row[2],
+            'ordered_date': row[3],
+            'price': row[5],
+            'delivery_date': row[4],
+            'status': row[6],
+        }
+        orders.append(order)
+
+    products = []
+    for row in product_data:
+        product = {
+            'product_id': row[1],
+            'product_name': row[2],
+        }
+        products.append(product)
+    context = {
+        'orders': orders,
+        'products': products,
+
+    }
+
+    return render(request, 'cancelledorder.html', context)
+
 
 @login_required
 def editOrder(request):
@@ -822,14 +868,14 @@ def order_filter(request):
 @login_required
 def get_product_list(request):
     current_user_id = request.user.id
-    sql_query_product = "SELECT id, product_name FROM product_info where userid = %s"
+    sql_query_product = "SELECT id, product_name, product_id FROM product_info where userid = %s"
     values = (current_user_id)
     product_list = []
     with connection.cursor() as cursor:
         cursor.execute(sql_query_product, values)
         products = cursor.fetchall()
         for product in products:
-            product_list.append({'id': product[0], 'product': product[1]})
+            product_list.append({'id': product[0], 'product': product[1], 'product_id': product[2]})
 
     return JsonResponse(product_list, safe=False)
 
@@ -862,7 +908,7 @@ def addOrder(request):
             previous_page = request.META.get('HTTP_REFERER')
             return HttpResponseRedirect(previous_page)
         except IntegrityError:
-            return HttpResponse("An error occurred while adding the product")
+            return HttpResponse("An error occurred while adding the order")
             
     return render(request, 'orders.html')
 
@@ -896,13 +942,12 @@ def getProductCategory(request):
 
     product_list = []
     with connection.cursor() as cursor:
-        sql_query = "SELECT id, product_name FROM product_info WHERE category = %s and userid =%s"
-        cursor.execute(sql_query, [category, current_user_id])
+        sql_query = "SELECT id, product_name, product_id FROM product_info WHERE userid =%s"
+        cursor.execute(sql_query, [current_user_id])
         products = cursor.fetchall()
         # print(products)
         for product in products:
-            # print(product[1])
-            product_list.append({'id': product[0], 'product': product[1]})
+            product_list.append({'id': product[0], 'product': product[1], 'product_id': product[2]})
 
     return JsonResponse(product_list, safe=False)
 
@@ -1132,6 +1177,8 @@ def inventorylist(request, category_name):
     current_user_id = request.user.id
     sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
     values = (category_name,current_user_id)
+
+    print(category_name)
 
     with connection.cursor() as cursor:
         cursor.execute(sql_query, values)

@@ -97,15 +97,47 @@
             <span class="text">Products</span>
           </a>
         </li>
-    
-    
+      <div>
+
+        <li class="sidebar_dropdown">
+          <a class="d-flex align-items-center" data-bs-toggle="collapse" href="#orderlist" role="button" aria-expanded="false" aria-controls="orderlist"  id="orderButton">
+            <span class="icon pe-3"><i class="fa-solid fa-list-check"></i></span>
+            <span class="text">Orders</span>
+          </a>
+       
+        </li>
+        
+        <div class="collapse text-white" id="orderlist">
+          <li class="sidebar_dropdown ps-2">
+            <a href="{% url 'orders' %}" class="d-flex align-items-center ">
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+              <span class="text small-fs">Ongoing Orders</span>
+            </a>
+          </li>
+
+          <li class="sidebar_dropdown ps-2">
+            <a href="{% url 'getCompletedOrder' %}" class="d-flex align-items-center ">
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+              <span class="text small-fs">Completed Orders</span>
+            </a>
+          </li>
+
+          <li class="sidebar_dropdown ps-2">
+            <a href="{% url 'getCancelledOrder' %}" class="d-flex align-items-center ">
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+              <span class="text small-fs">Cancelled Orders</span>
+            </a>
+          </li>
+        </div>
+      </div>
+<!--     
         <li class="sidebar_dropdown">
           <a href="{% url 'orders' %}" class="d-flex align-items-center">
             <span class="icon pe-3"><i class="fa-solid fa-list-check"></i></span>
             <span class="text">Orders</span>
           </a>
        
-        </li>
+        </li> -->
         
         <li>
           <a href="{% url 'inventory' %}">
@@ -140,6 +172,7 @@
           main.style.marginLeft = "250px";
         }
       }
+      
     </script>
   </body>
 </html>

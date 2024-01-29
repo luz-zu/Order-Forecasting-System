@@ -141,7 +141,7 @@ window.onload = function () {
                     product_dropdown.empty();
                     product_dropdown.append('<option value="">Select a product</option>');
                     $.each(data, function (index, product) {
-                        product_dropdown.append('<option value="' + product.product + '">' + product.product + '</option>');
+                        product_dropdown.append('<option value="' + product.product_id + '">' + product.product + '</option>');
                     });
                 },
                 error: function () {
