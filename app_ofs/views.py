@@ -925,16 +925,14 @@ def addOrder(request):
 def delete_order(request, order_id):
     current_user_id =  request.user.id
     if request.method == 'POST':
-        getOrderID = request.POST.get('order_id', '')
         sql_query = "DELETE from order_info WHERE order_id = %s and userid = %s"
-        values = (getOrderID, current_user_id)
+        values = (order_id, current_user_id)
         
 
         try:
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
-                print("Deleting order with ID:", order_id)
             return HttpResponseRedirect('/orders')
         except IntegrityError:
             return HttpResponse("An error occurred while deleting the orders")
