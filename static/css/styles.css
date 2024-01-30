@@ -41,7 +41,7 @@ body {
 
 
 .bg-gray {
-  background-color: #e4e2e2;
+  background-color: #f0f0f0;
 }
 
 .logout {
@@ -96,6 +96,16 @@ body {
   color: white;
 }
 
+.btns-light {
+  background: #ffffff;
+  text-align: center;
+  width: 100%;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem ;
+  color: #1d2951;
+}
+
 .btns:hover {
   background: #3b4570;
   color: white;
@@ -117,7 +127,7 @@ body {
 /* alert */
 .alert_msg {
   position: fixed;
-  top: 3rem;
+  top: 5rem;
   right: 0;
   height: 1rem;
 }
@@ -293,3 +303,7 @@ li{
       font-size: 18px;
     }
   }
+
+nav{
+  position: -webkit-sticky; position: sticky; top: 0;
+}

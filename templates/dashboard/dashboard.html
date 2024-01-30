@@ -1,6 +1,9 @@
 {%extends "base.html" %} {% block title %} Dashboard {% endblock %} 
 {% block content %}
-<nav>{%include "components/navbar.html" %}</nav>
+<nav style="position: -webkit-sticky;
+position: sticky;
+top: 0;
+">{%include "components/navbar.html" %}</nav>
 <div>{%include "components/sidebar.html" %}</div>
 
 <div id="messages" style="display: none">

@@ -18,7 +18,6 @@ class RegisterForm(UserCreationForm):
             # 'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
             }
         
-        exclude = ['password', 'password2']
         
         # fields = '__all__' # to display all the fields on the dom.
 

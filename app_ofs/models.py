@@ -13,6 +13,9 @@ class CustomUser(AbstractUser):
     dob = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
     userrole = models.CharField(max_length=15, blank=True)
+    added_by = models.IntegerField(null=True, blank=True)
+
+ 
 
 class category(models.Model):
     category_id = models.CharField(max_length=100)
