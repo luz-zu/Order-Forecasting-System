@@ -7,17 +7,18 @@ class RegisterForm(UserCreationForm):
     
     class Meta:
 
-        #retrives the user model
         model = get_user_model()
-        fields = ['first_name', 'last_name', 'username', 'email', 'password1', 'password2']
+        fields = ['first_name', 'last_name', 'username', 'email' ]
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.TextInput(attrs={'class': 'form-control'}),
-            'password1': forms.PasswordInput(attrs={'class': 'custom-input'}),
-            'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
+            # 'password1': forms.PasswordInput(attrs={'class': 'form-control'}),
+            # 'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
             }
+        
+        exclude = ['password', 'password2']
         
         # fields = '__all__' # to display all the fields on the dom.
 

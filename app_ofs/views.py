@@ -100,22 +100,52 @@ def login_view(request):
             return render(request, 'login.html', {'error': 'Invalid Username or Password'})
     return render(request, 'login.html')
 
+
 @not_logged_in
 @never_cache
+# def register(request):
+#     if request.method == 'POST':
+#         form = RegisterForm(request.POST)
+#         if form.is_valid():
+#             email = form.cleaned_data['email']
+            
+#             # Raw SQL query to check if the email exists in app_ofs_customuser table
+#             with connection.cursor() as cursor:
+#                 cursor.execute("SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s", [email])
+#                 count = cursor.fetchone()[0]
+
+#             if count > 0:
+#                 messages.error(request, 'Email already exists. Please use a different email address.')
+#             else:
+#                 form.save()
+#                 messages.success(request, 'Registration successful! You are now logged in.')
+#                 return HttpResponseRedirect('/register')
+#     else:
+#         form = RegisterForm()
+#     return render(request, 'register.html', {'form': form})
+
 def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Registration successful! You are now logged in.')
-            return render(request, 'register.html',  {'form': form})
-        else:
-            messages.error(request, 'Registration failed. Please check the provided information.')
+            email = form.cleaned_data['email']
+            
+            # Raw SQL query to check if the email exists in app_ofs_customuser table
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s", [email])
+                count = cursor.fetchone()[0]
+
+            if count > 0:
+                messages.error(request, 'Email already exists. Please use a different email address.')
+            else:
+                # Set the default value for userrole to 'admin'
+                form.instance.userrole = 'admin'
+                form.save()
+                messages.success(request, 'Registration successful! You are now logged in.')
+                return HttpResponseRedirect('/register')
     else:
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
-
-import os
 
 @login_required
 def user_dashboard(request):
