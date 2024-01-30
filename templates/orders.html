@@ -50,154 +50,84 @@
               <th scope="col">Product</th>
               <th scope="col">Quantity</th>
               <th scope="col">Ordered Date</th>
+              <th scope="col">Delivery Date</th>
+
               <th scope="col">Price</th>
               <th scope="col">Total Price</th>
 
-              <th scope="col">Delivery Date</th>
               <th scope="col">Status</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {% if not orders %}
-              {% for order in all_orders %}
-                  <tr>
-                      <td scope="row">{{ forloop.counter }}</td>
-                      <td>{{ order.order_id }}</td>
-                      <td>{{ order.product_name }}</td>
-                      <td>{{ order.quantity }}</td>
-                      <td>{{ order.ordered_date }}</td>
-                      <td>{{ order.price }}</td>
-                      <td>{{ order.total_price }}</td>
+            {% for order in orders %}
+            <tr>
+                <td scope="row">{{ forloop.counter }}</td>
+                <td>{{ order.order_id }}</td>
+                <td>{{ order.product_name }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>{{ order.ordered_date }}</td>
+                <td>{{ order.delivery_date }}</td>
 
-                      <td>{{ order.delivery_date }}</td>
-                      <td>{{ order.status }}</td>
-                      <td>
-                        <div class="d-flex justify-content-center align-items-center">
-                          <div>
-                            <a
-                              href=""
-                              data-bs-toggle="modal"
-                              data-bs-target="#edit_order"
-                              data-bs-whatever="edit_order"
-                              data-order-id="{{ order.order_id }}"
-                              
-                              ><i
-                                class="fa-solid fa-pen-to-square pe-2"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Edit"
-                              ></i
-                            ></a>
-                          </div>
-                          <div>
-                            <!-- <form
-                              method="post"
-                              action="{% url 'delete_order' order.order_id %}"
-                            >
-                              {% csrf_token %} -->
-                              <input
-                                type="hidden"
-                                name="order_id"
-                                value="{{ order.order_id }}"
-                              />
-                              <button
-                                style="
-                                  border: none;
-                                  background-color: transparent;
-                                  margin-left: 10px;
-                                "
-                                type="submit"
-                                class="text-danger delete-button"
-                                data-bs-toggle="modal"
-                                data-bs-target="#delete_order"
-                                data-bs-whatever="delete_order"
-                              >
-                                <i
-                                  class="fa-solid fa-trash"
-                                  data-bs-toggle="tooltip"
-                                  data-bs-placement="top"
-                                  title="Delete"
-                                ></i>
-                              </button>
-                            <!-- </form> -->
-                          </div>
-                        </div>
-                      </td>
-                  </tr>
-              {% endfor %}
-          {% else %}
-              {% for order in orders %}
-                  <tr>
-                      <td scope="row">{{ forloop.counter }}</td>
-                      <td>{{ order.order_id }}</td>
-                      <td>{{ order.product_name }}</td>
-                      <td>{{ order.quantity }}</td>
-                      <td>{{ order.ordered_date }}</td>
-                      <td>{{ order.price }}</td>
-                      <td>{{ order.total_price }}</td>
+                <td>{{ order.price }}</td>
+                <td>{{ order.total_price }}</td>
 
-                      <td>{{ order.delivery_date }}</td>
-                      <td>{{ order.status }}</td>
-                      <td>
-                        <div class="d-flex justify-content-center align-items-center">
-                          <div>
-                            <a
-                              href=""
-                              data-bs-toggle="modal"
-                              data-bs-target="#edit_order"
-                              data-bs-whatever="edit_order"
-                              data-order-id="{{ order.order_id }}"
-                              data-product-name="{{ order.product_name }}"
-                              data-order-quantity ="{{ order.quantity }}"
-                              data-ordered-date ="{{ order.ordered_date }}"
-                              data-order-price ="{{ order.price }}"
-                              data-delivery-date="{{ order.delivery_date }}"
-                              data-order-status="{{ order.status }}"
-                              ><i
-                                class="fa-solid fa-pen-to-square pe-2"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Edit"
-                              ></i
-                            ></a>
-                          </div>
-                          <div>
-                            <!-- <form
-                              method="post"
-                              action="{% url 'delete_order' order.order_id %}"
-                            >
-                              {% csrf_token %} -->
-                              <input
-                                type="hidden"
-                                name="order_id"
-                                value="{{ order.order_id }}"
-                              />
-                              <button
-                                style="border: none; background-color: transparent; margin-left: 10px;"
-                                type="button"
-                                class="text-danger delete-button"
-                                data-bs-toggle="modal"
-                                data-bs-target="#delete_order"
-                                data-bs-whatever="delete_order"
-                                data-order-id="{{ order.order_id }}"
-                                data-product-name="{{ order.product_name }}"
-                                data-order-quantity="{{ order.quantity }}"
-                                data-ordered-date="{{ order.ordered_date }}"
-                                data-order-price="{{ order.price }}"
-                                data-delivery-date="{{ order.delivery_date }}"
-                                data-order-status="{{ order.status }}"
-                            >
-                                <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
-                            </button>
+                <td {% if order.status == 'Pending' %}class="bg-danger"{% endif %}>{{ order.status }}</td>
+                <td>
+                  <div class="d-flex justify-content-center align-items-center">
+                    <div>
+                      <a
+                        href=""
+                        data-bs-toggle="modal"
+                        data-bs-target="#edit_order"
+                        data-bs-whatever="edit_order"
+                        data-order-id="{{ order.order_id }}"
+                        data-product-name="{{ order.product_name }}"
+                        data-order-quantity ="{{ order.quantity }}"
+                        data-ordered-date ="{{ order.ordered_date }}"
+                        data-order-price ="{{ order.price }}"
+                        data-delivery-date="{{ order.delivery_date }}"
+                        data-order-status="{{ order.status }}"
+                        ><i
+                          class="fa-solid fa-pen-to-square pe-2"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Edit"
+                        ></i
+                      ></a>
+                    </div>
+                    <div>
+                   
+                        <input
+                          type="hidden"
+                          name="order_id"
+                          value="{{ order.order_id }}"
+                        />
+                        <button
+                          style="border: none; background-color: transparent; margin-left: 10px;"
+                          type="button"
+                          class="text-danger delete-button"
+                          data-bs-toggle="modal"
+                          data-bs-target="#delete_order"
+                          data-bs-whatever="delete_order"
+                          data-order-id="{{ order.order_id }}"
+                          data-product-name="{{ order.product_name }}"
+                          data-order-quantity="{{ order.quantity }}"
+                          data-ordered-date="{{ order.ordered_date }}"
+                          data-order-price="{{ order.price }}"
+                          data-delivery-date="{{ order.delivery_date }}"
+                          data-ordered-date="{{ order.ordered_date }}"
+                          data-order-status="{{ order.status }}"
+                      >
+                          <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
+                      </button>
 
-                            <!-- </form> -->
-                          </div>
-                        </div>
-                      </td>
-                  </tr>
-              {% endfor %}
-          {% endif %}
+                      <!-- </form> -->
+                    </div>
+                  </div>
+                </td>
+            </tr>
+        {% endfor %}
           </tbody>
         </table>
       </div>
@@ -368,6 +298,20 @@
               name="edit_price"
               id="edit_price"
             />
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_ordered_date" class="form-label"
+              >Ordered Date:</label
+            >
+            <input
+              type="date"
+              class="form-control datepicker"
+              name="edit_ordered_date"
+              id="edit_ordered_date"
+            />
+
+
           </div>
 
           <div class="mb-3">

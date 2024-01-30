@@ -498,6 +498,19 @@ def addProduct(request):
             return HttpResponse("Invalid product data")
     return render(request, 'products.html')
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+def paginate_data(data, page, items_per_page=10):
+    paginator = Paginator(data, items_per_page)
+
+    try:
+        paginated_data = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_data = paginator.page(1)
+    except EmptyPage:
+        paginated_data = paginator.page(paginator.num_pages)
+
+    return paginated_data
 
 
 
@@ -505,7 +518,6 @@ def addProduct(request):
 def getProduct(request):
     current_user_id = request.user.id
 
-    sql_query_product = "SELECT * FROM product_info WHERE userid = %s"
 
     # Use a SQL JOIN to retrieve product information along with category names
     sql_query = """
@@ -553,6 +565,9 @@ def getProduct(request):
     }
 
     return render(request, 'products.html', context)
+
+
+
 
 @login_required
 def editProduct(request):
@@ -622,13 +637,66 @@ def delete_product(request, product_id):
             return JsonResponse({'status': 'error', 'message': 'An error occurred while deleting the product'})
 
     return render(request, 'products.html')
+# from django.utils import timezone
+from datetime import datetime, timedelta
 
 
 @login_required
 
+# def getOrder(request):
+#     current_user_id = request.user.id
+
+#     sql_query = """
+#         SELECT
+#             o.order_id,
+#             o.productid,
+#             o.quantity,
+#             o.ordered_date,
+#             o.price,
+#             o.total_price,
+#             o.delivery_date,
+#             o.status,
+#             p.product_name
+#         FROM
+#             order_info o
+#         LEFT JOIN
+#             product_info p ON o.productid = p.product_id
+#         WHERE
+#             o.userid = %s
+#             AND (o.status = 'Ongoing' OR o.status = 'Pending')
+#     """
+
+#     values = (current_user_id,)
+
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query, values)
+#         result_set = cursor.fetchall()
+
+#     orders = []
+#     for row in result_set:
+#         order = {
+#             'order_id': row[0],
+#             'product_id': row[1],
+#             'quantity': row[2],
+#             'ordered_date': row[3],
+#             'price': row[4],
+#             'total_price':row[5], 
+#             'delivery_date': row[6],
+#             'status': row[7],
+#             'product_name': row[8] if row[8] else 'Unknown Product',
+#         }
+#         orders.append(order)
+#     print('orders', orders)
+#     context = {
+#         'orders': orders,
+#     }
+
+#     return render(request, 'orders.html', context)
+
 def getOrder(request):
     current_user_id = request.user.id
 
+    # Check for orders with 'Ongoing' or 'Pending' status
     sql_query = """
         SELECT
             o.order_id,
@@ -655,33 +723,48 @@ def getOrder(request):
         cursor.execute(sql_query, values)
         result_set = cursor.fetchall()
 
-    orders = []
-    for row in result_set:
-        order = {
-            'order_id': row[0],
-            'product_id': row[1],
-            'quantity': row[2],
-            'ordered_date': row[3],
-            'price': row[4],
-            'total_price':row[5], 
-            'delivery_date': row[6],
-            'status': row[7],
-            'product_name': row[8] if row[8] else 'Unknown Product',
+        orders = []
+        for row in result_set:
+            order_id = row[0]
+            delivery_date = row[6]
+            current_date = datetime.now().date()
+
+            # Check if the delivery_date has been surpassed today's date
+            if delivery_date < current_date:
+                # Update the status to 'Pending'
+                update_query = "UPDATE order_info SET status = 'Pending' WHERE order_id = %s"
+                cursor.execute(update_query, (order_id,))
+                connection.commit()
+            elif delivery_date == current_date or delivery_date > current_date:
+                # Update the status to 'Ongoing'
+                update_query = "UPDATE order_info SET status = 'Ongoing' WHERE order_id = %s"
+                cursor.execute(update_query, (order_id,))
+                connection.commit()
+
+            order = {
+                'order_id': order_id,
+                'product_id': row[1],
+                'quantity': row[2],
+                'ordered_date': row[3],
+                'price': row[4],
+                'total_price': row[5], 
+                'delivery_date': delivery_date,
+                'status': row[7],  # Use the original status
+                'product_name': row[8] if row[8] else 'Unknown Product',
+            }
+            orders.append(order)
+
+        context = {
+            'orders': orders,
         }
-        orders.append(order)
-    print('orders', orders)
-    context = {
-        'orders': orders,
-    }
 
     return render(request, 'orders.html', context)
-
-
-
 @login_required
 def getCompletedOrder(request):
+
     current_user_id = request.user.id
 
+    # Check for orders with 'Ongoing' or 'Pending' status
     sql_query = """
         SELECT
             o.order_id,
@@ -689,6 +772,7 @@ def getCompletedOrder(request):
             o.quantity,
             o.ordered_date,
             o.price,
+            o.total_price,
             o.delivery_date,
             o.status,
             p.product_name
@@ -698,7 +782,7 @@ def getCompletedOrder(request):
             product_info p ON o.productid = p.product_id
         WHERE
             o.userid = %s
-            AND (o.status = 'Completed')
+            AND (o.status = 'Completed' )
     """
 
     values = (current_user_id,)
@@ -709,15 +793,19 @@ def getCompletedOrder(request):
 
     orders = []
     for row in result_set:
+        order_id = row[0]
+        delivery_date = row[6]
+
         order = {
-            'order_id': row[0],
+            'order_id': order_id,
             'product_id': row[1],
             'quantity': row[2],
             'ordered_date': row[3],
             'price': row[4],
-            'delivery_date': row[5],
-            'status': row[6],
-            'product_name': row[7] if row[7] else 'Unknown Product',
+            'total_price': row[5], 
+            'delivery_date': delivery_date,
+            'status': row[7],  # Use the original status
+            'product_name': row[8] if row[8] else 'Unknown Product',
         }
         orders.append(order)
 
@@ -731,6 +819,8 @@ def getCompletedOrder(request):
 @login_required
 def getCancelledOrder(request):
     current_user_id = request.user.id
+
+    # Check for orders with 'Ongoing' or 'Pending' status
     sql_query = """
         SELECT
             o.order_id,
@@ -738,6 +828,7 @@ def getCancelledOrder(request):
             o.quantity,
             o.ordered_date,
             o.price,
+            o.total_price,
             o.delivery_date,
             o.status,
             p.product_name
@@ -747,7 +838,7 @@ def getCancelledOrder(request):
             product_info p ON o.productid = p.product_id
         WHERE
             o.userid = %s
-            AND (o.status = 'Cancelled')
+            AND (o.status = 'Cancelled' )
     """
 
     values = (current_user_id,)
@@ -758,21 +849,26 @@ def getCancelledOrder(request):
 
     orders = []
     for row in result_set:
+        order_id = row[0]
+        delivery_date = row[6]
+
         order = {
-            'order_id': row[0],
+            'order_id': order_id,
             'product_id': row[1],
             'quantity': row[2],
             'ordered_date': row[3],
             'price': row[4],
-            'delivery_date': row[5],
-            'status': row[6],
-            'product_name': row[7] if row[7] else 'Unknown Product',
+            'total_price': row[5], 
+            'delivery_date': delivery_date,
+            'status': row[7],  # Use the original status
+            'product_name': row[8] if row[8] else 'Unknown Product',
         }
         orders.append(order)
 
     context = {
         'orders': orders,
     }
+
 
     return render(request, 'cancelledorder.html', context)
 
@@ -786,11 +882,16 @@ def editOrder(request):
         edit_quantity = request.POST.get('edit_quantity', '')
         edit_price = request.POST.get('edit_price', '')
         edit_delivery_date = request.POST.get('edit_delivery_date', '')
+        edit_ordered_date = request.POST.get('edit_ordered_date', '')
         edit_status = request.POST.get('edit_status', '')
 
         # Assuming product_id is already in the order_info table
-        sql_query = "UPDATE order_info SET quantity = %s, price = %s, delivery_date = %s, status = %s WHERE order_id = %s and userid = %s"
-        values = (edit_quantity, edit_price, edit_delivery_date, edit_status, old_orderid, current_user_id)
+        sql_query = "UPDATE order_info SET quantity = %s, price = %s, total_price = %s, delivery_date = %s, ordered_date =%s, status = %s WHERE order_id = %s and userid = %s"
+        
+        # Calculate the new total price
+        total_price = float(edit_quantity) * float(edit_price)
+
+        values = (edit_quantity, edit_price, total_price, edit_delivery_date, edit_ordered_date, edit_status, old_orderid, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -802,8 +903,6 @@ def editOrder(request):
             return HttpResponse("An error occurred while editing the order details")
 
     return render(request, 'orders.html')
-
-
 
 def order_filter(request):
     if request.method == 'POST':
@@ -908,12 +1007,15 @@ def addOrder(request):
 
         if result:
             price = result[0]
+            # Calculate total_price
+            total_price = Decimal(quantity) * Decimal(price)
         else:
             messages.error(request, 'Price not found for the specified productid.')
-            return render(request, 'orders.html')
+            price = 0
+            total_price = 0
+                # return render(request, 'orders.html')
 
-        # Calculate total_price
-        total_price = Decimal(quantity) * Decimal(price)
+        
 
         # Insert order information into order_info table
         sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, total_price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"

@@ -65,35 +65,21 @@ window.onload = function () {
         var currProduct = $(this).data('product-name');
         var currQuantity = $(this).data('order-quantity');
         var currOrderPrice = $(this).data('order-price');
-        var currDeliveryDate = $(this).data('delivery-date');
+        var currDeliveryDate = new Date($(this).data('delivery-date')).toISOString().split('T')[0];
+        var currOrderedDate = new Date($(this).data('ordered-date')).toISOString().split('T')[0];
         var currOrderStatus = $(this).data('order-status');
         document.getElementById('old_orderid').value = currOrderId;
         document.getElementById('new_product_name').value = currProduct;
         document.getElementById('edit_quantity').value = currQuantity;
         document.getElementById('edit_price').value = currOrderPrice;
         document.getElementById('edit_delivery_date').value = currDeliveryDate;
+        document.getElementById('edit_ordered_date').value = currOrderedDate;
         document.getElementById('edit_status').value = currOrderStatus;
         
         console.log(currDeliveryDate);
     });
 
     // inventory.html
-    // $('a[data-bs-toggle="modal"][data-bs-whatever="edit_inventory"]').on('click', function () {
-    //     var currInventoryId = $(this).data('inventory-id');
-    //     var currProduct = $(this).data('product');
-    //     var currQuantity = $(this).data('inventory-quantity');
-    //     var currPrice = $(this).data('inventory-price');
-    
-    //     // Set values to the form fields
-    //     document.getElementById('edit_inventory_id').value = currInventoryId;
-    //     document.getElementById('product_dropdown').value = currProduct;
-    //     document.getElementById('edit_quantity').value = currQuantity;
-    //     document.getElementById('edit_price').value = currPrice;
-        
-    //     // Log for debugging
-    //     console.log(currInventoryId, currProduct, currQuantity, currPrice);
-    // });
-
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_inventory"]').on('click', function () {
         var currInventoryId = $(this).data('inventory-id');
         var currProduct = $(this).data('product');

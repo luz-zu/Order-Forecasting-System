@@ -51,6 +51,8 @@
               <th scope="col">Quantity</th>
               <th scope="col">Ordered Date</th>
               <th scope="col">Price</th>
+              <th scope="col">Total Price</th>
+
               <th scope="col">Delivery Date</th>
               <th scope="col">Status</th>
               <th scope="col">Actions</th>
@@ -66,6 +68,8 @@
                       <td>{{ order.quantity }}</td>
                       <td>{{ order.ordered_date }}</td>
                       <td>{{ order.price }}</td>
+                      <td>{{ order.total_price }}</td>
+
                       <td>{{ order.delivery_date }}</td>
                       <td>{{ order.status }}</td>
                       <td>
@@ -131,6 +135,8 @@
                       <td>{{ order.quantity }}</td>
                       <td>{{ order.ordered_date }}</td>
                       <td>{{ order.price }}</td>
+                      <td>{{ order.total_price }}</td>
+
                       <td>{{ order.delivery_date }}</td>
                       <td>{{ order.status }}</td>
                       <td>
@@ -157,11 +163,7 @@
                             ></a>
                           </div>
                           <div>
-                            <!-- <form
-                              method="post"
-                              action="{% url 'delete_order' order.order_id %}"
-                            >
-                              {% csrf_token %} -->
+                         
                               <input
                                 type="hidden"
                                 name="order_id"
@@ -180,6 +182,7 @@
                                 data-ordered-date="{{ order.ordered_date }}"
                                 data-order-price="{{ order.price }}"
                                 data-delivery-date="{{ order.delivery_date }}"
+                                data-ordered-date="{{ order.ordered_date }}"
                                 data-order-status="{{ order.status }}"
                             >
                                 <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
@@ -265,7 +268,7 @@
             />
           </div>
 
-          <div class="mb-3">
+          <!-- <div class="mb-3">
             <label for="price" class="form-label">Price:</label>
             <input
               type="number"
@@ -274,7 +277,7 @@
               id="price"
               required
             />
-          </div>
+          </div> -->
 
           <div class="mb-3">
             <label for="delivery_date" class="form-label">Delivery Date:</label>
@@ -362,6 +365,20 @@
               name="edit_price"
               id="edit_price"
             />
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_ordered_date" class="form-label"
+              >Ordered Date:</label
+            >
+            <input
+              type="date"
+              class="form-control datepicker"
+              name="edit_ordered_date"
+              id="edit_ordered_date"
+            />
+
+
           </div>
 
           <div class="mb-3">
