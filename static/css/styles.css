@@ -229,3 +229,67 @@ form .custom-input {
     width: 20rem;
   }
 }
+
+/* sidebar */
+li{
+  list-style: none;
+ }
+
+  .sidenav {
+    height: 100%;
+    width: 250px; /* Set default width */
+    position: fixed;
+    z-index: 1;
+    top: 10;
+    left: 0;
+    background-color: #1d2951;
+    overflow-x: hidden;
+    transition: 0.5s;
+  }
+
+  .sidenav a {
+    padding: 8px 8px 8px 32px;
+    text-decoration: none;
+    font-size: 1rem;
+    color: white;
+    display: block;
+    transition: 0.3s;
+  }
+
+  .sidenav a:hover {
+    color: #1d2951;
+    background-color: white;
+  }
+
+  .sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+  }
+
+  #main {
+    transition: margin-left 0.5s;
+    padding: 16px;
+    margin-left: 250px; /* Adjusted to default width of the sidebar */
+  }
+
+  @media screen and (max-width: 992px) {
+    .sidenav {
+      width: 0; /* Set width to 0 for screens smaller than 992px */
+    }
+
+    #main {
+      margin-left: 0; /* Center main content when sidebar is hidden */
+    }
+  }
+
+  @media screen and (max-height: 450px) {
+    .sidenav {
+      padding-top: 15px;
+    }
+    .sidenav a {
+      font-size: 18px;
+    }
+  }

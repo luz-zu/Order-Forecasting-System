@@ -600,30 +600,32 @@ def editProduct(request):
     return render(request, 'products.html')
 
 @login_required
-# def delete_product(request, product_id):
-#     current_user_id = request.user.id
-#     if request.method == 'POST':
-#         getProductID = request.POST.get('product_id', '')
 
-#         sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
-#         values = (getProductID, current_user_id)
-
-#         try:
-#             with connection.cursor() as cursor:
-#                 cursor.execute(sql_query, values)
-#                 connection.commit()
-#                 messages.success(request, "Product Deleted.")
-    
-#             return HttpResponseRedirect('/products')
-#         except IntegrityError:
-#             return HttpResponse("An error occurred while deleting the products")
-        
-        
-#     return render(request, 'products.html')
 def delete_product(request, product_id):
     current_user_id = request.user.id
+
     if request.method == 'POST':
+        # Fetching the product_id from the URL parameter
         getProductID = request.POST.get('product_id', '')
+
+        # order_query = "SELECT COUNT(*) FROM order_info WHERE product_id = %s AND status IN ('Ongoing', 'Pending') AND user_id = %s"
+        order_query = "SELECT SUM(quantity) FROM order_info WHERE productid = %s AND status IN ('Ongoing', 'Pending') AND userid = %s"
+
+        inventory_query = "SELECT SUM(quantity) FROM inventory_details WHERE productid = %s AND userid = %s"
+
+
+        with connection.cursor() as cursor:
+            cursor.execute(order_query, (getProductID, current_user_id))
+            order_quantity = cursor.fetchone()[0] or 0  # Use 0 if the result is None
+
+            cursor.execute(inventory_query, (getProductID, current_user_id))
+            inventory_quantity = cursor.fetchone()[0] or 0  # Use 0 if the result is None
+
+
+        if order_quantity > 0 or inventory_quantity > 0:
+            messages.error(request, 'Products available in Order and Inventory')
+            print("order_count", order_quantity)
+            return JsonResponse({'status': 'error'})  # Return a JSON response on success
 
         sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
         values = (getProductID, current_user_id)
@@ -1048,58 +1050,6 @@ def addItems(request):
     return render(request, 'inventory.html')
 
 @login_required
-# def editItems(request):
-#     if request.method == 'POST':
-#         inventory_id = request.POST.get('edit_inventory_id', '')
-#         product = request.POST.get('edit_getProductCategory', '')
-#         quantity_str = request.POST.get('edit_quantity', '')
-#         price = request.POST.get('edit_price', '')
-#         operation = request.POST.get('edit_operation', '')
-#         current_user_id = request.user.id
-
-#         try:
-#             quantity = int(quantity_str)
-#         except ValueError:
-#             messages.error(request, "Invalid quantity value")
-#             return redirect('/editItems/')
-
-#         existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE id = %s AND user_id = %s"
-#         existing_values_history = (inventory_id, current_user_id)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(existing_query_history, existing_values_history)
-#             existing_data_history = cursor.fetchone()
-
-#         if existing_data_history:
-#             existing_quantity = int(existing_data_history[1])
-
-#             if operation == 'add':
-#                 new_quantity = existing_quantity + quantity
-#             elif operation == 'deduct':
-#                 if quantity > existing_quantity:
-#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
-#                     return redirect('/editItems/')
-
-#                 new_quantity = existing_quantity - quantity
-#             else:
-#                 messages.error(request, "Invalid operation selected")
-#                 return redirect('/editItems/')
-
-#             # If the entry exists, update the quantity and price
-#             update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
-#             update_values = (new_quantity, price, product, inventory_id, current_user_id)
-
-#             with connection.cursor() as cursor:
-#                 cursor.execute(update_query, update_values)
-#                 connection.commit()
-#                 messages.success(request, "Inventory Updated")
-#         else:
-#             messages.error(request, "Inventory does not exist for editing")
-
-#         return redirect('/editItems/')
-
-#     return render(request, 'inventoryhistory.html')
-
 def editItems(request):
     if request.method == 'POST':
         inventory_id = request.POST.get('edit_inventory_id', '')
@@ -1113,7 +1063,7 @@ def editItems(request):
             quantity_change = int(quantity_str)
         except ValueError:
             messages.error(request, "Invalid quantity value")
-            return redirect('/editItems/')
+            return redirect(request.path)  # Redirect to the same page
 
         existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE id = %s AND user_id = %s"
         existing_values_history = (inventory_id, current_user_id)
@@ -1130,12 +1080,12 @@ def editItems(request):
             elif operation == 'deduct':
                 if quantity_change > existing_quantity:
                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
-                    return redirect('/editItems/')
+                    return redirect(request.path)  # Redirect to the same page
 
                 new_quantity = existing_quantity - quantity_change
             else:
                 messages.error(request, "Invalid operation selected")
-                return redirect('/editItems/')
+                return redirect(request.path)  # Redirect to the same page
 
             # If the entry exists, update the quantity and price in inventorydetails_date
             update_query_history = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
@@ -1147,7 +1097,17 @@ def editItems(request):
                 messages.success(request, f"Inventory Updated in inventorydetails_date. {quantity_change} units {operation}")
 
             # Now, update the quantity and price in inventory_details
-            update_query_inventory = "UPDATE inventory_details SET quantity = quantity + %s, price = %s WHERE productid = %s AND userid = %s"
+            if operation == 'deduct':
+                # Deduct quantity if the operation is deduction
+                update_query_inventory = "UPDATE inventory_details SET quantity = quantity - %s, price = %s WHERE productid = %s AND userid = %s"
+            elif operation == 'add':
+                # Add quantity if the operation is addition
+                update_query_inventory = "UPDATE inventory_details SET quantity = quantity + %s, price = %s WHERE productid = %s AND userid = %s"
+            else:
+                # Handle other cases or return an error
+                messages.error(request, "Invalid operation selected")
+                return redirect(request.path)  # Redirect to the same page
+
             update_values_inventory = (quantity_change, price, product, current_user_id)
 
             with connection.cursor() as cursor:
@@ -1157,9 +1117,10 @@ def editItems(request):
         else:
             messages.error(request, "Inventory does not exist for editing")
 
-        return redirect('/editItems/')
+        return redirect(request.path)  # Redirect to the same page
 
     return render(request, 'inventoryhistory.html')
+
 
 @login_required
 def getItems(request):
