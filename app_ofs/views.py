@@ -1047,6 +1047,119 @@ def addItems(request):
 
     return render(request, 'inventory.html')
 
+@login_required
+# def editItems(request):
+#     if request.method == 'POST':
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         product = request.POST.get('edit_getProductCategory', '')
+#         quantity_str = request.POST.get('edit_quantity', '')
+#         price = request.POST.get('edit_price', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.id
+
+#         try:
+#             quantity = int(quantity_str)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             return redirect('/editItems/')
+
+#         existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE id = %s AND user_id = %s"
+#         existing_values_history = (inventory_id, current_user_id)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(existing_query_history, existing_values_history)
+#             existing_data_history = cursor.fetchone()
+
+#         if existing_data_history:
+#             existing_quantity = int(existing_data_history[1])
+
+#             if operation == 'add':
+#                 new_quantity = existing_quantity + quantity
+#             elif operation == 'deduct':
+#                 if quantity > existing_quantity:
+#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                     return redirect('/editItems/')
+
+#                 new_quantity = existing_quantity - quantity
+#             else:
+#                 messages.error(request, "Invalid operation selected")
+#                 return redirect('/editItems/')
+
+#             # If the entry exists, update the quantity and price
+#             update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
+#             update_values = (new_quantity, price, product, inventory_id, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query, update_values)
+#                 connection.commit()
+#                 messages.success(request, "Inventory Updated")
+#         else:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect('/editItems/')
+
+#     return render(request, 'inventoryhistory.html')
+
+def editItems(request):
+    if request.method == 'POST':
+        inventory_id = request.POST.get('edit_inventory_id', '')
+        product = request.POST.get('edit_getProductCategory', '')
+        quantity_str = request.POST.get('edit_quantity', '')
+        price = request.POST.get('edit_price', '')
+        operation = request.POST.get('edit_operation', '')
+        current_user_id = request.user.id
+
+        try:
+            quantity_change = int(quantity_str)
+        except ValueError:
+            messages.error(request, "Invalid quantity value")
+            return redirect('/editItems/')
+
+        existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE id = %s AND user_id = %s"
+        existing_values_history = (inventory_id, current_user_id)
+
+        with connection.cursor() as cursor:
+            cursor.execute(existing_query_history, existing_values_history)
+            existing_data_history = cursor.fetchone()
+
+        if existing_data_history:
+            existing_quantity = int(existing_data_history[1])
+
+            if operation == 'add':
+                new_quantity = existing_quantity + quantity_change
+            elif operation == 'deduct':
+                if quantity_change > existing_quantity:
+                    messages.error(request, "Deducted quantity cannot be greater than available quantity")
+                    return redirect('/editItems/')
+
+                new_quantity = existing_quantity - quantity_change
+            else:
+                messages.error(request, "Invalid operation selected")
+                return redirect('/editItems/')
+
+            # If the entry exists, update the quantity and price in inventorydetails_date
+            update_query_history = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
+            update_values_history = (new_quantity, price, product, inventory_id, current_user_id)
+
+            with connection.cursor() as cursor:
+                cursor.execute(update_query_history, update_values_history)
+                connection.commit()
+                messages.success(request, f"Inventory Updated in inventorydetails_date. {quantity_change} units {operation}")
+
+            # Now, update the quantity and price in inventory_details
+            update_query_inventory = "UPDATE inventory_details SET quantity = quantity + %s, price = %s WHERE productid = %s AND userid = %s"
+            update_values_inventory = (quantity_change, price, product, current_user_id)
+
+            with connection.cursor() as cursor:
+                cursor.execute(update_query_inventory, update_values_inventory)
+                connection.commit()
+                messages.success(request, f"Inventory Updated in inventory_details. {quantity_change} units {operation}")
+        else:
+            messages.error(request, "Inventory does not exist for editing")
+
+        return redirect('/editItems/')
+
+    return render(request, 'inventoryhistory.html')
 
 @login_required
 def getItems(request):
@@ -1266,7 +1379,7 @@ def inventorylist(request, category_name):
         products.append(product)
 
 
-    sql_query_product = "SELECT i.quantity, i.price, i.productid, p.product_name, p.product_id " \
+    sql_query_product = "SELECT i.inventory_id, i.quantity, i.price, i.productid, p.product_name, p.product_id " \
                         "FROM inventory_details i " \
                         "INNER JOIN product_info p ON i.productid = p.product_id " \
                         "WHERE p.category = %s"  # Filter by category name instead of category_id
@@ -1279,10 +1392,11 @@ def inventorylist(request, category_name):
     itemList = []
     for row in getInventoryData:
         items = {
-            'quantity': row[0],
-            'price': row[1],
-            'product_id': row[4],
-            'product_name': row[3],  
+            'inventory_id' :row[0],
+            'quantity': row[1],
+            'price': row[2],
+            'product_id': row[3],
+            'product_name': row[4],  
         }
         itemList.append(items)
    
@@ -1321,7 +1435,7 @@ def inventoryhistory(request, category_name):
         products.append(product)
 
 
-    sql_query_product = "SELECT i.quantity, i.price, i.product_id, p.product_name, p.product_id " \
+    sql_query_product = "SELECT i.id, i.quantity, i.price, i.product_id, p.product_name, p.product_id " \
                         "FROM inventorydetails_date i " \
                         "INNER JOIN product_info p ON i.product_id = p.product_id " \
                         "WHERE p.category = %s"  # Filter by category name instead of category_id
@@ -1334,10 +1448,11 @@ def inventoryhistory(request, category_name):
     itemList = []
     for row in getInventoryData:
         items = {
-            'quantity': row[0],
-            'price': row[1],
-            'product_id': row[4],
-            'product_name': row[3],  
+            'id': row[0],
+            'quantity': row[1],
+            'price': row[2],
+            'product_id': row[5],
+            'product_name': row[4],  
         }
         itemList.append(items)
    

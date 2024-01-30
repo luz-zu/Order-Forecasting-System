@@ -76,7 +76,41 @@ window.onload = function () {
         
         console.log(currDeliveryDate);
     });
-     
+
+    // inventory.html
+    // $('a[data-bs-toggle="modal"][data-bs-whatever="edit_inventory"]').on('click', function () {
+    //     var currInventoryId = $(this).data('inventory-id');
+    //     var currProduct = $(this).data('product');
+    //     var currQuantity = $(this).data('inventory-quantity');
+    //     var currPrice = $(this).data('inventory-price');
+    
+    //     // Set values to the form fields
+    //     document.getElementById('edit_inventory_id').value = currInventoryId;
+    //     document.getElementById('product_dropdown').value = currProduct;
+    //     document.getElementById('edit_quantity').value = currQuantity;
+    //     document.getElementById('edit_price').value = currPrice;
+        
+    //     // Log for debugging
+    //     console.log(currInventoryId, currProduct, currQuantity, currPrice);
+    // });
+
+    $('a[data-bs-toggle="modal"][data-bs-whatever="edit_inventory"]').on('click', function () {
+        var currInventoryId = $(this).data('inventory-id');
+        var currProduct = $(this).data('product');
+        var currQuantity = $(this).data('inventory-quantity');
+        var currPrice = $(this).data('inventory-price');
+        
+        // Set values to the form fields
+        document.getElementById('edit_inventory_id').value = currInventoryId;
+        document.getElementById('product_dropdown').value = currProduct;
+        document.getElementById('edit_quantity').value = currQuantity;
+        document.getElementById('edit_price').value = currPrice;
+        
+        // Log for debugging
+        console.log(currInventoryId, currProduct, currQuantity, currPrice);
+    });
+    
+    
 
 
     // below code is to display the available category data in the dropdown menu
