@@ -15,6 +15,10 @@ from django.template.loader import get_template
 from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
+from datetime import datetime, timedelta
+
+from django.db.models import Sum
+from django.db.models.functions import ExtractMonth, ExtractYear
 
 # views.py
 from django.shortcuts import render
@@ -30,7 +34,8 @@ from io import BytesIO
 import base64
 import plotly.graph_objects as go
 
-
+import plotly.express as px
+from plotly.offline import plot
 # My Algorithm
 import pandas as pd
 import numpy as np
@@ -148,22 +153,139 @@ def register(request):
     return render(request, 'register.html', {'form': form})
 
 @login_required
+# def user_dashboard(request):
+#     # os.chdir("/data")
+#     current_user_id = request.user.id
+
+#     """
+#         data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
+#         data.columns = ["Month", "Sales"]
+#         data = data.dropna()
+#         # results = arima_sarimax_forecast(data)
+#         forecast_steps = int(request.GET.get('forecast_steps', 6))
+    
+
+#     # Generate ARIMA and SARIMAX forecasts with the specified number of steps
+#     results = arima_sarimax_forecast(data, forecast_steps=forecast_steps)
+    
+#     """
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
+#         pendingOrders = cursor.fetchone()[0]
+        
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
+#         ongoingOrders = cursor.fetchone()[0]
+        
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
+#         completedOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
+#         totalOrders = cursor.fetchone()[0]
+
+
+#     """
+#         # Create SARIMAX Forecast Chart
+#     sarimax_chart = go.Figure()
+
+#     # Plot actual data
+#     sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+
+#     # Plot SARIMAX Forecast
+#     sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=12 + 1, freq='M')[1:]
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+
+#     # Plot confidence intervals
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                        y=results['sarimax_confidence_intervals']['lower Sales'],
+#                                        fill=None,
+#                                        mode='lines',
+#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                        name='SARIMAX Lower CI'))
+
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                        y=results['sarimax_confidence_intervals']['upper Sales'],
+#                                        fill='tonexty',
+#                                        mode='lines',
+#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                        name='SARIMAX Upper CI'))
+
+#     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+#     # Convert SARIMAX chart to HTML
+#     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+#     """
+
+#     context = {
+#             'pendingOrder': pendingOrders,
+#             'ongoingOrder': ongoingOrders,
+#             'completedOrder': completedOrders,
+#             'totalOrder': totalOrders,
+#             # 'results': results,
+#             # 'sarimax_chart_html': sarimax_chart_html,
+#     }
+
+#     return render(request, 'dashboard/dashboard.html',  context)
+    
+
+# def user_dashboard(request):
+#     # os.chdir("/data")
+#     current_user_id = request.user.id
+
+#     # Retrieve order statistics
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
+#         pendingOrders = cursor.fetchone()[0]
+        
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
+#         ongoingOrders = cursor.fetchone()[0]
+        
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
+#         completedOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
+#         totalOrders = cursor.fetchone()[0]
+
+#     # Calculate the date 7 days ago from today
+#     seven_days_ago = datetime.now() - timedelta(days=7)
+
+#     # Retrieve the product with the highest order quantity in the last 7 days
+#     sql_query = """
+#         SELECT product_info.product_name, SUM(order_info.quantity) as total_quantity
+#         FROM order_info
+#         JOIN product_info ON order_info.productid = product_info.product_id
+#         WHERE order_info.ordered_date >= %s AND order_info.status != 'cancelled'
+#         GROUP BY order_info.productid
+#         ORDER BY total_quantity DESC
+#         LIMIT 1
+#     """
+
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query, [seven_days_ago])
+#         top_product_order = cursor.fetchone()
+
+#     # Check if there's any order in the last 7 days
+#     if top_product_order:
+#         product_name, total_quantity = top_product_order
+#         top_product_data = {'product_name': product_name, 'total_quantity': total_quantity}
+#     else:
+#         top_product_data = {'product_name': None, 'total_quantity': None}
+
+#     context = {
+#         'pendingOrder': pendingOrders,
+#         'ongoingOrder': ongoingOrders,
+#         'completedOrder': completedOrders,
+#         'totalOrder': totalOrders,
+#         'topProductData': top_product_data,
+#     }
+
+#     return render(request, 'dashboard/dashboard.html', context)
+
+
 def user_dashboard(request):
     # os.chdir("/data")
     current_user_id = request.user.id
 
-    """
-        data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
-        data.columns = ["Month", "Sales"]
-        data = data.dropna()
-        # results = arima_sarimax_forecast(data)
-        forecast_steps = int(request.GET.get('forecast_steps', 6))
-    
-
-    # Generate ARIMA and SARIMAX forecasts with the specified number of steps
-    results = arima_sarimax_forecast(data, forecast_steps=forecast_steps)
-    
-    """
+    # Retrieve order statistics
     with connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
         pendingOrders = cursor.fetchone()[0]
@@ -177,50 +299,94 @@ def user_dashboard(request):
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
         totalOrders = cursor.fetchone()[0]
 
+    # Calculate the date 7 days ago from today
+    seven_days_ago = datetime.now() - timedelta(days=7)
 
+    # Retrieve the product with the highest order quantity in the last 7 days
+    sql_query_top_product = """
+        SELECT product_info.product_name, SUM(order_info.quantity) as total_quantity
+        FROM order_info
+        JOIN product_info ON order_info.productid = product_info.product_id
+        WHERE order_info.ordered_date >= %s AND order_info.status != 'cancelled'
+        GROUP BY order_info.productid
+        ORDER BY total_quantity DESC
+        LIMIT 1
     """
-        # Create SARIMAX Forecast Chart
-    sarimax_chart = go.Figure()
 
-    # Plot actual data
-    sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_top_product, [seven_days_ago])
+        top_product_order = cursor.fetchone()
 
-    # Plot SARIMAX Forecast
-    sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=12 + 1, freq='M')[1:]
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+    # Check if there's any order in the last 7 days
+    if top_product_order:
+        product_name, total_quantity = top_product_order
+        top_product_data = {'product_name': product_name, 'total_quantity': total_quantity}
+    else:
+        top_product_data = {'product_name': None, 'total_quantity': None}
 
-    # Plot confidence intervals
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['lower Sales'],
-                                       fill=None,
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Lower CI'))
-
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['upper Sales'],
-                                       fill='tonexty',
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Upper CI'))
-
-    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-
-    # Convert SARIMAX chart to HTML
-    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+    # Retrieve top-ordered product data for each month over the last 12 months
+    sql_query_top_product_monthly = """
+        SELECT product_info.product_name,
+            EXTRACT(MONTH FROM order_info.ordered_date) as order_month,
+            EXTRACT(YEAR FROM order_info.ordered_date) as order_year,
+            SUM(order_info.quantity) as total_quantity
+        FROM order_info
+        JOIN product_info ON order_info.productid = product_info.product_id
+        WHERE order_info.ordered_date >= NOW() - INTERVAL 12 MONTH AND order_info.status != 'cancelled'
+        GROUP BY product_info.product_name, order_year, order_month
+        ORDER BY order_year DESC, order_month DESC, total_quantity DESC
     """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql_query_top_product_monthly)
+        top_product_monthly_data = cursor.fetchall()
+
+    # Process the monthly data for Plotly
+    labels = []  # Labels for each month
+    datasets = {}  # Data for each product
+
+    for product_data in top_product_monthly_data:
+        product_name, order_month, order_year, total_quantity = product_data
+        label = f"{order_year}-{order_month:02d}"
+
+        if label not in labels:
+            labels.append(label)
+
+        if product_name not in datasets:
+            datasets[product_name] = {
+                'label': product_name,
+                'data': [],
+                'color': f'rgba({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)}, 0.5)',
+            }
+
+        datasets[product_name]['data'].append(total_quantity)
+
+    # Create the Plotly figure
+    fig = px.bar()
+
+    for product_name, data in datasets.items():
+        fig.add_bar(x=labels, y=data['data'], name=product_name, marker_color=data['color'])
+
+    fig.update_layout(
+        title='Top-Ordered Products Monthly (Last 12 Months)',
+        xaxis_title='Month',
+        yaxis_title='Total Quantity',
+        barmode='stack',
+    )
+
+    # Convert Plotly figure to HTML
+    plot_div = plot(fig, output_type='div', include_plotlyjs=False)
 
     context = {
-            'pendingOrder': pendingOrders,
-            'ongoingOrder': ongoingOrders,
-            'completedOrder': completedOrders,
-            'totalOrder': totalOrders,
-            # 'results': results,
-            # 'sarimax_chart_html': sarimax_chart_html,
+        'pendingOrder': pendingOrders,
+        'ongoingOrder': ongoingOrders,
+        'completedOrder': completedOrders,
+        'totalOrder': totalOrders,
+        'topProductData': top_product_data,
+        'monthlyChartDiv': plot_div,
     }
 
-    return render(request, 'dashboard/dashboard.html',  context)
-    
+    return render(request, 'dashboard/dashboard.html', context)
 # @login_required
 def logout_view(request):
     logout(request)
@@ -347,20 +513,62 @@ def staff(request):
     return render(request, 'staff.html', context)
 
 @login_required
+# def addStaff(request):
+#     if request.method == 'POST':
+#         fname = request.POST.get('first_name', '')
+#         lname = request.POST.get('last_name', '')
+#         email = request.POST.get('staff_email', '')
+#         password = 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=' # ofs@12345
+#         phone = request.POST.get('staff_phone', '')
+#         role = request.POST.get('staff_role', '')
+
+#         randNumber = random.randint(100, 999)
+#         username = f'{fname.lower()}_{randNumber}'
+
+#         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+#         sql_values = (fname, lname, username, email, password, phone, role)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(sql_query, sql_values)
+
+#         return HttpResponseRedirect('/staff')
+
+#     return render(request, 'staff.html')
+
 def addStaff(request):
     if request.method == 'POST':
         fname = request.POST.get('first_name', '')
         lname = request.POST.get('last_name', '')
         email = request.POST.get('staff_email', '')
-        password = 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=' # ofs@12345
+        password = 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA='  # Set a secure password
         phone = request.POST.get('staff_phone', '')
         role = request.POST.get('staff_role', '')
+
+        # Validate phone number length
+        if len(phone) != 10:
+            messages.error(request, 'Phone number must be 10 digits.')
+            return HttpResponseRedirect('/staff')
+
+        # Check if the email already exists
+        email_exists_query = "SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s"
+        email_exists_values = (email,)
+
+        with connection.cursor() as cursor:
+            cursor.execute(email_exists_query, email_exists_values)
+            email_count = cursor.fetchone()[0]
+
+        if email_count > 0:
+            messages.error(request, 'Email already exists. Please use a different email address.')
+            return HttpResponseRedirect('/staff')
 
         randNumber = random.randint(100, 999)
         username = f'{fname.lower()}_{randNumber}'
 
+        # Hash the password
+        hashed_password = make_password(password)
+
         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-        sql_values = (fname, lname, username, email, password, phone, role)
+        sql_values = (fname, lname, username, email, hashed_password, phone, role)
 
         with connection.cursor() as cursor:
             cursor.execute(sql_query, sql_values)
@@ -368,7 +576,6 @@ def addStaff(request):
         return HttpResponseRedirect('/staff')
 
     return render(request, 'staff.html')
-
 @login_required
 def getCategory(request):
     current_user_id = request.user.id
@@ -954,6 +1161,7 @@ def order_filter(request):
                 'price': order[5],
                 'delivery_date': order[4],
                 'status': order[6],
+                'total_price':[9],
             }
             filteredList.append(context)
 
@@ -1073,6 +1281,74 @@ def getProductCategory(request):
 
 @login_required
 
+# def addItems(request):
+#     if request.method == 'POST':
+#         product = request.POST.get('getProductCategory', '')
+#         quantity = request.POST.get('quantity', '')
+#         price = request.POST.get('price', '')
+#         current_user_id = request.user.id
+#         current_date = timezone.now().date()
+
+#         # Check if the entry exists in inventorydetails_date
+#         existing_query_history = "SELECT product_id, quantity, price FROM inventorydetails_date WHERE product_id = %s AND date = %s AND user_id = %s"
+#         existing_values_history = (product, current_date, current_user_id)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(existing_query_history, existing_values_history)
+#             existing_data_history = cursor.fetchone()
+
+#         if existing_data_history:
+#             # If the entry exists, update the quantity and price in inventorydetails_date
+#             updated_quantity = int(existing_data_history[1]) + int(quantity)
+#             new_price = price  # You can modify this if needed
+
+#             update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s WHERE product_id = %s AND date = %s AND user_id = %s"
+#             update_values = (updated_quantity, new_price, product, current_date, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query, update_values)
+#                 connection.commit()
+#                 messages.success(request, "Inventory Updated")
+
+#             # Now, update the price in inventory_details for today's date
+#             update_query_inventory_details = "UPDATE inventory_details SET price = %s, quantity = quantity + %s WHERE productid = %s AND userid = %s"
+#             update_values_inventory_details = (new_price, quantity, product, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query_inventory_details, update_values_inventory_details)
+#                 connection.commit()
+
+#             # Update the price in order_info for today's date
+#             update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
+#             update_values_order_info = (new_price, product, current_date, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query_order_info, update_values_order_info)
+#                 connection.commit()
+
+#             # Update total_price in order_info based on updated price and quantity
+#             update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
+#             update_total_price_values = (product, current_date, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_total_price_query, update_total_price_values)
+#                 connection.commit()
+#                 messages.success(request, "Price and Quantity Updated in inventory_details and order_info for today's date")
+
+#         else:
+#             # If no entry exists, insert a new row
+#             insert_query = "INSERT INTO inventorydetails_date (product_id, quantity, price, user_id, date) VALUES (%s, %s, %s, %s, %s)"
+#             insert_values = (product, quantity, price, current_user_id, current_date)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(insert_query, insert_values)
+#                 connection.commit()
+#                 messages.success(request, "Inventory Added")
+
+#             # Insert into inventory_details and order_info as well if needed
+
+#     return render(request, 'inventory.html')
+
 def addItems(request):
     if request.method == 'POST':
         product = request.POST.get('getProductCategory', '')
@@ -1125,10 +1401,10 @@ def addItems(request):
             with connection.cursor() as cursor:
                 cursor.execute(update_total_price_query, update_total_price_values)
                 connection.commit()
-                messages.success(request, "Price and Quantity Updated in inventory_details and order_info for today's date")
+                # messages.success(request, "Price and Quantity Updated in inventory_details and order_info for today's date")
 
         else:
-            # If no entry exists, insert a new row
+            # If no entry exists, insert a new row into inventorydetails_date
             insert_query = "INSERT INTO inventorydetails_date (product_id, quantity, price, user_id, date) VALUES (%s, %s, %s, %s, %s)"
             insert_values = (product, quantity, price, current_user_id, current_date)
 
@@ -1137,7 +1413,27 @@ def addItems(request):
                 connection.commit()
                 messages.success(request, "Inventory Added")
 
-            # Insert into inventory_details and order_info as well if needed
+            # Check if the product_id is present in inventory_details
+            existing_query_inventory_details = "SELECT productid FROM inventory_details WHERE productid = %s AND userid = %s"
+            existing_values_inventory_details = (product, current_user_id)
+
+            with connection.cursor() as cursor:
+                cursor.execute(existing_query_inventory_details, existing_values_inventory_details)
+                existing_data_inventory_details = cursor.fetchone()
+
+            if not existing_data_inventory_details:
+                # If product_id is not present, add a new row in inventory_details
+                insert_query_inventory_details = "INSERT INTO inventory_details (productid, userid, quantity, price) VALUES (%s, %s, %s, %s)"
+                insert_values_inventory_details = (product, current_user_id, quantity, price)
+
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute(insert_query_inventory_details, insert_values_inventory_details)
+                        connection.commit()
+                        # messages.success(request, "Added to inventory_details")
+
+                except IntegrityError:
+                    return HttpResponse("An error occurred while adding items into inventory_details")
 
     return render(request, 'inventory.html')
 

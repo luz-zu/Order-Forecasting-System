@@ -9,86 +9,147 @@
   {% endfor %}
 </div>
 
-<div class="main container pt-3">
-  <hr />
-  <div class="row">
-    <div class="col-lg-3 col-6">
-      <div class="card">
-        <div class="card-body">
-          <div class="fs-3 text-center">Pending Orders</div>
-          <hr />
-          <div class="order_num text-center fs-4">{{ pendingOrder }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-3 col-6">
-      <div class="card">
-        <div class="card-body">
-          <div class="fs-3 text-center">Ongoing Orders</div>
-          <hr />
-          <div class="order_num text-center fs-4">{{ ongoingOrder }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-3 col-6">
-      <div class="card">
-        <div class="card-body">
-          <div class="fs-3 text-center">Completed Orders</div>
-          <hr />
-          <div class="order_num text-center fs-4">{{ completedOrder }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-3 col-6">
-      <div class="card">
-        <div class="card-body">
-          <div class="fs-3 text-center">Total Orders</div>
-          <hr />
-          <div class="order_num text-center fs-4">{{ totalOrder }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <br /><br /><br /><br />
-  <div class="row pt-5">
-    <div class="col-lg-6 col-12">
-      <div class="card">
-        <div class="card-body">
-          <div class="card-title fs-5">Monthly Prediction</div>
-          <div>
-            <h2>ARIMA Forecast</h2>
-            <p>{{ results.arima_forecast }}</p>
+<div class="d-flex" id="main">
+  <div class=" container pt-3">
+    <hr />
+    <div class="row">
+      <div class="col-lg-3 col-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="fs-3 text-center">Pending Orders</div>
+            <hr />
+            <div class="order_num text-center fs-4">{{ pendingOrder }}</div>
           </div>
-
-          <div>
-            <h2>SARIMAX Forecast</h2>
-            <p>{{ results.sarimax_forecast }}</p>
+        </div>
+      </div>
+  
+      <div class="col-lg-3 col-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="fs-3 text-center">Ongoing Orders</div>
+            <hr />
+            <div class="order_num text-center fs-4">{{ ongoingOrder }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="fs-3 text-center">Completed Orders</div>
+            <hr />
+            <div class="order_num text-center fs-4">{{ completedOrder }}</div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="col-lg-3 col-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="fs-3 text-center">Total Orders</div>
+            <hr />
+            <div class="order_num text-center fs-4">{{ totalOrder }}</div>
           </div>
         </div>
       </div>
     </div>
+  
+    <div class="row pt-5">
+      <div class="col-lg-6 col-12">
+        <div class="card">
+          <div class="card-body">
+            {% if topProductData.product_name %}
+              <h3>Top Product Order in Last 7 Days</h3>
+              <p>Product Name: {{ topProductData.product_name }}</p>
+              <p>Total Quantity: {{ topProductData.total_quantity }}</p>
+            {% else %}
+              <p>No orders in the last 7 days.</p>
+            {% endif %}
+            <div>
+              <div>
+                {{ monthlyChartDiv|safe }}
+              </div>
+          </div>
 
-    <div class="col-lg-6 col-12">
-      
-    </div>
-  </div>
-
-  <div class="row pt-5">
-    <div class="card">
-        <div class="card-body">
-          <div class="card-title fs-5">Daily Prediction</div>
-          <div>{{ sarimax_chart_html|safe }}</div>
-          <form method="get" action="{% url 'dashboard' %}">
-            <label for="forecast_steps">Number of Forecast Steps:</label>
-            <input type="number" name="forecast_steps" value="6" min="1" max="100">
-            <input type="submit" value="Update Forecast">
-        </form>
+            
+          </div>
         </div>
       </div>
+  
+      <div class="col-lg-6 col-12">
+        
+      </div>
+    </div>
+  
+    <div class="row pt-5">
+      <div class="card">
+          <div class="card-body">
+            <div class="card-title fs-5">Daily Prediction</div>
+            <div>{{ sarimax_chart_html|safe }}</div>
+            <form method="get" action="{% url 'dashboard' %}">
+              <label for="forecast_steps">Number of Forecast Steps:</label>
+              <input type="number" name="forecast_steps" value="6" min="1" max="100">
+              <input type="submit" value="Update Forecast">
+          </form>
+          </div>
+        </div>
+    </div>
+
+    
   </div>
 </div>
+
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+
+
+function initializeTopProductChart(labels, data) {
+          var ctx = document.getElementById('topProductChart').getContext('2d');
+          var topProductChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Total Quantity',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                fill: false
+              }]
+            },
+            options: {
+              scales: {
+                x: {
+                  type: 'time',
+                  time: {
+                    unit: 'day',
+                    displayFormats: {
+                      day: 'MMM D'
+                    }
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Total Quantity'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Example usage when the DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+          // Replace these with actual data
+          var labels = ["2024-02-01", "2024-02-02", "2024-02-03"];
+          var data = [10, 15, 8];
+
+          // Call the function with your data
+          initializeTopProductChart(labels, data);
+        });
+
+
+</script>
 
 {% load static %} {% endblock %}

@@ -4,6 +4,7 @@ window.onload = function () {
         window.history.replaceState(null, null, window.location.href);
     }
 
+    
     // disable date
     // const orderDateInput = document.getElementById('ordered_date');
     // const deliveryDateInput = document.getElementById('delivery_date');
@@ -257,3 +258,4 @@ window.onload = function () {
         }
     });
 };
+
