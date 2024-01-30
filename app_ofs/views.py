@@ -472,58 +472,6 @@ def addProduct(request):
 
 
 @login_required
-# def getProduct(request):
-#     current_user_id = request.user.id
-#     sql_query_product = "SELECT * FROM product_info where userid = %s"
-
-#      # Use a SQL JOIN to retrieve order information along with product names
-#     sql_query = """
-#         SELECT
-#             *
-#         FROM
-#             product_info p
-#         LEFT JOIN
-#             category_info c ON p.category = c.category_id
-#         WHERE
-#             p.userid = %s
-#     """
-#     sql_query_category = "SELECT * FROM category_info where userid = %s"
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query_product, (current_user_id,))
-#         data = cursor.fetchall()
-
-#         cursor.execute(sql_query_category, (current_user_id,))
-#         category_data = cursor.fetchall()
-
-#     products = []
-#     for row in data:
-#         product = {
-#             'product_id': row[1],
-#             'product_name': row[2],
-#             'product_description': row[3],
-#             'category': row[4],           
-#         }
-#         products.append(product)
-      
-
-#     categories = []
-#     for row in category_data:
-#         category = {
-#             'category_id': row[1],  # Assuming category_id is in the first column (index 0)
-#             'category': row[2],     # Assuming category name is in the second column (index 1)
-#         }
-#         categories.append(category)
-#     context = {
-#         'categories': categories,
-#         'products': products,
-#     }
-
-#     # print(context_category)
-
-#     return render(request, 'products.html', context)
-
-
 def getProduct(request):
     current_user_id = request.user.id
 
@@ -630,10 +578,13 @@ def delete_product(request, product_id):
         sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
         values = (getProductID, current_user_id)
 
+
+
         try:
             with connection.cursor() as cursor:
                 cursor.execute(sql_query, values)
                 connection.commit()
+                print("delete," ,getProductID, current_user_id)
                 messages.success(request, "Product Deleted.")
     
             return JsonResponse({'status': 'success'})  # Return a JSON response on success
@@ -655,6 +606,7 @@ def getOrder(request):
             o.quantity,
             o.ordered_date,
             o.price,
+            o.total_price,
             o.delivery_date,
             o.status,
             p.product_name
@@ -681,12 +633,13 @@ def getOrder(request):
             'quantity': row[2],
             'ordered_date': row[3],
             'price': row[4],
-            'delivery_date': row[5],
-            'status': row[6],
-            'product_name': row[7] if row[7] else 'Unknown Product',
+            'total_price':row[5], 
+            'delivery_date': row[6],
+            'status': row[7],
+            'product_name': row[8] if row[8] else 'Unknown Product',
         }
         orders.append(order)
-
+    print('orders', orders)
     context = {
         'orders': orders,
     }
@@ -894,6 +847,8 @@ def get_product_list(request):
 
     return JsonResponse(product_list, safe=False)
 
+from decimal import Decimal
+
 @login_required
 def addOrder(request):
     if request.method == 'POST':
@@ -901,11 +856,11 @@ def addOrder(request):
         order_product_name = request.POST['order_product_name']
         quantity = request.POST['quantity']
         ordered_date = request.POST['ordered_date']
-        price = request.POST['price']
         delivery_date = request.POST['delivery_date']
         status = request.POST['status']
         current_user_id = request.user.id
 
+        # Convert dates to datetime objects
         ordered_date = timezone.datetime.strptime(ordered_date, '%Y-%m-%d').date()
         delivery_date = timezone.datetime.strptime(delivery_date, '%Y-%m-%d').date()
 
@@ -913,8 +868,26 @@ def addOrder(request):
             messages.error(request, 'Delivery date must be later than the order date.')
             return render(request, 'orders.html')
 
-        sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        values = (order_id, order_product_name, quantity,ordered_date , price, delivery_date, status, current_user_id)
+        # Fetch price from inventory_details based on productid
+        inventory_query = "SELECT price FROM inventory_details WHERE productid = %s AND userid = %s"
+        inventory_values = (order_product_name, current_user_id)
+
+        with connection.cursor() as cursor:
+            cursor.execute(inventory_query, inventory_values)
+            result = cursor.fetchone()
+
+        if result:
+            price = result[0]
+        else:
+            messages.error(request, 'Price not found for the specified productid.')
+            return render(request, 'orders.html')
+
+        # Calculate total_price
+        total_price = Decimal(quantity) * Decimal(price)
+
+        # Insert order information into order_info table
+        sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, total_price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        values = (order_id, order_product_name, quantity, ordered_date, price, total_price, delivery_date, status, current_user_id)
 
         try:
             with connection.cursor() as cursor:
@@ -924,11 +897,8 @@ def addOrder(request):
             return HttpResponseRedirect(previous_page)
         except IntegrityError:
             return HttpResponse("An error occurred while adding the order")
-            
+
     return render(request, 'orders.html')
-
-
-
 
 
 @login_required
@@ -1049,7 +1019,82 @@ def addItems(request):
 
     return render(request, 'inventory.html')
 
+from datetime import date
+
 @login_required
+
+# def editItems(request):
+#     if request.method == 'POST':
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         product = request.POST.get('edit_getProductCategory', '')
+#         quantity_str = request.POST.get('edit_quantity', '')
+#         price = request.POST.get('edit_price', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.id
+
+#         try:
+#             quantity_change = int(quantity_str)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             return redirect(request.path)  # Redirect to the same page
+
+#         existing_query_history = "SELECT product_id, quantity, date FROM inventorydetails_date WHERE id = %s AND user_id = %s"
+#         existing_values_history = (inventory_id, current_user_id)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(existing_query_history, existing_values_history)
+#             existing_data_history = cursor.fetchone()
+
+#         if existing_data_history:
+#             existing_quantity = int(existing_data_history[1])
+#             ordered_date = existing_data_history[2]
+
+#             if operation == 'add':
+#                 new_quantity = existing_quantity + quantity_change
+#             elif operation == 'deduct':
+#                 if quantity_change > existing_quantity:
+#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                     return redirect(request.path)  # Redirect to the same page
+
+#                 new_quantity = existing_quantity - quantity_change
+#             else:
+#                 messages.error(request, "Invalid operation selected")
+#                 return redirect(request.path)  # Redirect to the same page
+
+#             # If the entry exists, update the quantity and price in inventorydetails_date
+#             update_query_history = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
+#             update_values_history = (new_quantity, price, product, inventory_id, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query_history, update_values_history)
+#                 connection.commit()
+#                 messages.success(request, f"Inventory Updated in inventorydetails_date. {quantity_change} units {operation}")
+
+#             # Now, find the corresponding entry in order_info and update the price
+#             update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
+#             update_values_order_info = (price, product, ordered_date, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_query_order_info, update_values_order_info)
+#                 connection.commit()
+#                 messages.success(request, f"Price Updated in order_info for ordered_date {ordered_date}")
+
+#             # Update total_price in order_info based on updated price and quantity
+#             update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
+#             update_total_price_values = (product, ordered_date, current_user_id)
+
+#             with connection.cursor() as cursor:
+#                 cursor.execute(update_total_price_query, update_total_price_values)
+#                 connection.commit()
+#                 messages.success(request, f"Total Price Updated in order_info for ordered_date {ordered_date}")
+#         else:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect(request.path)  # Redirect to the same page
+
+#     return render(request, 'inventoryhistory.html')
+
+
 def editItems(request):
     if request.method == 'POST':
         inventory_id = request.POST.get('edit_inventory_id', '')
@@ -1065,7 +1110,7 @@ def editItems(request):
             messages.error(request, "Invalid quantity value")
             return redirect(request.path)  # Redirect to the same page
 
-        existing_query_history = "SELECT product_id, quantity FROM inventorydetails_date WHERE id = %s AND user_id = %s"
+        existing_query_history = "SELECT product_id, quantity, date FROM inventorydetails_date WHERE id = %s AND user_id = %s"
         existing_values_history = (inventory_id, current_user_id)
 
         with connection.cursor() as cursor:
@@ -1074,6 +1119,7 @@ def editItems(request):
 
         if existing_data_history:
             existing_quantity = int(existing_data_history[1])
+            ordered_date = existing_data_history[2]
 
             if operation == 'add':
                 new_quantity = existing_quantity + quantity_change
@@ -1094,26 +1140,36 @@ def editItems(request):
             with connection.cursor() as cursor:
                 cursor.execute(update_query_history, update_values_history)
                 connection.commit()
-                messages.success(request, f"Inventory Updated in inventorydetails_date. {quantity_change} units {operation}")
+                messages.success(request, f"Inventory Updated.")
 
-            # Now, update the quantity and price in inventory_details
-            if operation == 'deduct':
-                # Deduct quantity if the operation is deduction
-                update_query_inventory = "UPDATE inventory_details SET quantity = quantity - %s, price = %s WHERE productid = %s AND userid = %s"
-            elif operation == 'add':
-                # Add quantity if the operation is addition
-                update_query_inventory = "UPDATE inventory_details SET quantity = quantity + %s, price = %s WHERE productid = %s AND userid = %s"
-            else:
-                # Handle other cases or return an error
-                messages.error(request, "Invalid operation selected")
-                return redirect(request.path)  # Redirect to the same page
+            # Check if the ordered_date is today's date
+            if ordered_date == date.today():
+                # If today, update the price in inventorydetails
+                update_query_inventory_details = "UPDATE inventory_details SET price = %s WHERE productid = %s AND userid = %s"
+                update_values_inventory_details = (price, product, current_user_id)
 
-            update_values_inventory = (quantity_change, price, product, current_user_id)
+                with connection.cursor() as cursor:
+                    cursor.execute(update_query_inventory_details, update_values_inventory_details)
+                    connection.commit()
+                    # messages.success(request, "Price Updated in inventory_details for today's date")
+
+            # Now, find the corresponding entry in order_info and update the price
+            update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
+            update_values_order_info = (price, product, ordered_date, current_user_id)
 
             with connection.cursor() as cursor:
-                cursor.execute(update_query_inventory, update_values_inventory)
+                cursor.execute(update_query_order_info, update_values_order_info)
                 connection.commit()
-                messages.success(request, f"Inventory Updated in inventory_details. {quantity_change} units {operation}")
+                # messages.success(request, f"Price Updated in order_info for ordered_date {ordered_date}")
+
+            # Update total_price in order_info based on updated price and quantity
+            update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
+            update_total_price_values = (product, ordered_date, current_user_id)
+
+            with connection.cursor() as cursor:
+                cursor.execute(update_total_price_query, update_total_price_values)
+                connection.commit()
+                # messages.success(request, f"Total Price Updated in order_info for ordered_date {ordered_date}")
         else:
             messages.error(request, "Inventory does not exist for editing")
 
@@ -1144,8 +1200,6 @@ def getItems(request):
     context = {
         'items': itemList,
     }
-
-    print(context)
     return render(request, 'inventory.html', context)
 
 
@@ -1396,7 +1450,7 @@ def inventoryhistory(request, category_name):
         products.append(product)
 
 
-    sql_query_product = "SELECT i.id, i.quantity, i.price, i.product_id, p.product_name, p.product_id " \
+    sql_query_product = "SELECT i.id, i.quantity, i.price, i.product_id, p.product_name, p.product_id, i.date " \
                         "FROM inventorydetails_date i " \
                         "INNER JOIN product_info p ON i.product_id = p.product_id " \
                         "WHERE p.category = %s"  # Filter by category name instead of category_id
@@ -1414,6 +1468,7 @@ def inventoryhistory(request, category_name):
             'price': row[2],
             'product_id': row[5],
             'product_name': row[4],  
+            'date':row[6],
         }
         itemList.append(items)
    
