@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SARIMAX Forecast</title>
+    <!-- Include Plotly.js for interactive charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>SARIMAX Forecast</h1>
+
+    <div id="sarimax-chart"></div>
+
+    <script>
+    var sarimaxChartHtml = "{{ sarimax_chart_html|safe }}";
+
+    if ('sarimax_forecast' in results && 'sarimax_confidence_intervals' in results) {
+    document.getElementById('sarimax-chart').innerHTML = sarimaxChartHtml;
+} else {
+    document.getElementById('sarimax-chart').innerHTML = "<p>Error: Unable to generate forecast.</p>";
+}
+    </script>
+</body>
+</html>

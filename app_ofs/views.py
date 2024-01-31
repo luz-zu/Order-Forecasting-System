@@ -136,6 +136,73 @@ def register(request):
     return render(request, 'register.html', {'form': form})
 
 @login_required
+def forecast(request):
+    current_user_id = request.user.added_by
+
+    query = "SELECT ordered_date, quantity FROM forecast_data"
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        forecast_data = cursor.fetchall()
+
+    forecast_df = pd.DataFrame(forecast_data, columns=['ordered_date', 'quantity'])
+
+    try:
+        results = arima_sarimax_forecast(forecast_df)
+    except Exception as e:
+        results = {'sarimax_forecast': [], 'sarimax_confidence_intervals': {'lower quantity': [], 'upper quantity': []}}
+
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
+        pendingOrders = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
+        ongoingOrders = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
+        completedOrders = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE userid = %s", (current_user_id,))
+        totalOrders = cursor.fetchone()[0]
+
+    sarimax_chart = go.Figure()
+
+    sarimax_chart.add_trace(go.Scatter(x=forecast_df['ordered_date'], y=forecast_df['quantity'], mode='lines', name='Actual Quantity'))
+
+    last_date = forecast_df['ordered_date'].max()
+    sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+                                       y=results['sarimax_confidence_intervals']['lower quantity'],
+                                       fill=None,
+                                       mode='lines',
+                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                       name='SARIMAX Lower CI'))
+
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+                                       y=results['sarimax_confidence_intervals']['upper quantity'],
+                                       fill='tonexty',
+                                       mode='lines',
+                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                       name='SARIMAX Upper CI'))
+
+    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+    context = {
+        'pendingOrder': pendingOrders,
+        'ongoingOrder': ongoingOrders,
+        'completedOrder': completedOrders,
+        'totalOrder': totalOrders,
+        'results': results,
+        'sarimax_chart_html': sarimax_chart_html,
+    }
+
+    return render(request, 'forecast.html', context)
+
+@login_required
 def user_dashboard(request):
     current_user_id = request.user.added_by
 
@@ -143,7 +210,6 @@ def user_dashboard(request):
     data.columns = ["Month", "Sales"]
     data = data.dropna()
 
-    # Generate ARIMA and SARIMAX forecasts with all available data
     results = arima_sarimax_forecast(data)
 
     with connection.cursor() as cursor:
@@ -159,14 +225,14 @@ def user_dashboard(request):
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE userid = %s", (current_user_id,))
         totalOrders = cursor.fetchone()[0]
 
-    # Create SARIMAX Forecast Chart
     sarimax_chart = go.Figure()
 
     # Plot actual data
     sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
 
     # Plot SARIMAX Forecast
-    sarimax_forecast_index = pd.date_range(start=data.index[0], end=data.index[-1], freq='M')
+    last_date = data.index[-1]
+    sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
 
     # Plot confidence intervals
@@ -200,208 +266,7 @@ def user_dashboard(request):
 
     return render(request, 'dashboard/dashboard.html', context)
 
-# def user_dashboard(request):
-#     # os.chdir("/data")
-#     current_user_id = request.user.added_by
 
-#     # Retrieve order statistics
-#     with connection.cursor() as cursor:
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
-#         pendingOrders = cursor.fetchone()[0]
-        
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
-#         ongoingOrders = cursor.fetchone()[0]
-        
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
-#         completedOrders = cursor.fetchone()[0]
-
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
-#         totalOrders = cursor.fetchone()[0]
-
-#     # Calculate the date 7 days ago from today
-#     seven_days_ago = datetime.now() - timedelta(days=7)
-
-#     # Retrieve the product with the highest order quantity in the last 7 days
-#     sql_query = """
-#         SELECT product_info.product_name, SUM(order_info.quantity) as total_quantity
-#         FROM order_info
-#         JOIN product_info ON order_info.productid = product_info.product_id
-#         WHERE order_info.ordered_date >= %s AND order_info.status != 'cancelled'
-#         GROUP BY order_info.productid
-#         ORDER BY total_quantity DESC
-#         LIMIT 1
-#     """
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query, [seven_days_ago])
-#         top_product_order = cursor.fetchone()
-
-#     # Check if there's any order in the last 7 days
-#     if top_product_order:
-#         product_name, total_quantity = top_product_order
-#         top_product_data = {'product_name': product_name, 'total_quantity': total_quantity}
-#     else:
-#         top_product_data = {'product_name': None, 'total_quantity': None}
-
-#     context = {
-#         'pendingOrder': pendingOrders,
-#         'ongoingOrder': ongoingOrders,
-#         'completedOrder': completedOrders,
-#         'totalOrder': totalOrders,
-#         'topProductData': top_product_data,
-#     }
-
-#     return render(request, 'dashboard/dashboard.html', context)
-
-
-# def user_dashboard(request):
-#     # os.chdir("/data")
-#     current_user_id = request.user.added_by
-
-#     data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
-#     data.columns = ["Month", "Sales"]
-#     data = data.dropna()
-#     # results = arima_sarimax_forecast(data)
-#     forecast_steps = int(request.GET.get('forecast_steps', 6))
-
-
-# # Generate ARIMA and SARIMAX forecasts with the specified number of steps
-#     results = arima_sarimax_forecast(data, forecast_steps=forecast_steps)
-
-
-#     # Retrieve order statistics
-#     with connection.cursor() as cursor:
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
-#         pendingOrders = cursor.fetchone()[0]
-        
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
-#         ongoingOrders = cursor.fetchone()[0]
-        
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
-#         completedOrders = cursor.fetchone()[0]
-
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE  userid = %s", (current_user_id,))
-#         totalOrders = cursor.fetchone()[0]
-
-#     # Calculate the date 7 days ago from today
-#     seven_days_ago = datetime.now() - timedelta(days=7)
-
-#     # Retrieve the product with the highest order quantity in the last 7 days
-#     sql_query_top_product = """
-#         SELECT product_info.product_name, SUM(order_info.quantity) as total_quantity
-#         FROM order_info
-#         JOIN product_info ON order_info.productid = product_info.product_id
-#         WHERE order_info.ordered_date >= %s AND order_info.status != 'cancelled'
-#         GROUP BY order_info.productid
-#         ORDER BY total_quantity DESC
-#         LIMIT 1
-#     """
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query_top_product, [seven_days_ago])
-#         top_product_order = cursor.fetchone()
-
-#     # Check if there's any order in the last 7 days
-#     if top_product_order:
-#         product_name, total_quantity = top_product_order
-#         top_product_data = {'product_name': product_name, 'total_quantity': total_quantity}
-#     else:
-#         top_product_data = {'product_name': None, 'total_quantity': None}
-
-#     # Retrieve top-ordered product data for each month over the last 12 months
-#     sql_query_top_product_monthly = """
-#         SELECT product_info.product_name,
-#             EXTRACT(MONTH FROM order_info.ordered_date) as order_month,
-#             EXTRACT(YEAR FROM order_info.ordered_date) as order_year,
-#             SUM(order_info.quantity) as total_quantity
-#         FROM order_info
-#         JOIN product_info ON order_info.productid = product_info.product_id
-#         WHERE order_info.ordered_date >= NOW() - INTERVAL 12 MONTH AND order_info.status != 'cancelled'
-#         GROUP BY product_info.product_name, order_year, order_month
-#         ORDER BY order_year DESC, order_month DESC, total_quantity DESC
-#     """
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query_top_product_monthly)
-#         top_product_monthly_data = cursor.fetchall()
-
-#     # Process the monthly data for Plotly
-#     labels = []  # Labels for each month
-#     datasets = {}  # Data for each product
-
-#     for product_data in top_product_monthly_data:
-#         product_name, order_month, order_year, total_quantity = product_data
-#         label = f"{order_year}-{order_month:02d}"
-
-#         if label not in labels:
-#             labels.append(label)
-
-#         if product_name not in datasets:
-#             datasets[product_name] = {
-#                 'label': product_name,
-#                 'data': [],
-#                 'color': f'rgba({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)}, 0.5)',
-#             }
-
-#         datasets[product_name]['data'].append(total_quantity)
-
-#     # Create the Plotly figure
-#     fig = px.bar()
-
-#     for product_name, data in datasets.items():
-#         fig.add_bar(x=labels, y=data['data'], name=product_name, marker_color=data['color'])
-
-#     fig.update_layout(
-#         title='Top-Ordered Products Monthly (Last 12 Months)',
-#         xaxis_title='Month',
-#         yaxis_title='Total Quantity',
-#         barmode='stack',
-#     )
-
-#     # Convert Plotly figure to HTML
-#     plot_div = plot(fig, output_type='div', include_plotlyjs=False)
-
-#     sarimax_chart = go.Figure()
-
-#     # Plot actual data
-#     sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
-
-#     # Plot SARIMAX Forecast
-#     sarimax_forecast_index = pd.date_range(start=data.index[-1], periods=12 + 1, freq='M')[1:]
-#     sarimax_chart.add_trace(go.Scatter(x=data['Month'], y=data['Sales'], mode='lines', name='Actual Sales'))
-
-#     # Plot confidence intervals
-#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-#                                        y=results['sarimax_confidence_intervals']['lower Sales'],
-#                                        fill=None,
-#                                        mode='lines',
-#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
-#                                        name='SARIMAX Lower CI'))
-
-#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-#                                        y=results['sarimax_confidence_intervals']['upper Sales'],
-#                                        fill='tonexty',
-#                                        mode='lines',
-#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
-#                                        name='SARIMAX Upper CI'))
-
-#     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-
-#     # Convert SARIMAX chart to HTML
-#     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
-
-#     context = {
-#         'pendingOrder': pendingOrders,
-#         'ongoingOrder': ongoingOrders,
-#         'completedOrder': completedOrders,
-#         'totalOrder': totalOrders,
-#         'topProductData': top_product_data,
-#         'monthlyChartDiv': plot_div,
-#         'results': results,
-#         'sarimax_chart_html': sarimax_chart_html,
-#     }
-
-#     return render(request, 'dashboard/dashboard.html', context)
 
 
 # @login_required

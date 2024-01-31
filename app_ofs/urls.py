@@ -10,6 +10,7 @@ urlpatterns = [
     path('register/', views.register, name = 'register'),
     path('dashboard', views.user_dashboard, name = 'dashboard'),
 
+    path('forecast/', views.forecast, name='forecast'),
     path('logout/', views.logout_view, name='logout'),
     path('category' , views.getCategory, name = 'category'),
     path('addnewproduct', views.addnewproduct, name = 'addnewproduct'),
