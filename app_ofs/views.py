@@ -290,42 +290,6 @@ def addnewproduct(request):
 
 
 @login_required
-# def inventory(request):
-#     current_user_id = request.user.added_by
-#     sql_category = "SELECT * FROM category_info where userid = %s"
-
-#     sql_product = "SELECT * FROM product_info where userid = %s"
-#     value = (current_user_id,)
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_category, value)
-#         data = cursor.fetchall()
-#         cursor.execute(sql_product, value)
-#         product_data = cursor.fetchall()
-
-
-#     products = []
-#     for row in product_data:
-#         product = {
-#             'product_id': row[1],
-#             'product_name': row[2],
-#             'product_description': row[3],
-#             'category': row[4],
-#         }
-#         products.append(product)
-
-#     categories = []
-#     for row in data:
-#         category = {
-#             'category_id': row[1],  # Assuming category_id is in the first column (index 0)
-#             'category': row[2],     # Assuming category name is in the second column (index 1)
-#         }
-#         categories.append(category)
-#     context = {
-#         'categories': categories,
-#         'products':products,
-#     }
-
-#     return render(request, 'inventory.html', context)
 
 def inventory(request):
     current_user_id = request.user.added_by
@@ -396,69 +360,7 @@ def staff(request):
     return render(request, 'staff.html', context)
 
 @login_required
-# def addStaff(request):
-#     if request.method == 'POST':
-#         fname = request.POST.get('first_name', '')
-#         lname = request.POST.get('last_name', '')
-#         email = request.POST.get('staff_email', '')
-#         password = 'pbkdf2_sha256$720000$mxe0Xh0bzkxMDPfH0eJWID$OtcNwAuQDGiT1ulQSIlK3wosxBmdwH3qKb31UJOCGCA=' # ofs@12345
-#         phone = request.POST.get('staff_phone', '')
-#         role = request.POST.get('staff_role', '')
 
-#         randNumber = random.randint(100, 999)
-#         username = f'{fname.lower()}_{randNumber}'
-
-#         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-#         sql_values = (fname, lname, username, email, password, phone, role)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(sql_query, sql_values)
-
-#         return HttpResponseRedirect('/staff')
-
-#     return render(request, 'staff.html')
-
-# def addStaff(request):
-#     if request.method == 'POST':
-#         fname = request.POST.get('first_name', '')
-#         lname = request.POST.get('last_name', '')
-#         email = request.POST.get('staff_email', '')
-#         password = 'pbkdf2_sha256$720000$dy2M0njk4zokEXLpPL2baA$1KM75lXwqRmOA7293sRzM3AIVasTGaIhlFpR57b1AfI='  #ofs@12345
-#         phone = request.POST.get('staff_phone', '')
-#         role = request.POST.get('staff_role', '')
-
-#         # Validate phone number length
-#         if len(phone) != 10:
-#             messages.error(request, 'Phone number must be 10 digits.')
-#             return HttpResponseRedirect('/staff')
-
-#         # Check if the email already exists
-#         email_exists_query = "SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s"
-#         email_exists_values = (email,)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(email_exists_query, email_exists_values)
-#             email_count = cursor.fetchone()[0]
-
-#         if email_count > 0:
-#             messages.error(request, 'Email already exists. Please use a different email address.')
-#             return HttpResponseRedirect('/staff')
-
-#         randNumber = random.randint(100, 999)
-#         username = f'{fname.lower()}_{randNumber}'
-
-#         # Hash the password
-#         hashed_password = make_password(password)
-
-#         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-#         sql_values = (fname, lname, username, email, hashed_password, phone, role)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(sql_query, sql_values)
-
-#         return HttpResponseRedirect('/staff')
-
-#     return render(request, 'staff.html')
 
 def addStaff(request):
     if request.method == 'POST':
@@ -787,60 +689,9 @@ from datetime import datetime, timedelta
 
 @login_required
 
-# def getOrder(request):
-#     current_user_id = request.user.added_by
-
-#     sql_query = """
-#         SELECT
-#             o.order_id,
-#             o.productid,
-#             o.quantity,
-#             o.ordered_date,
-#             o.price,
-#             o.total_price,
-#             o.delivery_date,
-#             o.status,
-#             p.product_name
-#         FROM
-#             order_info o
-#         LEFT JOIN
-#             product_info p ON o.productid = p.product_id
-#         WHERE
-#             o.userid = %s
-#             AND (o.status = 'Ongoing' OR o.status = 'Pending')
-#     """
-
-#     values = (current_user_id,)
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query, values)
-#         result_set = cursor.fetchall()
-
-#     orders = []
-#     for row in result_set:
-#         order = {
-#             'order_id': row[0],
-#             'product_id': row[1],
-#             'quantity': row[2],
-#             'ordered_date': row[3],
-#             'price': row[4],
-#             'total_price':row[5], 
-#             'delivery_date': row[6],
-#             'status': row[7],
-#             'product_name': row[8] if row[8] else 'Unknown Product',
-#         }
-#         orders.append(order)
-#     print('orders', orders)
-#     context = {
-#         'orders': orders,
-#     }
-
-#     return render(request, 'orders.html', context)
-
 def getOrder(request):
     current_user_id = request.user.added_by
 
-    # Check for orders with 'Ongoing' or 'Pending' status
     sql_query = """
         SELECT
             o.order_id,
