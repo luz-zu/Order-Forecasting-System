@@ -30,6 +30,9 @@ window.onload = function () {
     // });
 
 
+    
+
+
       // Hide messages after 10 seconds
   setTimeout(function() {
     var messagesContainer = document.querySelector('.messages');
@@ -52,13 +55,13 @@ window.onload = function () {
 
     // products.html
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_product"]').on('click', function () {
-        var currProductID = $(this).data('product-id');
-        var currProductName = $(this).data('product-name');
-        var currProductDescription = $(this).data('product-description');
-        document.getElementById('product_id').value = currProductID;
-        document.getElementById('new_product_name').value = currProductName;
-        document.getElementById('new_product_description').value = currProductDescription;
-    });
+    var currProductID = $(this).data('product-id');
+    var currProductName = $(this).data('product-name');
+    var currProductDescription = $(this).data('product-description');
+    $('#edit_product_id').val(currProductID);
+    $('#edit_product_name').val(currProductName);
+    $('#edit_product_description').val(currProductDescription);
+});
 
     // order.html
     $('a[data-bs-toggle="modal"][data-bs-whatever="edit_order"]').on('click', function () {
@@ -85,13 +88,14 @@ window.onload = function () {
         var currInventoryId = $(this).data('inventory-id');
         var currProduct = $(this).data('product');
         var currQuantity = $(this).data('inventory-quantity');
+        // var currPrice = $(this).data('inventory-price');
         var currPrice = $(this).data('inventory-price');
         
         // Set values to the form fields
         document.getElementById('edit_inventory_id').value = currInventoryId;
         document.getElementById('product_dropdown').value = currProduct;
         document.getElementById('edit_quantity').value = currQuantity;
-        document.getElementById('edit_price').value = currPrice;
+        document.getElementById('edit_price_inventory').value = currPrice;
         
         // Log for debugging
         console.log(currInventoryId, currProduct, currQuantity, currPrice);

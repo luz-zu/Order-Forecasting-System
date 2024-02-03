@@ -1,0 +1,79 @@
+<!-- <div class="pagination pt-3">
+    <span class="step-links">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="pe-5">
+          {% if products.has_previous %}
+                  <a href="?page=1" class="text-white btns">&laquo; First</a>
+          {% endif %}
+          {% if products.has_next %}
+              <a href="?page={{ products.paginator.num_pages }}" class="text-white btns">Last &raquo;</a>
+          {% endif %}
+
+        </div>
+        <div class="pe-5">
+          {% if products.has_previous %}
+                  <a href="?page={{ products.previous_page_number }}" class="text-white btns">Previous</a>
+          {% endif %}
+          {% if products.has_next %}
+              <a href="?page={{ products.next_page_number }}" class="text-white btns">Next</a>
+          {% endif %}
+        </div>
+        <div class="pe-5">
+          <span class="current "  >
+            Page {{ products.number }} of {{ products.paginator.num_pages }}.
+        </span>
+        
+        </div>
+          
+        <div class="pe-5">
+          {% for i in products.paginator.page_range %}
+              {% if products.number == i %}
+                  <span class="current">{{ i }} </span>
+              {% elif i > products.number|add:"-3" and i < products.number|add:"3" %}
+                  <a href="?page={{ i }}" class="text-white btns">{{ i }}</a>
+              {% endif %}
+          {% endfor %}
+
+        </div>
+
+      </div>
+          
+    </span>
+</div> -->
+
+<div class="pagination pt-3">
+  <span class="step-links">
+      <div class="d-flex justify-content-between align-items-center">
+          <div class="pe-5">
+              {% if data.has_previous %}
+                  <a href="?page=1" class="text-white btns">&laquo; First</a>
+              {% endif %}
+              {% if data.has_next %}
+                  <a href="?page={{ data.paginator.num_pages }}" class="text-white btns">Last &raquo;</a>
+              {% endif %}
+          </div>
+          <div class="pe-5">
+              {% if data.has_previous %}
+                  <a href="?page={{ data.previous_page_number }}" class="text-white btns">Previous</a>
+              {% endif %}
+              {% if data.has_next %}
+                  <a href="?page={{ data.next_page_number }}" class="text-white btns">Next</a>
+              {% endif %}
+          </div>
+          <div class="pe-5">
+              <span class="current ">
+                  Page {{ data.number }} of {{ data.paginator.num_pages }}.
+              </span>
+          </div>
+          <div class="pe-5">
+              {% for i in data.paginator.page_range %}
+                  {% if data.number == i %}
+                      <span class="current">{{ i }} </span>
+                  {% elif i > data.number|add:"-3" and i < data.number|add:"3" %}
+                      <a href="?page={{ i }}" class="text-white btns">{{ i }}</a>
+                  {% endif %}
+              {% endfor %}
+          </div>
+      </div>
+  </span>
+</div>

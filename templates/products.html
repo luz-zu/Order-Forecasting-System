@@ -36,8 +36,9 @@
         </div>
         {% endif %}
       </div>
+ 
 
-      <div class="row pt-3">
+      <div class="row pt-3" >
         <div class="col-12">
           <div class="table-responsive">
             <table>
@@ -59,18 +60,18 @@
                 <tr>
                   <td scope="row">{{ forloop.counter }}</td>
                   <td>{{product.product_id}}</td>
-                  <td>{{product.category_name}}</td>
-                  <td>{{product.product_name}}</td>
+                  <td>
+                    {% for category in categories %}
+                        {% if category.id == product.category_id %}
+                            {{ category.category }}
+                        {% endif %}
+                    {% endfor %}
+                </td>                  
+                <td>{{product.product_name}}</td>
                   <td>{{product.product_description}}</td>
                   {% if user.userrole == 'admin' %}
                   <td>
-                    <div
-                      style="
-                        display: flex;
-                        align-items: center;
-                        margin-left: 35%;
-                      "
-                    >
+                    <div style="display: flex; align-items: center; margin-left: 35%">
                       <a
                         href=""
                         data-bs-toggle="modal"
@@ -86,34 +87,34 @@
                           title="Edit"
                         ></i
                       ></a>
-                      
-                      <form
-                        method="post"
-                        action="{% url 'delete_product' product.product_id %}"
-                      >
-                      {% csrf_token %}
-                      <input
-                        type="hidden"
-                        name="product_id"
-                        value="{{ product.product_id }}"
-                      />
-                      
-                      <button
-                      style="border: none; background-color: transparent; margin-left: 10px;"
-                      type="button"
-                      class="text-danger delete-button"
-                      data-bs-toggle="modal"
-                      data-bs-target="#delete_Product"
-                      data-product-id="{{ product.product_id }}"
-                      data-product-name="{{ product.product_name }}"
-                      data-product-description="{{ product.product_description }}"
-                    >
-                      <i class="fa-solid fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
-                    </button>
 
+                      <form method="post" action="{% url 'delete_product' product.product_id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}" />
+                  
+                        <button
+                          style="border: none; background-color: transparent; margin-left: 10px"
+                          type="button"
+                          class="text-danger delete-button"
+                          data-bs-toggle="modal"
+                          data-bs-target="#delete_Product"
+                          data-product-id="{{ product.product_id }}"
+                          data-product-name="{{ product.product_name }}"
+                          data-product-description="{{ product.product_description }}"
+                        >
+                          <i
+                            class="fa-solid fa-trash"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Delete"
+                          ></i>
+                        </button>
                       </form>
+                  
+                  
                     </div>
                   </td>
+                  
                   {% endif %}
                 </tr>
 
@@ -124,6 +125,12 @@
         </div>
       </div>
       
+    
+    <div>
+      {%include "components/pagination.html"  with data=products %}
+
+    </div>
+    
     </div>
   </div>
 </div>
@@ -165,7 +172,7 @@
                 class="form-control"
               >
                 <option value="">Select a category</option>
-                {% for category in categories %}
+                {% for category in categories_list %}
                 <option value="{{ category.category_id }}">
                   {{ category.category_name }}
                 </option>
@@ -239,8 +246,8 @@
 
           <input
             type="hidden"
-            name="product_id"
-            id="product_id"
+            name="edit_product_id"
+            id="edit_product_id"
             value="{{ products.product_id }}"
           />
 
@@ -251,8 +258,8 @@
             <input
               type="text"
               class="form-control"
-              name="new_product_name"
-              id="new_product_name"
+              name="edit_product_name"
+              id="edit_product_name"
             />
           </div>
 
@@ -263,8 +270,8 @@
             <input
               type="text"
               class="form-control"
-              name="new_product_description"
-              id="new_product_description"
+              name="edit_product_description"
+              id="edit_product_description"
             />
           </div>
 
@@ -358,6 +365,8 @@
     var productDescription = button.getAttribute('data-product-description');
     setProductDetails(productId, productName, productDescription);
   });
+
+  
 </script>
 
 

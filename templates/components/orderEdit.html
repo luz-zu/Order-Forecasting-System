@@ -1,0 +1,99 @@
+<div
+  class="modal fade"
+  id="edit_order"
+  tabindex="-1"
+  aria-labelledby="edit_order"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Edit Order</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'editOrder' %}">
+          {% csrf_token %}
+          <input type="hidden" name="old_orderid" id="old_orderid" />
+          <input type="hidden" name="new_product_name" id="new_product_name" />
+
+          <div class="mb-3">
+            <label for="edit_quantity" class="col-form-label">Quantity:</label>
+            <input
+              type="number"
+              class="form-control"
+              name="edit_quantity"
+              id="edit_quantity"
+            />
+          </div>
+
+        
+
+          <div class="mb-3">
+            <label for="edit_price" class="form-label">Price:</label>
+            <input
+              type="number"
+              class="form-control"
+              name="edit_price"
+              id="edit_price"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_ordered_date" class="form-label"
+              >Ordered Date:</label
+            >
+            <input
+              type="date"
+              class="form-control datepicker"
+              name="edit_ordered_date"
+              id="edit_ordered_date"
+            />
+
+
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_delivery_date" class="form-label"
+              >Delivery Date:</label
+            >
+            <input
+              type="date"
+              class="form-control datepicker"
+              name="edit_delivery_date"
+              id="edit_delivery_date"
+            />
+
+            <div class="text-danger" id="deliveryDateError"></div>
+
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_status" class="form-label">Status:</label>
+            <select class="form-control" name="edit_status" id="edit_status">
+              <option value="Ongoing">Ongoing</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Edit Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

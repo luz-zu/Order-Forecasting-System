@@ -470,7 +470,7 @@ CREATE TABLE IF NOT EXISTS `product_info` (
   `product_name` varchar(50) DEFAULT NULL,
   `product_description` varchar(200) DEFAULT NULL,
   `category` varchar(50) DEFAULT NULL,
-  `userid` bigint(20) DEFAULT NULL,
+  `user_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`),
   KEY `userid` (`userid`),

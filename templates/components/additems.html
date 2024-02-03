@@ -1,0 +1,46 @@
+<div class="modal fade" id="add_items" tabindex="-1" aria-labelledby="add_items" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'addItems' %}">
+                    {% csrf_token %}
+                    <input type="hidden" id="category_url" value="{% url 'product_category' %}">
+                    <div class="mb-3">
+                    <input type="hidden" id="product_url" value="">
+                    
+                    <div class="mb-3">
+                      <label for="getProductCategory" class="col-form-label">Product:</label>
+                      <div>
+                        <select name="getProductCategory" id="product_dropdown" class="form-control">
+                            {% for item in product %}
+
+                          <option value="{{item.product_id}}">{{item.product_name}}</option>
+
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="quantity" class="col-form-label">Quantity:</label>
+                      <input type="number" class="form-control" name="quantity" id="quantity" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="price" class="col-form-label">Price (per Unit):</label>
+                      <input type="number" class="form-control" name="price" id="price" required>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> 

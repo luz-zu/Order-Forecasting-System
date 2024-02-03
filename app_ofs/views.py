@@ -1,9 +1,10 @@
-from django.shortcuts import render,redirect
-from django.contrib.auth import authenticate, login,logout
+from django.shortcuts import render,redirect, get_object_or_404
+from django.contrib.auth import authenticate, login,logout,update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.http import HttpResponseRedirect, HttpResponse,HttpResponseNotFound
 from django.http import JsonResponse
-from .forms import RegisterForm
-from django.db import connection, IntegrityError
+from .forms import RegisterForm,ProductForm, AddInventoryForm, EditInventoryForm
+from django.db import connection, IntegrityError, transaction
 import random
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
@@ -16,6 +17,9 @@ from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.views.decorators.cache import never_cache
 from datetime import datetime, timedelta
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.template.loader import render_to_string
+from django.core.exceptions import ObjectDoesNotExist
 
 from django.db.models import Sum
 
@@ -291,48 +295,78 @@ def addnewproduct(request):
 
 @login_required
 
-def inventory(request):
-    current_user_id = request.user.added_by
+# def inventory(request):
+#     current_user_id = request.user.added_by
   
-    sql_category_with_count = """
-        SELECT
-            c.category_id,
-            c.category,
-            COUNT(p.product_id) AS total_products
-        FROM
-            category_info c
-        LEFT JOIN
-            product_info p ON c.category_id = p.category
-        WHERE
-            c.userid = %s
-        GROUP BY
-            c.category_id, c.category
-    """
+#     sql_category_with_count = """
+#         SELECT
+#             c.id,
+#             c.category,
+#             COUNT(p.product_id) AS total_products
+#         FROM
+#             category_info c
+#         LEFT JOIN
+#             product_info p ON c.id = p.category_id
+#         WHERE
+#             c.userid_id = %s
+#         GROUP BY
+#             c.id, c.category
+#     """
 
-    value = (current_user_id,)
-    with connection.cursor() as cursor:
-        cursor.execute(sql_category_with_count, value)
-        categories_with_count = cursor.fetchall()
+#     value = (current_user_id,)
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_category_with_count, value)
+#         categories_with_count = cursor.fetchall()
+
+#     categories = []
+#     for row in categories_with_count:
+#         category_id = row[0]
+#         category_name = row[1]
+#         total_products = row[2]
+
+#         # Only include categories with a count greater than 0
+#         if total_products > 0:
+#             category = {
+#                 'category_id': category_id,
+#                 'category': category_name,
+#                 'total_products': total_products,
+#             }
+#             categories.append(category)
+
+#     context = {
+#         'categories': categories,
+#     }
+   
+#     return render(request, 'inventory.html', context)
+
+
+def inventory(request):
+    current_user = request.user
+
+    # Filter products where deleted_on is NULL
+    categories_with_count = category.objects.filter(userid_id=current_user).annotate(
+        total_products=Count('product_info', filter=Q(product_info__deleted_on__isnull=True))
+    ).values('id', 'category', 'total_products')
 
     categories = []
     for row in categories_with_count:
-        category_id = row[0]
-        category_name = row[1]
-        total_products = row[2]
+        category_id = row['id']
+        category_name = row['category']
+        total_products = row['total_products']
 
         # Only include categories with a count greater than 0
         if total_products > 0:
-            category = {
+            category_item = {
                 'category_id': category_id,
                 'category': category_name,
                 'total_products': total_products,
             }
-            categories.append(category)
+            categories.append(category_item)
 
     context = {
         'categories': categories,
     }
-
+   
     return render(request, 'inventory.html', context)
 
 @login_required
@@ -415,142 +449,120 @@ def addStaff(request):
         return HttpResponseRedirect('/staff')
 
     return render(request, 'staff.html')
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db import IntegrityError
+from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order
+from .forms import CategoryForm
+from django.contrib.auth.decorators import login_required
+
 @login_required
-def getCategory(request):
+def get_category(request):
     current_user_id = request.user.added_by
-    sql_query = "SELECT * FROM category_info where userid = %s"
+    categories = category.objects.filter(userid=current_user_id)
+    page = request.GET.get('page', 1)
 
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, (current_user_id,))
-        data = cursor.fetchall()
+    # Paginate the products with 20 items per page
+    paginated_products = paginate_data(categories, page, 20)
 
-    categories = []
-    for row in data:
-        category = {
-            'category_id': row[1],
-            'category': row[2],
-        }
-        categories.append(category)
-
-    context = {
-        'categories': categories,
-    }
-
+    context = {'categories': paginated_products,
+               'category': categories}
     return render(request, 'category.html', context)
 
 @login_required
-def addCategory(request):
+
+def add_category(request):
     if request.method == 'POST':
-        category_id = random.randint(1000, 9999)
-        category = request.POST.get('category', None)
-        current_user_id =request.user.added_by
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category_name = form.cleaned_data['category'].capitalize()
+            current_user = request.user  # Assuming request.user is a CustomUser instance
+            if not category_name:
+                messages.error(request, 'Category cannot be empty.')
+                return redirect('category')
 
-        if category is not None:
-            checkExistingCategory = "SELECT category_id FROM category_info WHERE category = %s and userid =%s"
-            with connection.cursor() as cursor:
-                cursor.execute(checkExistingCategory, (category, current_user_id))
-                getExistingCategoryData = cursor.fetchone()
+            # Check if a category with the lowercase name already exists
+            existing_category = category.objects.filter(category__iexact=category_name, userid=current_user).first()
+
+            if existing_category:
+                messages.error(request, 'Category already exists!')
+            else:
+                try:
+                    category.objects.create(category=category_name, userid=current_user)
+                    messages.success(request, 'Category added successfully!')
+                except IntegrityError:
+                    messages.error(request, 'An error occurred while adding the category.')
+
+            return redirect('category')
         
-            if getExistingCategoryData:
-                messages.info(request, 'Category Already Existed!')
-                return HttpResponseRedirect('/category')
-
-
-            sql_query = "INSERT INTO category_info (category_id, category, userid) VALUES (%s, %s,%s)"
-            values = (category_id, category,current_user_id)
-
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(sql_query, values)
-                    connection.commit()
-                messages.success(request, 'Category Added successfully!')
-                return HttpResponseRedirect('/category')
-            except IntegrityError:
-                return HttpResponse("An error occurred while adding the category")
-            
         else:
-            return HttpResponse("Invalid category data")
-    return render(request, 'category.html')
+            return redirect('category')
+
+    else:
+        form = CategoryForm()
+
+    return render(request, 'category.html', {'form': form})
 
 @login_required
-def editCategory(request):
+def edit_category(request):
     if request.method == 'POST':
-        old_category_id = request.POST.get('category_id', '')
-        old_category_name = request.POST.get('old_category_name', '')
-        current_user_id =request.user.added_by
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            old_category_id = form.cleaned_data['category_id']
+            old_category_name = form.cleaned_data['old_category_name'].capitalize()
+            current_user_id = request.user.added_by
 
-        sql_query = "UPDATE category_info SET category = %s WHERE category_id = %s and userid = %s"
-        values = (old_category_name, old_category_id, current_user_id)
+            if not old_category_name:
+                messages.error(request, 'Category cannot be empty.')
+                return redirect('category')
 
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
-            messages.success(request, 'Category Edited successfully!')
-            return HttpResponseRedirect('/category')
-        except IntegrityError:
-            return messages.error(request, 'Failed Editing Category!')
-        
-    return render(request, 'category.html')
+            try:
+                category_instance = category.objects.get(id=old_category_id, userid=current_user_id)
+                
+                # Check if the new name is different
+                if old_category_name == category_instance.category:
+                    messages.warning(request, 'No changes made to the category.')
+                    return redirect('category')
+
+                # Check if the new name already exists for other products
+                if category.objects.filter(category__iexact=old_category_name).exclude(id=old_category_id).exists():
+                    messages.error(request, 'Category name already exists for another product.')
+                    return redirect('category')
+
+                category_instance.category = old_category_name
+                category_instance.save()
+
+                messages.success(request, 'Category edited successfully!')
+            except category.DoesNotExist:
+                messages.error(request, 'Category not found!')
+            except IntegrityError:
+                messages.error(request, 'Failed editing category!')
+            except ValidationError as e:
+                messages.error(request, e.message)
+
+            return redirect('category')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = CategoryForm()
+
+    return render(request, 'category.html', {'form': form})
 
 @login_required
 def get_categories_list(request):
     current_user_id = request.user.added_by
+    categories_list = category.objects.filter(userid_id=current_user_id).values('id', 'category')
 
-    categories_list = []
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, category FROM category_info WHERE userid =%s")
-        values = (current_user_id)
-        categories = cursor.fetchall()
-        for category in categories:
-            categories_list.append({'id': category[0], 'category': category[1]})
+    return JsonResponse(list(categories_list), safe=False)
 
-    return JsonResponse(categories_list, safe=False)
-
-@login_required
-def addProduct(request):
-    if request.method == 'POST':
-        product_id = random.randint(10000, 20000)
-        getCategory = request.POST.get('product_category')
-        product_name = request.POST['product_name']
-        product_description = request.POST['product_description']  
-        current_user_id = request.user.added_by
-
-        if product_name:
-            checkExistingProduct = "SELECT product_id FROM product_info WHERE product_name = %s and userid = %s"
-            with connection.cursor() as cursor:
-                cursor.execute(checkExistingProduct, (product_name,current_user_id,))
-                getExistingProductData = cursor.fetchone()
-
-        
-            if getExistingProductData:
-                messages.info(request, 'Product Already Existed!')
-                return HttpResponseRedirect('/products')
-
-
-            sql_query = "INSERT INTO product_info (product_id, product_name, product_description, category, userid) VALUES (%s, %s, %s, %s,%s)"
-            values = (product_id, product_name, product_description, getCategory, current_user_id)
-
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(sql_query, values)
-                    connection.commit()
-                messages.success(request, 'Product Added successfully!')
-                return HttpResponseRedirect('/products')
-            except IntegrityError:
-                return HttpResponse("An error occurred while adding the product")
-            
-        else:
-            return HttpResponse("Invalid product data")
-    return render(request, 'products.html')
-
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
-def paginate_data(data, page, items_per_page=10):
+def paginate_data(data, page_number, items_per_page):
     paginator = Paginator(data, items_per_page)
 
     try:
-        paginated_data = paginator.page(page)
+        paginated_data = paginator.page(page_number)
     except PageNotAnInteger:
         paginated_data = paginator.page(1)
     except EmptyPage:
@@ -558,345 +570,339 @@ def paginate_data(data, page, items_per_page=10):
 
     return paginated_data
 
-
-
 @login_required
 def getProduct(request):
-    current_user_id = request.user.added_by
+    current_user = request.user
 
+    products = Product.objects.filter(user_id=current_user, deleted_on__isnull=True).order_by('-id')
+    categories = category.objects.filter(userid_id=current_user)
+    
+    # Get the page number from the request's GET parameters
+    page = request.GET.get('page', 1)
 
-    # Use a SQL JOIN to retrieve product information along with category names
-    sql_query = """
-        SELECT
-            p.*,
-            c.category  # Adjust this index based on the structure of your tables
-        FROM
-            product_info p
-        LEFT JOIN
-            category_info c ON p.category = c.category_id
-        WHERE
-            p.userid = %s
-    """
+    # Paginate the products with 20 items per page
+    paginated_products = paginate_data(products, page, 20)
 
-    sql_query_category = "SELECT * FROM category_info WHERE userid = %s"
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, (current_user_id,))
-        data = cursor.fetchall()
-
-        cursor.execute(sql_query_category, (current_user_id,))
-        category_data = cursor.fetchall()
-
-    products = []
-    for row in data:
-        product = {
-            'product_id': row[1],
-            'product_name': row[2],
-            'product_description': row[3],
-            'category_name': row[6],  # Assuming category name is retrieved from the JOIN
-        }
-        products.append(product)
-
-    categories = []
-    for row in category_data:
-        category = {
-            'category_id': row[1],
-            'category_name': row[2],
-        }
-        categories.append(category)
-
-    context = {
+    context = { 
+        'products': paginated_products,
         'categories': categories,
-        'products': products,
     }
-
+    
     return render(request, 'products.html', context)
 
+@login_required
+def addProduct(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            product_name = form.cleaned_data['product_name'].capitalize()
+            product_description = form.cleaned_data['product_description']
+            current_user = request.user
+
+            if not product_name:
+                messages.error(request, 'Product name cannot be blank')
+                return HttpResponseRedirect('/products')
+
+            existing_product = Product.objects.filter(
+                product_name=product_name,
+                user=current_user,
+                deleted_on__isnull=False
+            ).first()
+
+            if existing_product:
+                existing_product.deleted_on = None
+                existing_product.save()
+                messages.success(request, 'Product added successfully!')
+            else:
+                existing_product = Product.objects.filter(
+                    product_name=product_name,
+                    user=current_user,
+                    deleted_on__isnull=True
+                ).first()
+
+                if existing_product:
+                    messages.info(request, 'Product already exists!')
+                else:
+                    max_product_id = Product.objects.filter(user=current_user).aggregate(Max('product_id'))['product_id__max']
+                    if max_product_id is not None:
+                # Increment the product ID for a new product
+                        form.instance.product_id = int(max_product_id) + 1
+                    else:
+                # Set initial product_id to 101 if no existing products
+                        form.instance.product_id =  101
+                    category_name = request.POST.get('product_category')
+                    
+                    try:
+                        category_instance = category.objects.get(category=category_name, userid_id=current_user)
+                        form.instance.category_id = category_instance.id
+                    except category.DoesNotExist:
+                        messages.error(request, 'Category not found!')
+                        return HttpResponseRedirect('/products')
+
+                    form.instance.user = current_user
+                    form.cleaned_data['product_name'] = product_name
+                    form.save()
+
+                    messages.success(request, 'Product added successfully!')
+
+            return HttpResponseRedirect('/products')
+        else:
+            return HttpResponseRedirect('/products')
+    else:
+        return HttpResponseRedirect('/products')
 
 
+from django.db.models import F, Count,Max,Q
 
 @login_required
 def editProduct(request):
-    current_user_id = request.user.added_by
+    product_id = request.POST.get('edit_product_id', '')
+    new_product_name = request.POST.get('edit_product_name', '').capitalize()
+    new_product_description = request.POST.get('edit_product_description', '')
+    
 
-    if request.method == 'POST':
-        old_product_id = request.POST.get('product_id', '')
-        new_product_name = request.POST.get('new_product_name', '')
-        new_product_description = request.POST.get('new_product_description', '')
+    try:
+        product_instance = get_object_or_404(Product, product_id=product_id, user=request.user)
 
-        sql_query = "UPDATE product_info SET product_name = %s, product_description = %s WHERE product_id = %s and userid = %s"
-        values = (new_product_name, new_product_description, old_product_id,current_user_id)
+        if product_instance.deleted_on is not None:
+            existing_product = Product.objects.exclude(id=product_instance.id).filter(
+                product_name=new_product_name,
+                user=request.user,
+                deleted_on__isnull=True
+            )
+        else:
+            existing_product = Product.objects.exclude(id=product_instance.id).filter(
+                product_name=new_product_name,
+                user=request.user
+            )
 
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
-            messages.info(request, 'Product Edited successfully!')
-            return HttpResponseRedirect('/products')
-        except IntegrityError:
-            return HttpResponse("An error occurred while editing the product details")
-        
-    return render(request, 'products.html')
+        if existing_product.exists():
+            messages.info(request, 'Product with this name already exists!')
+        else:
+            # Check if there are changes
+            if (
+                new_product_name == product_instance.product_name and
+                new_product_description == product_instance.product_description
+            ):
+                messages.info(request, 'No changes made to the product.')
+            else:
+                product_instance.product_name = new_product_name
+                product_instance.product_description = new_product_description
+                product_instance.updated_on = timezone.now()
+                product_instance.save()
+                messages.success(request, 'Product edited successfully!')
 
+    except Product.DoesNotExist:
+        messages.error(request, 'Product not found!')
+    except Exception as e:
+        print("test")
+        messages.error(request, f'Failed editing product: {str(e)}')
+
+    return HttpResponseRedirect('/products')
+
+@transaction.atomic
 @login_required
-
 def delete_product(request, product_id):
-    current_user_id = request.user.added_by
+    current_user = request.user
 
     if request.method == 'POST':
-        # Fetching the product_id from the URL parameter
-        getProductID = request.POST.get('product_id', '')
+        order_quantity = Order.objects.filter(
+            product_id=product_id,
+            # status__in=['Ongoing', 'Pending'],
+            deleted_on__isnull=True,
+            user=current_user
+        ).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
-        # order_query = "SELECT COUNT(*) FROM order_info WHERE product_id = %s AND status IN ('Ongoing', 'Pending') AND user_id = %s"
-        order_query = "SELECT SUM(quantity) FROM order_info WHERE productid = %s AND status IN ('Ongoing', 'Pending') AND userid = %s"
-
-        inventory_query = "SELECT SUM(quantity) FROM inventory_details WHERE productid = %s AND userid = %s"
-
-
-        with connection.cursor() as cursor:
-            cursor.execute(order_query, (getProductID, current_user_id))
-            order_quantity = cursor.fetchone()[0] or 0  # Use 0 if the result is None
-
-            cursor.execute(inventory_query, (getProductID, current_user_id))
-            inventory_quantity = cursor.fetchone()[0] or 0  # Use 0 if the result is None
-
+        inventory_quantity = InventoryDetails.objects.filter(
+            product_id=product_id,
+            user=current_user
+        ).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
         if order_quantity > 0 or inventory_quantity > 0:
             messages.error(request, 'Products available in Order and Inventory')
-            print("order_count", order_quantity)
-            return JsonResponse({'status': 'error'})  # Return a JSON response on success
-
-        sql_query = "DELETE from product_info WHERE product_id = %s and userid = %s"
-        values = (getProductID, current_user_id)
-
-
+            return JsonResponse({'status': 'error'})
 
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
-                print("delete," ,getProductID, current_user_id)
-                messages.success(request, "Product Deleted.")
-    
-            return JsonResponse({'status': 'success'})  # Return a JSON response on success
-        except IntegrityError:
-            return JsonResponse({'status': 'error', 'message': 'An error occurred while deleting the product'})
+            with transaction.atomic():
+                product_instance = Product.objects.get(product_id=product_id, user=current_user)
+                product_instance.deleted_on = timezone.now()  # Set the deleted_on field
+                product_instance.save()
+                messages.success(request, 'Product Deleted Successfully!')
+                return JsonResponse({'status': 'success'})
+        except Product.DoesNotExist:
+            messages.error(request, 'Product not found!')
+        except IntegrityError as e:
+            messages.error(request, f'Failed marking product as deleted: {str(e)}')
 
     return render(request, 'products.html')
-# from django.utils import timezone
+
+
 from datetime import datetime, timedelta
 
 
 @login_required
 
 def getOrder(request):
-    current_user_id = request.user.added_by
+    current_user = request.user
 
-    sql_query = """
-        SELECT
-            o.order_id,
-            o.productid,
-            o.quantity,
-            o.ordered_date,
-            o.price,
-            o.total_price,
-            o.delivery_date,
-            o.status,
-            p.product_name
-        FROM
-            order_info o
-        LEFT JOIN
-            product_info p ON o.productid = p.product_id
-        WHERE
-            o.userid = %s
-            AND (o.status = 'Ongoing' OR o.status = 'Pending')
-    """
+    orders = Order.objects.filter(
+        user_id=current_user,
+        status__in=['Ongoing', 'Pending'],
+        deleted_on__isnull=True
+    ).select_related('product').order_by('-id')
 
-    values = (current_user_id,)
+    for order in orders:
+        delivery_date = order.delivery_date
+        current_date = timezone.now().date()
 
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, values)
-        result_set = cursor.fetchall()
-
-        orders = []
-        for row in result_set:
-            order_id = row[0]
-            delivery_date = row[6]
-            current_date = datetime.now().date()
-
-            # Check if the delivery_date has been surpassed today's date
-            if delivery_date < current_date:
-                # Update the status to 'Pending'
-                update_query = "UPDATE order_info SET status = 'Pending' WHERE order_id = %s"
-                cursor.execute(update_query, (order_id,))
-                connection.commit()
-            elif delivery_date == current_date or delivery_date > current_date:
-                # Update the status to 'Ongoing'
-                update_query = "UPDATE order_info SET status = 'Ongoing' WHERE order_id = %s"
-                cursor.execute(update_query, (order_id,))
-                connection.commit()
-
-            order = {
-                'order_id': order_id,
-                'product_id': row[1],
-                'quantity': row[2],
-                'ordered_date': row[3],
-                'price': row[4],
-                'total_price': row[5], 
-                'delivery_date': delivery_date,
-                'status': row[7],  # Use the original status
-                'product_name': row[8] if row[8] else 'Unknown Product',
-            }
-            orders.append(order)
-
-        context = {
-            'orders': orders,
-        }
-
-    return render(request, 'orders.html', context)
-@login_required
-def getCompletedOrder(request):
-
-    current_user_id = request.user.added_by
-
-    # Check for orders with 'Ongoing' or 'Pending' status
-    sql_query = """
-        SELECT
-            o.order_id,
-            o.productid,
-            o.quantity,
-            o.ordered_date,
-            o.price,
-            o.total_price,
-            o.delivery_date,
-            o.status,
-            p.product_name
-        FROM
-            order_info o
-        LEFT JOIN
-            product_info p ON o.productid = p.product_id
-        WHERE
-            o.userid = %s
-            AND (o.status = 'Completed' )
-    """
-
-    values = (current_user_id,)
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, values)
-        result_set = cursor.fetchall()
-
-    orders = []
-    for row in result_set:
-        order_id = row[0]
-        delivery_date = row[6]
-
-        order = {
-            'order_id': order_id,
-            'product_id': row[1],
-            'quantity': row[2],
-            'ordered_date': row[3],
-            'price': row[4],
-            'total_price': row[5], 
-            'delivery_date': delivery_date,
-            'status': row[7],  # Use the original status
-            'product_name': row[8] if row[8] else 'Unknown Product',
-        }
-        orders.append(order)
+        if delivery_date < current_date:
+            order.status = 'Pending'
+            order.save()
+        elif delivery_date == current_date or delivery_date > current_date:
+            order.status = 'Ongoing'
+            order.save()
 
     context = {
         'orders': orders,
+    }
+
+    return render(request, 'orders.html', context)
+
+@login_required
+# def getCompletedOrder(request):
+
+#     current_user_id = request.user.added_by
+
+#     # Check for orders with 'Ongoing' or 'Pending' status
+#     sql_query = """
+#         SELECT
+#             o.order_id,
+#             o.product_id,
+#             o.quantity,
+#             o.ordered_date,
+#             o.price,
+#             o.total_price,
+#             o.delivery_date,
+#             o.status,
+#             p.product_name
+#         FROM
+#             order_info o
+#         LEFT JOIN
+#             product_info p ON o.product_id = p.product_id
+#         WHERE
+#             o.user_id = %s
+#             AND (o.status = 'Completed' )
+#     """
+
+#     values = (current_user_id,)
+
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query, values)
+#         result_set = cursor.fetchall()
+
+#     orders = []
+#     for row in result_set:
+#         order_id = row[0]
+#         delivery_date = row[6]
+
+#         order = {
+#             'order_id': order_id,
+#             'product_id': row[1],
+#             'quantity': row[2],
+#             'ordered_date': row[3],
+#             'price': row[4],
+#             'total_price': row[5], 
+#             'delivery_date': delivery_date,
+#             'status': row[7],  # Use the original status
+#             'product_name': row[8] if row[8] else 'Unknown Product',
+#         }
+#         orders.append(order)
+
+#     context = {
+#         'orders': orders,
+#     }
+
+#     return render(request, 'completedorder.html', context)
+
+def getCompletedOrder(request):
+    current_user_id = request.user.added_by
+
+    # Retrieve completed orders using Django ORM
+    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed',deleted_on__isnull=True).select_related('product')
+
+    context = {
+        'orders': completed_orders,
     }
 
     return render(request, 'completedorder.html', context)
 
-
 @login_required
+# def getCancelledOrder(request):
+#     current_user_id = request.user.added_by
+
+#     # Check for orders with 'Ongoing' or 'Pending' status
+#     sql_query = """
+#         SELECT
+#             o.order_id,
+#             o.product_id,
+#             o.quantity,
+#             o.ordered_date,
+#             o.price,
+#             o.total_price,
+#             o.delivery_date,
+#             o.status,
+#             p.product_name
+#         FROM
+#             order_info o
+#         LEFT JOIN
+#             product_info p ON o.product_id = p.product_id
+#         WHERE
+#             o.user_id = %s
+#             AND (o.status = 'Cancelled' )
+#     """
+
+#     values = (current_user_id,)
+
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query, values)
+#         result_set = cursor.fetchall()
+
+#     orders = []
+#     for row in result_set:
+#         order_id = row[0]
+#         delivery_date = row[6]
+
+#         order = {
+#             'order_id': order_id,
+#             'product_id': row[1],
+#             'quantity': row[2],
+#             'ordered_date': row[3],
+#             'price': row[4],
+#             'total_price': row[5], 
+#             'delivery_date': delivery_date,
+#             'status': row[7],  # Use the original status
+#             'product_name': row[8] if row[8] else 'Unknown Product',
+#         }
+#         orders.append(order)
+
+#     context = {
+#         'orders': orders,
+#     }
+
+#     return render(request, 'cancelledorder.html', context)
+
 def getCancelledOrder(request):
     current_user_id = request.user.added_by
 
-    # Check for orders with 'Ongoing' or 'Pending' status
-    sql_query = """
-        SELECT
-            o.order_id,
-            o.productid,
-            o.quantity,
-            o.ordered_date,
-            o.price,
-            o.total_price,
-            o.delivery_date,
-            o.status,
-            p.product_name
-        FROM
-            order_info o
-        LEFT JOIN
-            product_info p ON o.productid = p.product_id
-        WHERE
-            o.userid = %s
-            AND (o.status = 'Cancelled' )
-    """
-
-    values = (current_user_id,)
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, values)
-        result_set = cursor.fetchall()
-
-    orders = []
-    for row in result_set:
-        order_id = row[0]
-        delivery_date = row[6]
-
-        order = {
-            'order_id': order_id,
-            'product_id': row[1],
-            'quantity': row[2],
-            'ordered_date': row[3],
-            'price': row[4],
-            'total_price': row[5], 
-            'delivery_date': delivery_date,
-            'status': row[7],  # Use the original status
-            'product_name': row[8] if row[8] else 'Unknown Product',
-        }
-        orders.append(order)
+    # Retrieve completed orders using Django ORM
+    completed_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled',deleted_on__isnull=True).select_related('product')
 
     context = {
-        'orders': orders,
+        'orders': completed_orders,
     }
 
-    return render(request, 'cancelledorder.html', context)
+    return render(request, 'completedorder.html', context)
 
-
-@login_required
-def editOrder(request):
-    current_user_id = request.user.added_by
-
-    if request.method == 'POST':
-        old_orderid = request.POST.get('old_orderid', '')
-        edit_quantity = request.POST.get('edit_quantity', '')
-        edit_price = request.POST.get('edit_price', '')
-        edit_delivery_date = request.POST.get('edit_delivery_date', '')
-        edit_ordered_date = request.POST.get('edit_ordered_date', '')
-        edit_status = request.POST.get('edit_status', '')
-
-        # Assuming product_id is already in the order_info table
-        sql_query = "UPDATE order_info SET quantity = %s, price = %s, total_price = %s, delivery_date = %s, ordered_date =%s, status = %s WHERE order_id = %s and userid = %s"
-        
-        # Calculate the new total price
-        total_price = float(edit_quantity) * float(edit_price)
-
-        values = (edit_quantity, edit_price, total_price, edit_delivery_date, edit_ordered_date, edit_status, old_orderid, current_user_id)
-
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
-
-            return HttpResponseRedirect('/orders')
-        except IntegrityError:
-            return HttpResponse("An error occurred while editing the order details")
-
-    return render(request, 'orders.html')
 
 def order_filter(request):
     if request.method == 'POST':
@@ -911,7 +917,7 @@ def order_filter(request):
         sql_query = """
             SELECT *
             FROM order_info
-            WHERE userid = %s
+            WHERE user_id = %s
         """
 
         params = [request.user.added_by]
@@ -960,7 +966,7 @@ def order_filter(request):
 @login_required
 def get_product_list(request):
     current_user_id = request.user.added_by
-    sql_query_product = "SELECT id, product_name, product_id FROM product_info where userid = %s"
+    sql_query_product = "SELECT id, product_name, product_id FROM product_info where user_id = %s AND deleted_on IS NULL"
     values = (current_user_id)
     product_list = []
     with connection.cursor() as cursor:
@@ -968,8 +974,14 @@ def get_product_list(request):
         products = cursor.fetchall()
         for product in products:
             product_list.append({'id': product[0], 'product': product[1], 'product_id': product[2]})
-
+        
     return JsonResponse(product_list, safe=False)
+
+def check_negative_values(fields):
+    for field_name, value in fields.items():
+        if value is not None and value < 0:
+            raise ValueError(f"{field_name.capitalize()} cannot be less than 0.")
+
 
 from decimal import Decimal
 
@@ -983,71 +995,154 @@ def addOrder(request):
         delivery_date = request.POST['delivery_date']
         status = request.POST['status']
         current_user_id = request.user.added_by
+        product_name_object = Product.objects.get(product_id=order_product_name)
+        product_name = product_name_object.product_name
 
         # Convert dates to datetime objects
         ordered_date = timezone.datetime.strptime(ordered_date, '%Y-%m-%d').date()
         delivery_date = timezone.datetime.strptime(delivery_date, '%Y-%m-%d').date()
-
+        try:
+            check_negative_values({
+            'Quantity': Decimal(quantity),
+            })
+        except ValueError as ve:
+            messages.error(request, str(ve))
+            return render(request, 'orders.html')
+        
         if delivery_date <= ordered_date:
             messages.error(request, 'Delivery date must be later than the order date.')
             return render(request, 'orders.html')
 
-        # Fetch price from inventory_details based on productid
-        inventory_query = "SELECT price FROM inventory_details WHERE productid = %s AND userid = %s"
-        inventory_values = (order_product_name, current_user_id)
-
-        with connection.cursor() as cursor:
-            cursor.execute(inventory_query, inventory_values)
-            result = cursor.fetchone()
-
-        if result:
-            price = result[0]
+        # Fetch price from InventoryDetailsDate based on product_id and ordered_date
+        try:
+            inventory_entry = InventoryDetailsDate.objects.get(product__product_id=order_product_name,
+                                                               date=ordered_date,
+                                                               user=current_user_id)
+            price = inventory_entry.price
             # Calculate total_price
             total_price = Decimal(quantity) * Decimal(price)
-        else:
-            messages.error(request, 'Price not found for the specified productid.')
-            price = 0
-            total_price = 0
-                # return render(request, 'orders.html')
+        except InventoryDetailsDate.DoesNotExist:
+            # If price for the specified date is not found, get the latest price for the product
+            latest_price_entry = InventoryDetailsDate.objects.filter(product__product_id=order_product_name,
+                                                                      user=current_user_id).aggregate(Max('date'))
+            latest_price_date = latest_price_entry['date__max']
 
-        
+            try:
+                latest_inventory_entry = InventoryDetailsDate.objects.get(product__product_id=order_product_name,
+                                                                           date=latest_price_date,
+                                                                           user=current_user_id)
+                price = latest_inventory_entry.price
+                # Calculate total_price
+                total_price = Decimal(quantity) * Decimal(price)
+            except InventoryDetailsDate.DoesNotExist:
+                messages.error(request, f'Price not found for the specified {product_name}.')
+                price = 0
+                total_price = 0
 
         # Insert order information into order_info table
-        sql_query = "INSERT INTO order_info (order_id, productid, quantity, ordered_date, price, total_price, delivery_date, status, userid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        values = (order_id, order_product_name, quantity, ordered_date, price, total_price, delivery_date, status, current_user_id)
-
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
+            Order.objects.create(
+                order_id=order_id,
+                product=Product.objects.get(product_id=order_product_name),
+                quantity=quantity,
+                ordered_date=ordered_date,
+                price=price,
+                total_price=total_price,
+                delivery_date=delivery_date,
+                status=status,
+                user_id=current_user_id
+            )
+            
+
             previous_page = request.META.get('HTTP_REFERER')
             return HttpResponseRedirect(previous_page)
         except IntegrityError:
             return HttpResponse("An error occurred while adding the order")
+        
+
 
     return render(request, 'orders.html')
 
+
+@login_required
+def editOrder(request):
+    current_user_id = request.user.added_by
+
+    if request.method == 'POST':
+        old_order_id = request.POST.get('old_orderid', '')
+        edit_quantity = request.POST.get('edit_quantity', '')
+        edit_price = request.POST.get('edit_price', '')
+        edit_delivery_date = request.POST.get('edit_delivery_date', '')
+        edit_ordered_date = request.POST.get('edit_ordered_date', '')
+        edit_status = request.POST.get('edit_status', '')
+
+        try:
+            check_negative_values({
+            'Quantity': Decimal(edit_quantity),
+            'Price': Decimal(edit_price)
+            })
+        except ValueError as ve:
+            messages.error(request, str(ve))
+            return render(request, 'orders.html')
+
+        try:
+            order = Order.objects.get(order_id=old_order_id, user_id=current_user_id)
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found.')
+            return render(request, 'orders.html')
+
+        # Check if any changes have been made
+        if (
+            order.order_id == old_order_id and
+            order.quantity == edit_quantity and
+            order.price == edit_price and
+            order.delivery_date == edit_delivery_date and
+            order.ordered_date == edit_ordered_date and
+            order.status == edit_status
+        ):
+            messages.info(request, f'No changes made to order {old_order_id}.')
+            return HttpResponseRedirect('/orders')
+        
+
+        # Update the order details
+        order.quantity = edit_quantity
+        order.price = edit_price
+        order.total_price = Decimal(edit_quantity) * Decimal(edit_price)
+        order.delivery_date = edit_delivery_date
+        order.ordered_date = edit_ordered_date
+        order.status = edit_status
+
+        try:
+            order.save()
+            messages.success(request, f'Order {old_order_id} Edited.')
+            return HttpResponseRedirect('/orders')
+        except IntegrityError:
+            return HttpResponse("An error occurred while editing the order details")
+
+    return render(request, 'orders.html')
 
 @login_required
 def delete_order(request, order_id):
     current_user_id = request.user.added_by
 
     if request.method == 'POST':
-        sql_query = "DELETE from order_info WHERE order_id = %s and userid = %s"
-        values = (order_id, current_user_id)
-
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql_query, values)
-                connection.commit()
-                
+            order = Order.objects.get(order_id=order_id, user_id=current_user_id)
+            product_id = order.product.product_id
+            
+            order.deleted_on = datetime.now()
+            order.save()
+            
             # Get the referer from the request headers
             referer = request.META.get('HTTP_REFERER')
-            
-            # Redirect to the referer or a default URL if referer is not available
+
             return HttpResponseRedirect(referer or '/default-url/')
-        except IntegrityError:
-            return HttpResponse("An error occurred while deleting the orders")
+
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found.')
+        except IntegrityError as e:
+            print(f"IntegrityError: {str(e)}")
+            messages.error(request, "An error occurred while deleting the orders")
 
     return render(request, 'orders.html')
 
@@ -1058,7 +1153,7 @@ def getProductCategory(request):
 
     product_list = []
     with connection.cursor() as cursor:
-        sql_query = "SELECT id, product_name, product_id FROM product_info WHERE userid =%s"
+        sql_query = "SELECT id, product_name, product_id FROM product_info WHERE userid =%s and deleted_on IS  NULL"
         cursor.execute(sql_query, [current_user_id])
         products = cursor.fetchall()
         # print(products)
@@ -1067,75 +1162,121 @@ def getProductCategory(request):
 
     return JsonResponse(product_list, safe=False)
 
+
+from datetime import date
+
 @login_required
+# def inventorylist(request, category_name): 
+#     current_user_id = request.user
+#     category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
+    
+#     # Retrieve products for the category
+#     if category_instance:
+#         category_id = category_instance.id
+#     else:
+#         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
 
-# def addItems(request):
-#     if request.method == 'POST':
-#         product = request.POST.get('getProductCategory', '')
-#         quantity = request.POST.get('quantity', '')
-#         price = request.POST.get('price', '')
-#         current_user_id = request.user.added_by
-#         current_date = timezone.now().date()
+#     # Retrieve products using Django ORM
+#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id,deleted_on__isnull=True).values('product_id', 'product_name')
+#     product_ids = [str(product['product_id']) for product in products]
+#     # Retrieve inventory details for the products
+#     inventory_details = InventoryDetails.objects.filter(product_id__in=product_ids, user=current_user_id).values(
+#           'quantity', 'price', 'product__product_id', 'product__product_name'
+#     )
 
-#         # Check if the entry exists in inventorydetails_date
-#         existing_query_history = "SELECT product_id, quantity, price FROM inventorydetails_date WHERE product_id = %s AND date = %s AND user_id = %s"
-#         existing_values_history = (product, current_date, current_user_id)
+#     items = []
+#     for row in inventory_details:
+#         item = {
+#             'quantity': row['quantity'],
+#             'price': row['price'],
+#             'product_id': row['product__product_id'],
+#             'product_name': row['product__product_name'],
+#         }
+#         items.append(item)
+#     products_list = list(products)
 
-#         with connection.cursor() as cursor:
-#             cursor.execute(existing_query_history, existing_values_history)
-#             existing_data_history = cursor.fetchone()
+#     context = {
+#         'items': items,
+#         'product': products_list,
+#         'category_name': category_name
+#     } 
+#     return render(request, 'inventorylist.html', context)
 
-#         if existing_data_history:
-#             # If the entry exists, update the quantity and price in inventorydetails_date
-#             updated_quantity = int(existing_data_history[1]) + int(quantity)
-#             new_price = price  # You can modify this if needed
+def inventorylist(request, category_name):
+    current_user_id = request.user
 
-#             update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s WHERE product_id = %s AND date = %s AND user_id = %s"
-#             update_values = (updated_quantity, new_price, product, current_date, current_user_id)
+    # Retrieve the category instance
+    category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
 
-#             with connection.cursor() as cursor:
-#                 cursor.execute(update_query, update_values)
-#                 connection.commit()
-#                 messages.success(request, "Inventory Updated")
+    # Retrieve the products for the category
+    if category_instance:
+        category_id = category_instance.id
+    else:
+        return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
 
-#             # Now, update the price in inventory_details for today's date
-#             update_query_inventory_details = "UPDATE inventory_details SET price = %s, quantity = quantity + %s WHERE productid = %s AND userid = %s"
-#             update_values_inventory_details = (new_price, quantity, product, current_user_id)
+    # Retrieve products using Django ORM
+    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+    product_ids = [str(product['product_id']) for product in products]
 
-#             with connection.cursor() as cursor:
-#                 cursor.execute(update_query_inventory_details, update_values_inventory_details)
-#                 connection.commit()
+    inventory_details = (
+        InventoryDetailsDate.objects
+        .filter(product_id__in=product_ids, user=current_user_id)
+        .values('product_id', 'product__product_name')  # Fetch product_name using foreign key relationship
+        .annotate(total_quantity=Sum('quantity'))
+    )
 
-#             # Update the price in order_info for today's date
-#             update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
-#             update_values_order_info = (new_price, product, current_date, current_user_id)
+    items = []
+    for row in inventory_details:
+        item = {
+            'quantity': row['total_quantity'],
+            'product_id': row['product_id'],
+            'product_name': row['product__product_name'],  # Add product_name to the item
+        }
+        items.append(item)
 
-#             with connection.cursor() as cursor:
-#                 cursor.execute(update_query_order_info, update_values_order_info)
-#                 connection.commit()
+    products_list = list(products)
 
-#             # Update total_price in order_info based on updated price and quantity
-#             update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
-#             update_total_price_values = (product, current_date, current_user_id)
+    context = {
+        'items': items,
+        'product': products_list,
+        'category_name': category_name
+    } 
+    return render(request, 'inventorylist.html', context)
 
-#             with connection.cursor() as cursor:
-#                 cursor.execute(update_total_price_query, update_total_price_values)
-#                 connection.commit()
-#                 messages.success(request, "Price and Quantity Updated in inventory_details and order_info for today's date")
+@login_required
+def inventoryhistory(request, category_name): 
+    current_user_id = request.user.id
 
-#         else:
-#             # If no entry exists, insert a new row
-#             insert_query = "INSERT INTO inventorydetails_date (product_id, quantity, price, user_id, date) VALUES (%s, %s, %s, %s, %s)"
-#             insert_values = (product, quantity, price, current_user_id, current_date)
+    # Retrieve category_id using Django ORM
+    category_info = category.objects.filter(category=category_name, userid_id=current_user_id).first()
 
-#             with connection.cursor() as cursor:
-#                 cursor.execute(insert_query, insert_values)
-#                 connection.commit()
-#                 messages.success(request, "Inventory Added")
+    if category_info:
+        category_id = category_info.id
+    else:
+        return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
 
-#             # Insert into inventory_details and order_info as well if needed
+    # Retrieve products using Django ORM
+    products = Product.objects.filter(category_id=category_id, user_id=current_user_id,deleted_on__isnull=True).values('product_id', 'product_name')
+    product_ids = [str(product['product_id']) for product in products]
+    
+    inventory_details = InventoryDetailsDate.objects.filter(
+    product__product_id__in=product_ids,
+    user_id=current_user_id
+    )
+    print(inventory_details)
 
-#     return render(request, 'inventory.html')
+    # Convert Django ORM QuerySet to list of dictionaries
+    products_list = list(products)
+    inventory_list = list(inventory_details)
+
+    context = {
+        'items': inventory_list,
+        'product': products_list
+    } 
+    return render(request, 'inventoryhistory.html', context)
+
+
+@login_required
 
 def addItems(request):
     if request.method == 'POST':
@@ -1145,180 +1286,267 @@ def addItems(request):
         current_user_id = request.user.added_by
         current_date = timezone.now().date()
 
-        # Check if the entry exists in inventorydetails_date
-        existing_query_history = "SELECT product_id, quantity, price FROM inventorydetails_date WHERE product_id = %s AND date = %s AND user_id = %s"
-        existing_values_history = (product, current_date, current_user_id)
+        try:
+            check_negative_values({
+            'Quantity': Decimal(quantity),
+            'Price': Decimal(price)
+            })
+        except ValueError as ve:
+            messages.error(request, str(ve))
+            return render(request, 'inventory.html')
 
-        with connection.cursor() as cursor:
-            cursor.execute(existing_query_history, existing_values_history)
-            existing_data_history = cursor.fetchone()
+        try:
+            # Try to get existing entry in InventoryDetailsDate
+            existing_data_history = InventoryDetailsDate.objects.get(product_id=product, date=current_date, user_id=current_user_id)
+            existing_data_history.quantity_added = str(int(existing_data_history.quantity_added) + int(quantity))
+                                                
+            existing_data_history.quantity = str(int(existing_data_history.quantity) + int(quantity))
+            existing_data_history.price = price  # You can modify this if needed
+            existing_data_history.save()
+            messages.success(request, "Inventory Updated")
 
-        if existing_data_history:
-            # If the entry exists, update the quantity and price in inventorydetails_date
-            updated_quantity = int(existing_data_history[1]) + int(quantity)
-            new_price = price  # You can modify this if needed
-
-            update_query = "UPDATE inventorydetails_date SET quantity = %s, price = %s WHERE product_id = %s AND date = %s AND user_id = %s"
-            update_values = (updated_quantity, new_price, product, current_date, current_user_id)
-
-            with connection.cursor() as cursor:
-                cursor.execute(update_query, update_values)
-                connection.commit()
-                messages.success(request, "Inventory Updated")
-
-            # Now, update the price in inventory_details for today's date
-            update_query_inventory_details = "UPDATE inventory_details SET price = %s, quantity = quantity + %s WHERE productid = %s AND userid = %s"
-            update_values_inventory_details = (new_price, quantity, product, current_user_id)
-
-            with connection.cursor() as cursor:
-                cursor.execute(update_query_inventory_details, update_values_inventory_details)
-                connection.commit()
-
-            # Update the price in order_info for today's date
-            update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
-            update_values_order_info = (new_price, product, current_date, current_user_id)
-
-            with connection.cursor() as cursor:
-                cursor.execute(update_query_order_info, update_values_order_info)
-                connection.commit()
-
-            # Update total_price in order_info based on updated price and quantity
-            update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
-            update_total_price_values = (product, current_date, current_user_id)
-
-            with connection.cursor() as cursor:
-                cursor.execute(update_total_price_query, update_total_price_values)
-                connection.commit()
-                # messages.success(request, "Price and Quantity Updated in inventory_details and order_info for today's date")
-
-        else:
+        except InventoryDetailsDate.DoesNotExist:
             # If no entry exists, insert a new row into inventorydetails_date
-            insert_query = "INSERT INTO inventorydetails_date (product_id, quantity, price, user_id, date) VALUES (%s, %s, %s, %s, %s)"
-            insert_values = (product, quantity, price, current_user_id, current_date)
+            new_entry_history = InventoryDetailsDate(product_id=product, quantity=quantity, quantity_added = quantity, quantity_deducted='0', price=price, user_id=current_user_id, date=current_date)
+            new_entry_history.save()
+            messages.success(request, "Inventory Added")
 
-            with connection.cursor() as cursor:
-                cursor.execute(insert_query, insert_values)
-                connection.commit()
-                messages.success(request, "Inventory Added")
+        except IntegrityError as e:
+            # Handle the IntegrityError, log it, or display an error message
+            messages.error(request, f"IntegrityError: {str(e)}")
 
-            # Check if the product_id is present in inventory_details
-            existing_query_inventory_details = "SELECT productid FROM inventory_details WHERE productid = %s AND userid = %s"
-            existing_values_inventory_details = (product, current_user_id)
+        try:
+            # Try to get existing entry in Order
+            existing_data_order_info = Order.objects.get(product_id=product, ordered_date=current_date, user_id=current_user_id)
+            existing_data_order_info.price = price
+            existing_data_order_info.save()
 
-            with connection.cursor() as cursor:
-                cursor.execute(existing_query_inventory_details, existing_values_inventory_details)
-                existing_data_inventory_details = cursor.fetchone()
+            existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
+            existing_data_order_info.save()
+            messages.success(request, "Order Updated")
 
-            if not existing_data_inventory_details:
-                # If product_id is not present, add a new row in inventory_details
-                insert_query_inventory_details = "INSERT INTO inventory_details (productid, userid, quantity, price) VALUES (%s, %s, %s, %s)"
-                insert_values_inventory_details = (product, current_user_id, quantity, price)
-
-                try:
-                    with connection.cursor() as cursor:
-                        cursor.execute(insert_query_inventory_details, insert_values_inventory_details)
-                        connection.commit()
-                        # messages.success(request, "Added to inventory_details")
-
-                except IntegrityError:
-                    return HttpResponse("An error occurred while adding items into inventory_details")
+        except Order.DoesNotExist:
+            # If no order entry exists, you may want to handle this case differently
+            messages.warning(request, "No order for the current date")
 
     return render(request, 'inventory.html')
 
-from datetime import date
-
 @login_required
+
+# def editItems(request):
+#     if request.method == 'POST':
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         product = request.POST.get('edit_getProductCategory', '')
+#         quantity_str = request.POST.get('edit_quantity_added', '')
+#         price = request.POST.get('edit_price', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.added_by
+
+#         try:
+#             quantity_change = int(quantity_str)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             return redirect(request.path)  # Redirect to the same page
+
+#         try:
+#             # Fetch existing inventory details based on inventory_id
+#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+#             existing_quantity = int(existing_data_history.quantity_added)
+#             ordered_date = existing_data_history.date
+
+#             if operation == 'add':
+#                 new_quantity = existing_quantity + quantity_change
+#             elif operation == 'deduct':
+#                 if quantity_change > existing_quantity:
+#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                     return redirect(request.path)  # Redirect to the same page
+
+#                 new_quantity = existing_quantity - quantity_change
+#             else:
+#                 messages.error(request, "Invalid operation selected")
+#                 return redirect(request.path)  # Redirect to the same page
+
+#             # Update inventory details based on changes
+#             existing_data_history.quantity_added = new_quantity
+#             existing_data_history.price = price
+#             existing_data_history.product_id = product
+#             existing_data_history.save()
+
+#             # Update price and quantity in inventory_details
+#             existing_data_inventory_details = InventoryDetails.objects.get(product_id=product, user_id=current_user_id)
+#             existing_data_inventory_details.price = price
+#             existing_data_inventory_details.quantity = int(existing_data_inventory_details.quantity) + quantity_change if operation == 'add' else -quantity_change
+#             existing_data_inventory_details.save()
+
+#             print("date",ordered_date)
+
+#             try:
+
+#                 # Update order information based on ordered_date
+#                 existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
+#                 existing_data_order_info.price = price
+#                 existing_data_order_info.save()
+
+#                 # Update total_price in order_info based on updated price and quantity
+#                 existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
+#                 existing_data_order_info.save()
+#             except ObjectDoesNotExist:
+#                 messages.warning(request, "No order for the current date")                                                                                  
+
+
+#             messages.success(request, "Inventory Updated.")
+
+#         except InventoryDetailsDate.DoesNotExist:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect(request.path)  # Redirect to the same page
+
+#     return render(request, 'inventoryhistory.html')
+
+# def editItems(request):
+#     if request.method == 'POST':
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         product = request.POST.get('edit_getProductCategory', '')
+#         quantity_added = request.POST.get('edit_quantity_added', '')
+#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
+#         price = request.POST.get('edit_price', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.added_by
+
+#         try:
+#             quantity_change = int(quantity_added)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             return redirect(request.path)  # Redirect to the same page
+
+#         try:
+#             # Fetch existing inventory details based on inventory_id
+#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+#             existing_quantity_added = int(existing_data_history.quantity_added)
+#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
+#             ordered_date = existing_data_history.date
+
+
+
+#             if operation == 'add':
+#                 new_quantity = existing_quantity_added + quantity_change
+#             elif operation == 'deduct':
+#                 if quantity_change > existing_quantity_added:
+#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                     return redirect(request.path)  # Redirect to the same page
+
+#                 new_quantity = existing_quantity_added - quantity_change
+#             else:
+#                 messages.error(request, "Invalid operation selected")
+#                 return redirect(request.path)  # Redirect to the same page
+
+#             # Update inventory details based on changes
+#             existing_data_history.quantity_added = new_quantity
+#             existing_data_history.price = price
+#             existing_data_history.product_id = product
+#             existing_data_history.save()
+
+#             # Update price and quantity in inventory_details
+#             existing_data_inventory_details = InventoryDetails.objects.get(product_id=product, user_id=current_user_id)
+#             existing_data_inventory_details.price = price
+#             existing_data_inventory_details.quantity = int(existing_data_inventory_details.quantity) + quantity_change if operation == 'add' else -quantity_change
+#             existing_data_inventory_details.save()
+
+#             print("date",ordered_date)
+
+#             try:
+
+#                 # Update order information based on ordered_date
+#                 existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
+#                 existing_data_order_info.price = price
+#                 existing_data_order_info.save()
+
+#                 # Update total_price in order_info based on updated price and quantity
+#                 existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
+#                 existing_data_order_info.save()
+#             except ObjectDoesNotExist:
+#                 messages.warning(request, "No order for the current date")                                                                                  
+
+
+#             messages.success(request, "Inventory Updated.")
+
+#         except InventoryDetailsDate.DoesNotExist:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect(request.path)  # Redirect to the same page
+
+#     return render(request, 'inventoryhistory.html')
+
 def editItems(request):
     if request.method == 'POST':
         inventory_id = request.POST.get('edit_inventory_id', '')
         product = request.POST.get('edit_getProductCategory', '')
-        quantity_str = request.POST.get('edit_quantity', '')
+        quantity_added = request.POST.get('edit_quantity_added', '')
+        quantity_deducted = request.POST.get('edit_quantity_deducted', '')
         price = request.POST.get('edit_price', '')
         operation = request.POST.get('edit_operation', '')
         current_user_id = request.user.added_by
-
+    
         try:
-            quantity_change = int(quantity_str)
+            # Convert quantity_added and quantity_deducted to integers
+            quantity_added = int(quantity_added)
+            quantity_deducted = int(quantity_deducted)
         except ValueError:
             messages.error(request, "Invalid quantity value")
             return redirect(request.path)  # Redirect to the same page
 
-        existing_query_history = "SELECT product_id, quantity, date FROM inventorydetails_date WHERE id = %s AND user_id = %s"
-        existing_values_history = (inventory_id, current_user_id)
+        try:
+            # Fetch existing inventory details based on inventory_id
+            existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+            existing_quantity_added = int(existing_data_history.quantity_added)
+            existing_quantity_deducted = int(existing_data_history.quantity_deducted)
+            ordered_date = existing_data_history.date
 
-        with connection.cursor() as cursor:
-            cursor.execute(existing_query_history, existing_values_history)
-            existing_data_history = cursor.fetchone()
+            # Update quantity_added and quantity_deducted based on changes
+            new_quantity_added = existing_quantity_added + quantity_added
+            new_quantity_deducted = existing_quantity_deducted + quantity_deducted
 
-        if existing_data_history:
-            existing_quantity = int(existing_data_history[1])
-            ordered_date = existing_data_history[2]
-
-            if operation == 'add':
-                new_quantity = existing_quantity + quantity_change
-            elif operation == 'deduct':
-                if quantity_change > existing_quantity:
-                    messages.error(request, "Deducted quantity cannot be greater than available quantity")
-                    return redirect(request.path)  # Redirect to the same page
-
-                new_quantity = existing_quantity - quantity_change
-            else:
-                messages.error(request, "Invalid operation selected")
+            # Ensure quantity_deducted is not greater than quantity_added
+            if new_quantity_deducted > existing_quantity_added:
+                messages.error(request, "Deducted quantity cannot be greater than available quantity")
                 return redirect(request.path)  # Redirect to the same page
 
-            # If the entry exists, update the quantity and price in inventorydetails_date
-            update_query_history = "UPDATE inventorydetails_date SET quantity = %s, price = %s, product_id = %s WHERE id = %s AND user_id = %s"
-            update_values_history = (new_quantity, price, product, inventory_id, current_user_id)
+            # Update inventory details based on changes
+            existing_data_history.quantity_added = new_quantity_added
+            existing_data_history.quantity_deducted = new_quantity_deducted
+            existing_data_history.quantity = new_quantity_added - new_quantity_deducted
 
-            with connection.cursor() as cursor:
-                cursor.execute(update_query_history, update_values_history)
-                connection.commit()
-                messages.success(request, f"Inventory Updated.")    
+            # Update price only if it's provided in the form
+            if price:
+                existing_data_history.price = price
 
-                if operation == 'add':
-                    update_query_inventory_details = "UPDATE inventory_details SET price = %s, quantity = quantity + %s WHERE productid = %s AND userid = %s"
-                elif operation == 'deduct':
-                    update_query_inventory_details = "UPDATE inventory_details SET price = %s, quantity = quantity - %s WHERE productid = %s AND userid = %s"
-                else:
-                    messages.error(request, "Invalid operation selected")
-                    return redirect(request.path)  # Redirect to the same page
+            existing_data_history.product_id = product
+            existing_data_history.save()    
 
-                update_values_inventory_details = (price, quantity_change, product, current_user_id)
+            try:
+                # Update order information based on ordered_date
+                existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
+                existing_data_order_info.price = price if price else existing_data_order_info.price
+                existing_data_order_info.save()
 
-                with connection.cursor() as cursor:
-                    cursor.execute(update_query_inventory_details, update_values_inventory_details)
-                    connection.commit()
-                    # messages.success(request, "Price and Quantity Updated in inventory_details for today's date")
+                # Update total_price in order_info based on updated price and quantity
+                existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
+                existing_data_order_info.save()
+            except ObjectDoesNotExist:
+                messages.warning(request, "No order for the current date")
 
-            # Now, find the corresponding entry in order_info and update the price
-            update_query_order_info = "UPDATE order_info SET price = %s WHERE productid = %s AND ordered_date = %s AND userid = %s"
-            update_values_order_info = (price, product, ordered_date, current_user_id)
+            messages.success(request, "Inventory Updated.")
 
-            with connection.cursor() as cursor:
-                cursor.execute(update_query_order_info, update_values_order_info)
-                connection.commit()
-                # messages.success(request, f"Price Updated in order_info for ordered_date {ordered_date}")
-
-            # Update total_price in order_info based on updated price and quantity
-            update_total_price_query = "UPDATE order_info SET total_price = quantity * price WHERE productid = %s AND ordered_date = %s AND userid = %s"
-            update_total_price_values = (product, ordered_date, current_user_id)
-
-            with connection.cursor() as cursor:
-                cursor.execute(update_total_price_query, update_total_price_values)
-                connection.commit()
-                # messages.success(request, f"Total Price Updated in order_info for ordered_date {ordered_date}")
-        else:
+        except InventoryDetailsDate.DoesNotExist:
             messages.error(request, "Inventory does not exist for editing")
 
         return redirect(request.path)  # Redirect to the same page
 
     return render(request, 'inventoryhistory.html')
-
-
 @login_required
 def getItems(request):
     current_user_id = request.user.added_by
-    sql_query_inventory = "SELECT * FROM inventory_details where userid = %d"
+    sql_query_inventory = "SELECT * FROM inventory_details where user_id = %d"
     values = (current_user_id)
     with connection.cursor() as cursor:
         cursor.execute(sql_query_inventory, values)
@@ -1472,153 +1700,52 @@ def editprofile(request):
 
     return render(request, 'editprofile.html')
 
-# @login_required
-def changepassword(request):
-    if request.method == 'POST':
-        old_password = request.POST.get('edit_old_pass')
-        new_password = request.POST.get('edit_new_pass')
-        confirm_password = request.POST.get('edit_confirm_pass')
+@login_required
+# def changepassword(request):
+#     if request.method == 'POST':
+#         old_password = request.POST.get('edit_old_pass')
+#         new_password = request.POST.get('edit_new_pass')
+#         confirm_password = request.POST.get('edit_confirm_pass')
 
-        user = request.user
-        email = user.email
-        print(email)
-        # Check if the old password matches the user's current password
-        if user.check_password(old_password):
-            print("checked old password")
-            # Check if the new password and confirm password match
-            if new_password == confirm_password:
-                hashed_password = make_password(new_password)
-                with connection.cursor() as cursor:
-                    cursor.execute("UPDATE app_ofs_customuser SET password = %s WHERE email = %s", [hashed_password, email])
-                messages.success(request, 'Password changed successfully!')
+#         user = request.user
+#         email = user.email
+#         print(email)
+#         # Check if the old password matches the user's current password
+#         if user.check_password(old_password):
+#             print("checked old password")
+#             # Check if the new password and confirm password match
+#             if new_password == confirm_password:
+#                 hashed_password = make_password(new_password)
+#                 with connection.cursor() as cursor:
+#                     cursor.execute("UPDATE app_ofs_customuser SET password = %s WHERE email = %s", [hashed_password, email])
+#                 messages.success(request, 'Password changed successfully!')
 
                 
-                return render(request, 'changepassword.html')
-            else:
-                messages.error(request, 'New password and confirm password do not match.')
+#                 return render(request, 'changepassword.html')
+#             else:
+#                 messages.error(request, 'New password and confirm password do not match.')
+#         else:
+#             messages.error(request, 'Invalid old password.')
+
+    
+#     return render(request, 'changepassword.html')
+
+def changepassword(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important for maintaining the user's session
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('changepassword')  # Redirect to the same page after successful password change
         else:
-            messages.error(request, 'Invalid old password.')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{error}")
+    else:
+        form = PasswordChangeForm(request.user)
 
-    
-    return render(request, 'changepassword.html')
-
-
-@login_required
-def inventorylist(request, category_name): 
-    current_user_id = request.user.added_by
-    sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
-    values = (category_name,current_user_id)
-    
-
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, values)
-        getCategoryId = cursor.fetchone()
-
-    sql_query_product = "SELECT product_id,product_name from product_info WHERE category= %s and userid =%s"
-    values_product = (getCategoryId,current_user_id) 
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query_product, values_product)
-        product_info = cursor.fetchall()
-
-    products = []
-    for row in product_info:
-        product = {
-            'product_id': row[0],
-            'product_name': row[1],
-        }
-        products.append(product)
-
-
-    sql_query_product = "SELECT i.inventory_id, i.quantity, i.price, i.productid, p.product_name, p.product_id " \
-                        "FROM inventory_details i " \
-                        "INNER JOIN product_info p ON i.productid = p.product_id " \
-                        "WHERE p.category = %s"  # Filter by category name instead of category_id
-    value_inventory = (getCategoryId,)
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query_product, value_inventory)
-        getInventoryData = cursor.fetchall()
-
-    itemList = []
-    for row in getInventoryData:
-        items = {
-            'inventory_id' :row[0],
-            'quantity': row[1],
-            'price': row[2],
-            'product_id': row[3],
-            'product_name': row[4],  
-        }
-        itemList.append(items)
-   
-
-    context = {
-        'items': itemList,
-        'product': products,
-        'category_name': category_name
-    } 
-    return render(request, 'inventorylist.html', context)
-
-@login_required
-def inventoryhistory(request, category_name): 
-    current_user_id = request.user.added_by
-    sql_query = "SELECT category_id from category_info WHERE category= %s and userid =%s"
-    values = (category_name,current_user_id)
-
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query, values)
-        getCategoryId = cursor.fetchone()
-
-    sql_query_product = "SELECT product_id,product_name from product_info WHERE category= %s and userid =%s"
-    values_product = (getCategoryId,current_user_id) 
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query_product, values_product)
-        product_info = cursor.fetchall()
-
-    products = []
-    for row in product_info:
-        product = {
-            'product_id': row[0],
-            'product_name': row[1],
-        }
-        products.append(product)
-
-
-    sql_query_product = "SELECT i.id, i.quantity, i.price, i.product_id, p.product_name, p.product_id, i.date " \
-                        "FROM inventorydetails_date i " \
-                        "INNER JOIN product_info p ON i.product_id = p.product_id " \
-                        "WHERE p.category = %s"  # Filter by category name instead of category_id
-    value_inventory = (getCategoryId,)
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query_product, value_inventory)
-        getInventoryData = cursor.fetchall()
-
-    itemList = []
-    for row in getInventoryData:
-        items = {
-            'id': row[0],
-            'quantity': row[1],
-            'price': row[2],
-            'product_id': row[5],
-            'product_name': row[4],  
-            'date':row[6],
-        }
-        itemList.append(items)
-   
-
-    context = {
-        'items': itemList,
-        'product': products
-    } 
-    return render(request, 'inventoryhistory.html', context)
-
-
-   
-
+    return render(request, 'changepassword.html', {'form': form})
 
 def arima_sarimax_forecast(data, forecast_steps=12):
     # Convert 'Month' column to datetime format if not already
