@@ -800,7 +800,7 @@ def getCancelledOrder(request):
 
     return render(request, 'completedorder.html', context)
 
-
+@login_required
 def order_filter(request):
     if request.method == 'POST':
         basedon = request.POST.get('basedon')
@@ -811,52 +811,35 @@ def order_filter(request):
         max_quantity = request.POST.get('max-quantity')
         min_quantity = request.POST.get('min-quantity')
 
-        sql_query = """
-            SELECT *
-            FROM order_info
-            WHERE user_id = %s
-        """
-
-        params = [request.user.added_by]
+        filter_params = {
+            'user_id': request.user,
+        }
 
         if from_date:
-            sql_query += f" AND {basedon} >= %s"
-            params.append(from_date)
+            filter_params[f'{basedon}__gte'] = from_date
         if to_date:
-            sql_query += f" AND {basedon} >= %s"
-            params.append(to_date)
+            filter_params[f'{basedon}__lte'] = to_date
         if min_price:
-            sql_query += " AND price >= %s"
-            params.append(min_price)
+            filter_params['price__gte'] = min_price
         if max_price:
-            sql_query += " AND price <= %s"
-            params.append(max_price)
+            filter_params['price__lte'] = max_price
         if min_quantity:
-            sql_query += " AND quantity >= %s"
-            params.append(min_quantity)
+            filter_params['quantity__gte'] = min_quantity
         if max_quantity:
-            sql_query += " AND quantity <= %s"
-            params.append(max_quantity)
+            filter_params['quantity__lte'] = max_quantity
 
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-            filtered_orders = cursor.fetchall()
+        filtered_orders = Order.objects.filter(
+            Q(user_id=request.user),
+            **filter_params
+        )
 
-        filteredList = []
-        for order in filtered_orders:
-            context = {
-                'order_id': order[1],
-                'order_product_name': order[8],
-                'quantity': order[2],
-                'ordered_date': order[3],
-                'price': order[5],
-                'delivery_date': order[4],
-                'status': order[6],
-                'total_price':[9],
-            }
-            filteredList.append(context)
+        context = {
+           
+            'orders':filtered_orders
+        }
+            # filteredList.append(context)
 
-        return render(request, 'orders.html', {'orders': filteredList})
+        return render(request, 'orders.html', context)
 
     return HttpResponseRedirect('/orders')
 
@@ -1017,7 +1000,6 @@ def addOrder(request):
 #             return HttpResponse("An error occurred while editing the order details")
 
 #     return render(request, 'orders.html')
-
 def editOrder(request):
     current_user_id = request.user.added_by
 
