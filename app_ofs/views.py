@@ -761,145 +761,42 @@ def getOrder(request):
         elif delivery_date == current_date or delivery_date > current_date:
             order.status = 'Ongoing'
             order.save()
-
+    page = request.GET.get('page', 1)
+    paginated_orders = paginate_data(orders, page, 20)
     context = {
-        'orders': orders,
+        'orders': paginated_orders,
     }
 
     return render(request, 'orders.html', context)
 
 @login_required
-# def getCompletedOrder(request):
-
-#     current_user_id = request.user.added_by
-
-#     # Check for orders with 'Ongoing' or 'Pending' status
-#     sql_query = """
-#         SELECT
-#             o.order_id,
-#             o.product_id,
-#             o.quantity,
-#             o.ordered_date,
-#             o.price,
-#             o.total_price,
-#             o.delivery_date,
-#             o.status,
-#             p.product_name
-#         FROM
-#             order_info o
-#         LEFT JOIN
-#             product_info p ON o.product_id = p.product_id
-#         WHERE
-#             o.user_id = %s
-#             AND (o.status = 'Completed' )
-#     """
-
-#     values = (current_user_id,)
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query, values)
-#         result_set = cursor.fetchall()
-
-#     orders = []
-#     for row in result_set:
-#         order_id = row[0]
-#         delivery_date = row[6]
-
-#         order = {
-#             'order_id': order_id,
-#             'product_id': row[1],
-#             'quantity': row[2],
-#             'ordered_date': row[3],
-#             'price': row[4],
-#             'total_price': row[5], 
-#             'delivery_date': delivery_date,
-#             'status': row[7],  # Use the original status
-#             'product_name': row[8] if row[8] else 'Unknown Product',
-#         }
-#         orders.append(order)
-
-#     context = {
-#         'orders': orders,
-#     }
-
-#     return render(request, 'completedorder.html', context)
 
 def getCompletedOrder(request):
     current_user_id = request.user.added_by
 
     # Retrieve completed orders using Django ORM
-    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed',deleted_on__isnull=True).select_related('product')
-
+    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed',deleted_on__isnull=True).select_related('product').order_by('-id')
+    page = request.GET.get('page', 1)
+    paginated_orders = paginate_data(completed_orders, page, 20)
     context = {
-        'orders': completed_orders,
+        'orders': paginated_orders,
     }
 
     return render(request, 'completedorder.html', context)
 
 @login_required
-# def getCancelledOrder(request):
-#     current_user_id = request.user.added_by
-
-#     # Check for orders with 'Ongoing' or 'Pending' status
-#     sql_query = """
-#         SELECT
-#             o.order_id,
-#             o.product_id,
-#             o.quantity,
-#             o.ordered_date,
-#             o.price,
-#             o.total_price,
-#             o.delivery_date,
-#             o.status,
-#             p.product_name
-#         FROM
-#             order_info o
-#         LEFT JOIN
-#             product_info p ON o.product_id = p.product_id
-#         WHERE
-#             o.user_id = %s
-#             AND (o.status = 'Cancelled' )
-#     """
-
-#     values = (current_user_id,)
-
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_query, values)
-#         result_set = cursor.fetchall()
-
-#     orders = []
-#     for row in result_set:
-#         order_id = row[0]
-#         delivery_date = row[6]
-
-#         order = {
-#             'order_id': order_id,
-#             'product_id': row[1],
-#             'quantity': row[2],
-#             'ordered_date': row[3],
-#             'price': row[4],
-#             'total_price': row[5], 
-#             'delivery_date': delivery_date,
-#             'status': row[7],  # Use the original status
-#             'product_name': row[8] if row[8] else 'Unknown Product',
-#         }
-#         orders.append(order)
-
-#     context = {
-#         'orders': orders,
-#     }
-
-#     return render(request, 'cancelledorder.html', context)
 
 def getCancelledOrder(request):
     current_user_id = request.user.added_by
 
     # Retrieve completed orders using Django ORM
-    completed_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled',deleted_on__isnull=True).select_related('product')
-
+    cancelled_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled',deleted_on__isnull=True).select_related('product').order_by('-id')
+    page = request.GET.get('page', 1)
+    paginated_orders = paginate_data(cancelled_orders, page, 20)
     context = {
-        'orders': completed_orders,
+        'orders': paginated_orders,
     }
+    
 
     return render(request, 'completedorder.html', context)
 
@@ -1065,6 +962,62 @@ def addOrder(request):
 
 
 @login_required
+# def editOrder(request):
+#     current_user_id = request.user.added_by
+
+#     if request.method == 'POST':
+#         old_order_id = request.POST.get('old_orderid', '')
+#         edit_quantity = request.POST.get('edit_quantity', '')
+#         edit_price = request.POST.get('edit_price', '')
+#         edit_delivery_date = request.POST.get('edit_delivery_date', '')
+#         edit_ordered_date = request.POST.get('edit_ordered_date', '')
+#         edit_status = request.POST.get('edit_status', '')
+
+#         try:
+#             check_negative_values({
+#             'Quantity': Decimal(edit_quantity),
+#             'Price': Decimal(edit_price)
+#             })
+#         except ValueError as ve:
+#             messages.error(request, str(ve))
+#             return render(request, 'orders.html')
+
+#         try:
+#             order = Order.objects.get(order_id=old_order_id, user_id=current_user_id)
+#         except Order.DoesNotExist:
+#             messages.error(request, 'Order not found.')
+#             return render(request, 'orders.html')
+
+#         # Check if any changes have been made
+#         if (
+#             order.order_id == old_order_id and
+#             order.quantity == edit_quantity and
+#             order.price == edit_price and
+#             order.delivery_date == edit_delivery_date and
+#             order.ordered_date == edit_ordered_date and
+#             order.status == edit_status
+#         ):
+#             messages.info(request, f'No changes made to order {old_order_id}.')
+#             return HttpResponseRedirect('/orders')
+        
+
+#         # Update the order details
+#         order.quantity = edit_quantity
+#         order.price = edit_price
+#         order.total_price = Decimal(edit_quantity) * Decimal(edit_price)
+#         order.delivery_date = edit_delivery_date
+#         order.ordered_date = edit_ordered_date
+#         order.status = edit_status
+
+#         try:
+#             order.save()
+#             messages.success(request, f'Order {old_order_id} Edited.')
+#             return HttpResponseRedirect('/orders')
+#         except IntegrityError:
+#             return HttpResponse("An error occurred while editing the order details")
+
+#     return render(request, 'orders.html')
+
 def editOrder(request):
     current_user_id = request.user.added_by
 
@@ -1078,8 +1031,8 @@ def editOrder(request):
 
         try:
             check_negative_values({
-            'Quantity': Decimal(edit_quantity),
-            'Price': Decimal(edit_price)
+                'Quantity': Decimal(edit_quantity),
+                'Price': Decimal(edit_price)
             })
         except ValueError as ve:
             messages.error(request, str(ve))
@@ -1094,33 +1047,64 @@ def editOrder(request):
         # Check if any changes have been made
         if (
             order.order_id == old_order_id and
-            order.quantity == edit_quantity and
-            order.price == edit_price and
+            order.quantity == Decimal(edit_quantity) and
+            order.price == Decimal(edit_price) and
             order.delivery_date == edit_delivery_date and
             order.ordered_date == edit_ordered_date and
             order.status == edit_status
         ):
             messages.info(request, f'No changes made to order {old_order_id}.')
             return HttpResponseRedirect('/orders')
-        
+
+        # Check if the status is being changed to 'Completed'
+        if edit_status == 'Completed':
+            # Check the sum of quantity from InventoryDetailsDate
+            sum_quantity = InventoryDetailsDate.objects.filter(
+                product__product_id=order.product.product_id,
+                user=current_user_id
+            ).aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+            if sum_quantity < Decimal(edit_quantity):
+                messages.error(request, f"Cannot complete order {old_order_id}. Insufficient quantity in inventory.")
+                return render(request, 'orders.html')
 
         # Update the order details
-        order.quantity = edit_quantity
-        order.price = edit_price
+        order.quantity = Decimal(edit_quantity)
+        order.price = Decimal(edit_price)
         order.total_price = Decimal(edit_quantity) * Decimal(edit_price)
         order.delivery_date = edit_delivery_date
         order.ordered_date = edit_ordered_date
         order.status = edit_status
 
-        try:
-            order.save()
-            messages.success(request, f'Order {old_order_id} Edited.')
-            return HttpResponseRedirect('/orders')
-        except IntegrityError:
-            return HttpResponse("An error occurred while editing the order details")
+        # Use a transaction to ensure atomicity
+        with transaction.atomic():
+            try:
+                order.save()
+                messages.success(request, f'Order {old_order_id} Edited.')
+
+                # If the order is completed, update InventoryDetailsDate
+                if edit_status == 'Completed':
+                    # Add the quantity to quantity_deducted
+                    InventoryDetailsDate.objects.filter(
+                        product__product_id=order.product.product_id,
+                        user=current_user_id
+                    ).update(
+                        quantity_deducted=F('quantity_deducted') + Decimal(edit_quantity)
+                    )
+
+                    # Update the quantity by subtracting total quantity deducted
+                    InventoryDetailsDate.objects.filter(
+                        product__product_id=order.product.product_id,
+                        user=current_user_id
+                    ).update(
+                        quantity=F('quantity_added') - F('quantity_deducted')
+                    )
+
+                return HttpResponseRedirect('/orders')
+            except IntegrityError:
+                return HttpResponse("An error occurred while editing the order details")
 
     return render(request, 'orders.html')
-
 @login_required
 def delete_order(request, order_id):
     current_user_id = request.user.added_by
@@ -1166,48 +1150,13 @@ def getProductCategory(request):
 from datetime import date
 
 @login_required
-# def inventorylist(request, category_name): 
-#     current_user_id = request.user
-#     category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
-    
-#     # Retrieve products for the category
-#     if category_instance:
-#         category_id = category_instance.id
-#     else:
-#         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
-
-#     # Retrieve products using Django ORM
-#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id,deleted_on__isnull=True).values('product_id', 'product_name')
-#     product_ids = [str(product['product_id']) for product in products]
-#     # Retrieve inventory details for the products
-#     inventory_details = InventoryDetails.objects.filter(product_id__in=product_ids, user=current_user_id).values(
-#           'quantity', 'price', 'product__product_id', 'product__product_name'
-#     )
-
-#     items = []
-#     for row in inventory_details:
-#         item = {
-#             'quantity': row['quantity'],
-#             'price': row['price'],
-#             'product_id': row['product__product_id'],
-#             'product_name': row['product__product_name'],
-#         }
-#         items.append(item)
-#     products_list = list(products)
-
-#     context = {
-#         'items': items,
-#         'product': products_list,
-#         'category_name': category_name
-#     } 
-#     return render(request, 'inventorylist.html', context)
 
 def inventorylist(request, category_name):
     current_user_id = request.user
 
     # Retrieve the category instance
     category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
-
+    
     # Retrieve the products for the category
     if category_instance:
         category_id = category_instance.id
@@ -1224,6 +1173,7 @@ def inventorylist(request, category_name):
         .values('product_id', 'product__product_name')  # Fetch product_name using foreign key relationship
         .annotate(total_quantity=Sum('quantity'))
     )
+    
 
     items = []
     for row in inventory_details:
@@ -1234,10 +1184,13 @@ def inventorylist(request, category_name):
         }
         items.append(item)
 
+    page = request.GET.get('page', 1)
+    paginated_items = paginate_data(items, page, 20)
+
     products_list = list(products)
 
     context = {
-        'items': items,
+        'items': paginated_items,
         'product': products_list,
         'category_name': category_name
     } 
@@ -1262,15 +1215,17 @@ def inventoryhistory(request, category_name):
     inventory_details = InventoryDetailsDate.objects.filter(
     product__product_id__in=product_ids,
     user_id=current_user_id
-    )
-    print(inventory_details)
+    ).order_by('-id')
+    
 
     # Convert Django ORM QuerySet to list of dictionaries
     products_list = list(products)
     inventory_list = list(inventory_details)
+    page = request.GET.get('page', 1)
+    paginated_items = paginate_data(inventory_list, page, 20)
 
     context = {
-        'items': inventory_list,
+        'items': paginated_items,
         'product': products_list
     } 
     return render(request, 'inventoryhistory.html', context)
