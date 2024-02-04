@@ -397,10 +397,63 @@ def staff(request):
 @login_required
 
 
+# def addStaff(request):
+#     if request.method == 'POST':
+#         # Get current user ID
+#         current_user_id = request.user.id if request.user.is_authenticated else None
+
+#         fname = request.POST.get('first_name', '')
+#         lname = request.POST.get('last_name', '')
+#         email = request.POST.get('staff_email', '')
+#         password = 'ofs@12345'  # Note: You may want to generate a secure password
+#         phone = request.POST.get('staff_phone', '')
+#         role = request.POST.get('staff_role', '')
+
+#         # Validate phone number length
+#         if len(phone) != 10:
+#             messages.error(request, 'Phone number must be 10 digits.')
+#             return HttpResponseRedirect('/staff')
+
+#         # Check if the email already exists
+#         email_exists_query = "SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s"
+#         email_exists_values = (email,)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(email_exists_query, email_exists_values)
+#             email_count = cursor.fetchone()[0]
+
+#         if email_count > 0:
+#             messages.error(request, 'Email already exists. Please use a different email address.')
+#             return HttpResponseRedirect('/staff')
+
+#         # Generate a random username
+#         randNumber = random.randint(100, 999)
+#         username = f'{fname.lower()}_{randNumber}'
+
+#         # Hash the password
+#         hashed_password = make_password(password)
+
+#         # Select company_id based on current_user_id
+#         company_id_query = "SELECT company_id FROM app_ofs_customuser WHERE id = %s"
+#         with connection.cursor() as cursor:
+#             cursor.execute(company_id_query, [current_user_id])
+#             company_id = cursor.fetchone()[0]
+
+#         # Insert into app_ofs_customuser
+#         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole, added_by, company_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+#         sql_values = (fname, lname, username, email, hashed_password, phone, role, current_user_id, company_id)
+
+#         with connection.cursor() as cursor:
+#             cursor.execute(sql_query, sql_values)
+
+#         messages.success(request, 'Staff member added successfully!')
+#         return HttpResponseRedirect('/staff')
+
+#     return render(request, 'staff.html')
+
 def addStaff(request):
     if request.method == 'POST':
-        # Get current user ID
-        current_user_id = request.user.id if request.user.is_authenticated else None
+        current_user = request.user
 
         fname = request.POST.get('first_name', '')
         lname = request.POST.get('last_name', '')
@@ -414,47 +467,33 @@ def addStaff(request):
             messages.error(request, 'Phone number must be 10 digits.')
             return HttpResponseRedirect('/staff')
 
-        # Check if the email already exists
-        email_exists_query = "SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s"
-        email_exists_values = (email,)
+        try:
+            # Create a new CustomUser (staff member)
+            user = CustomUser.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=fname,
+                last_name=lname,
+                phone_number=phone,
+                userrole=role,
+                added_by=current_user
+            )
 
-        with connection.cursor() as cursor:
-            cursor.execute(email_exists_query, email_exists_values)
-            email_count = cursor.fetchone()[0]
+            messages.success(request, 'Staff member added successfully!')
+            return HttpResponseRedirect('/staff')
 
-        if email_count > 0:
+        except IntegrityError:
             messages.error(request, 'Email already exists. Please use a different email address.')
             return HttpResponseRedirect('/staff')
 
-        # Generate a random username
-        randNumber = random.randint(100, 999)
-        username = f'{fname.lower()}_{randNumber}'
-
-        # Hash the password
-        hashed_password = make_password(password)
-
-        # Select company_id based on current_user_id
-        company_id_query = "SELECT company_id FROM app_ofs_customuser WHERE id = %s"
-        with connection.cursor() as cursor:
-            cursor.execute(company_id_query, [current_user_id])
-            company_id = cursor.fetchone()[0]
-
-        # Insert into app_ofs_customuser
-        sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole, added_by, company_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        sql_values = (fname, lname, username, email, hashed_password, phone, role, current_user_id, company_id)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, sql_values)
-
-        messages.success(request, 'Staff member added successfully!')
-        return HttpResponseRedirect('/staff')
-
     return render(request, 'staff.html')
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db import IntegrityError
-from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order
+from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser
 from .forms import CategoryForm
 from django.contrib.auth.decorators import login_required
 
@@ -922,7 +961,7 @@ def addOrder(request):
 
         # Insert order information into order_info table
         try:
-            Order.objects.create(
+            order=Order.objects.create(
                 order_id=order_id,
                 product=Product.objects.get(product_id=order_product_name),
                 quantity=quantity,
@@ -933,7 +972,12 @@ def addOrder(request):
                 status=status,
                 user_id=current_user_id
             )
-            
+            if status.lower() == 'completed':
+                # If status is "completed", insert today's date into completed_date column
+                order.completed_date = timezone.now().date()
+                order.save()
+
+            messages.success(request, 'New Order Added')
 
             previous_page = request.META.get('HTTP_REFERER')
             return HttpResponseRedirect(previous_page)
@@ -948,6 +992,7 @@ def addOrder(request):
 @login_required
 
 def editOrder(request):
+    request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
     current_user_id = request.user.added_by
 
     if request.method == 'POST':
@@ -965,13 +1010,13 @@ def editOrder(request):
             })
         except ValueError as ve:
             messages.error(request, str(ve))
-            return render(request, 'orders.html')
+            return redirect(request.session['referring_page'])
 
         try:
             order = Order.objects.get(order_id=old_order_id, user_id=current_user_id)
         except Order.DoesNotExist:
             messages.error(request, 'Order not found.')
-            return render(request, 'orders.html')
+            return redirect(request.session['referring_page'])
 
         # Check if any changes have been made
         if (
@@ -983,7 +1028,7 @@ def editOrder(request):
             order.status == edit_status
         ):
             messages.info(request, f'No changes made to order {old_order_id}.')
-            return HttpResponseRedirect('/orders')
+            return redirect(request.session['referring_page'])
 
         # Check if the status is being changed to 'Completed'
         if edit_status == 'Completed':
@@ -995,7 +1040,7 @@ def editOrder(request):
 
             if sum_quantity < Decimal(edit_quantity):
                 messages.error(request, f"Cannot complete order {old_order_id}. Insufficient quantity in inventory.")
-                return render(request, 'orders.html')
+                return redirect(request.session['referring_page'])
 
         # Update the order details
         order.quantity = Decimal(edit_quantity)
@@ -1041,6 +1086,8 @@ def editOrder(request):
                 return HttpResponse("An error occurred while editing the order details")
 
     return render(request, 'orders.html')
+
+
 @login_required
 def delete_order(request, order_id):
     current_user_id = request.user.added_by
@@ -1741,34 +1788,7 @@ def editprofile(request):
     return render(request, 'editprofile.html')
 
 @login_required
-# def changepassword(request):
-#     if request.method == 'POST':
-#         old_password = request.POST.get('edit_old_pass')
-#         new_password = request.POST.get('edit_new_pass')
-#         confirm_password = request.POST.get('edit_confirm_pass')
 
-#         user = request.user
-#         email = user.email
-#         print(email)
-#         # Check if the old password matches the user's current password
-#         if user.check_password(old_password):
-#             print("checked old password")
-#             # Check if the new password and confirm password match
-#             if new_password == confirm_password:
-#                 hashed_password = make_password(new_password)
-#                 with connection.cursor() as cursor:
-#                     cursor.execute("UPDATE app_ofs_customuser SET password = %s WHERE email = %s", [hashed_password, email])
-#                 messages.success(request, 'Password changed successfully!')
-
-                
-#                 return render(request, 'changepassword.html')
-#             else:
-#                 messages.error(request, 'New password and confirm password do not match.')
-#         else:
-#             messages.error(request, 'Invalid old password.')
-
-    
-#     return render(request, 'changepassword.html')
 
 def changepassword(request):
     if request.method == 'POST':

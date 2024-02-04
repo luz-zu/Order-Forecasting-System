@@ -96,6 +96,7 @@ class Order(models.Model):
     quantity = models.CharField(max_length=50, null=True)
     ordered_date = models.DateField(null=True)
     delivery_date = models.DateField(null=True)
+    completed_date = models.DateField(null=True)
     price = models.CharField(max_length=50, null=True)
     status = models.CharField(max_length=50, null=True)
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, db_column='product_id', related_name='order_info', to_field='product_id')
