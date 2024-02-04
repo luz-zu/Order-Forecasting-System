@@ -88,7 +88,6 @@ window.onload = function () {
         var currInventoryId = $(this).data('inventory-id');
         var currProduct = $(this).data('product');
         var currQuantity = $(this).data('inventory-quantity');
-        // var currPrice = $(this).data('inventory-price');
         var currPrice = $(this).data('inventory-price');
         
         // Set values to the form fields

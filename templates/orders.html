@@ -109,8 +109,8 @@
                         type="button"
                         class="text-danger delete-button"
                         data-bs-toggle="modal"
-                        data-bs-target="#delete_order"
-                        data-bs-whatever="delete_order"
+                        data-bs-target="#delete_Order"
+                        data-bs-whatever="delete_Order"
                         data-order-id="{{ order.order_id }}"
                         data-product-name="{{ order.product_name }}"
                         data-order-quantity="{{ order.quantity }}"
@@ -163,33 +163,26 @@ function deleteOrder() {
   console.log("Order ID to delete:", orderId);
 
   fetch(`/delete_order/${orderId}/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-    },
-    body: 'order_id=' + encodeURIComponent(orderId),
-  })
-  .then(response => {
-    if (!response.ok) {
-      // Log error details
-      console.error('Error response text:', response.statusText);
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    // Parse response as JSON
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+  },
+  body: 'order_id=' + encodeURIComponent(orderId),
+})
+
+
+.then(response => {
+  if (response.ok) {
+    document.getElementById('delete_Order').classList.remove('show');
+    document.body.classList.remove('modal-open');
     return response.json();
-  })
-  .then(data => {
-    // Log the JSON data
-    console.log(data);
-    // Reload the page or update the UI as needed
-    location.reload();
-  })
-  .catch(error => {
-    // Log and handle errors
-    console.error('Error:', error);
-    // Optionally, display an error message to the user
-  });
+  } else {
+
+    console.error('Failed to delete product. Status:', response.status, 'Text:', response.statusText);
+    throw new Error('Failed to delete product');
+  }
+})
 }
 
 

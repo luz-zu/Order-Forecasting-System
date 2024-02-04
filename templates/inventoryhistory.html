@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %} Inventory {% endblock %}
-{% block content %}
+{% block content %} {% load static %}
 <nav>
     {% include "components/navbar.html" %}
 </nav>
@@ -57,7 +57,7 @@
                                         data-bs-toggle="modal" data-bs-target="#edit_inventory"  
                                         data-bs-whatever="edit_inventory"
                                         data-inventory-id="{{ item.id }}"
-                                        data-product="{{ item.product_name }}"
+                                        data-product="{{ item.product.product_name }}"
                                         data-inventory-quantity="{{ item.quantity_added }}"
                                         data-inventory-price="{{ item.price }}"
                                       >
@@ -84,52 +84,7 @@
         {%include "components/pagination.html"  with data=items %}
     </div>
     {% include "components/additems.html" %}
-    <!-- <div class="modal fade" id="add_items" tabindex="-1" aria-labelledby="add_items" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-              <div class="modal-header">
-                  <h5 class="modal-title" id="exampleModalLabel">Inventory</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                  <form method="post" action="{% url 'addItems' %}">
-                      {% csrf_token %}
-                      <input type="hidden" id="category_url" value="{% url 'product_category' %}">
-                      <div class="mb-3">
-                      <input type="hidden" id="product_url" value="">
-                      
-                      <div class="mb-3">
-                        <label for="getProductCategory" class="col-form-label">Product:</label>
-                        <div>
-                          <select name="getProductCategory" id="product_dropdown" class="form-control">
-                              {% for item in product %}
-  
-                            <option value="{{item.product_id}}">{{item.product_name}}</option>
-  
-                            {% endfor %}
-                          </select>
-                        </div>
-                      </div>
-  
-                      <div class="mb-3">
-                        <label for="quantity" class="col-form-label">Quantity:</label>
-                        <input type="number" class="form-control" name="quantity" id="quantity" required>
-                      </div>
-                      
-                      <div class="mb-3">
-                        <label for="price" class="col-form-label">Price (per Unit):</label>
-                        <input type="number" class="form-control" name="price" id="price" required>
-                      </div>
-  
-                      <div class="modal-footer">
-                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="btn btn-primary">Submit</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-      </div>
-  </div>     -->
+    
 </div>
 <div class="modal fade" id="edit_inventory" tabindex="-1" aria-labelledby="edit_inventory" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -145,44 +100,35 @@
                 {% csrf_token %}
                 <input type="hidden" id="edit_inventory_id" name="edit_inventory_id" value="">
                 <div class="mb-3">
-                  <label for="edit_getProductCategory" class="col-form-label">Product:</label>
-                  <div>
-                      <select name="edit_getProductCategory" id="edit_getProductCategory" class="form-control">
-                          {% for item in product %}
-                              <option value="{{item.product_id}}">{{item.product_name}}</option>
-                          {% endfor %}
-                      </select>
-                  </div>
-                  <input type="hidden" id="product_dropdown" name="product_dropdown" value="">
+                  <!-- <label for="product_dropdown" class="col-form-label">Product:</label> -->
+                  <!-- <div>
+                    <select name="product_dropdown" id="product_dropdown" class="form-control">
+                        {% for item in product %}
+                            <option value="{{item.product_id}}">{{item.product_name}}</option>
+                        {% endfor %}
+                    </select>
+                  </div> -->
+                  <!-- <input type="" id="product_dropdown" name="product_dropdown" value=""> -->
               </div>
               
-                <!-- <div class="mb-3">
-                    <label for="edit_quantity" class="col-form-label">Quantity:</label>
-                    <input type="number" class="form-control" name="edit_quantity" id="edit_quantity" required>
-                </div> -->
+              
 
                 <div class="mb-3">
                     <label for="edit_quantity_added" class="col-form-label">Added Quantity:</label>
-                    <input type="number" class="form-control" name="edit_quantity_added" id="edit_quantity_added" required value="0">
+                    <input type="number" class="form-control" name="edit_quantity_added" id="edit_quantity_added" >
                 </div>
 
                 <div class="mb-3">
                     <label for="edit_quantity_deducted" class="col-form-label">Deducted Quantity:</label>
-                    <input type="number" class="form-control" name="edit_quantity_deducted" id="edit_quantity_deducted" required value="0">
+                    <input type="number" class="form-control" name="edit_quantity_deducted" id="edit_quantity_deducted" >
                 </div>
                 <div class="mb-3">
                     <label for="edit_price_inventory" class="col-form-label">Price (per Unit):</label>
                     <!-- <input type="number" class="form-control" name="edit_price_inventory" id="edit_price_inventory" > -->
-                    <input type="number" class="form-control" name="edit_price_inventory" id="edit_price_inventory" >
+                    <input type="number" class="form-control" name="edit_price_inventory" id="edit_price_inventory">
 
                 </div>
-                <!-- <div class="mb-3">
-                    <label for="edit_operation" class="col-form-label">Operation:</label>
-                    <select name="edit_operation" id="edit_operation" class="form-control">
-                        <option value="add">Add Quantity</option>
-                        <option value="deduct">Deduct Quantity</option>
-                    </select>
-                </div> -->
+               
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Submit</button>
@@ -193,7 +139,6 @@
       </div>
   </div>
 </div>
-
-
+<script src="{% static 'script.js' %}"></script>
 {% load static %}
 {% endblock %}

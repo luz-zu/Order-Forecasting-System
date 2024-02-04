@@ -21,7 +21,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.template.loader import render_to_string
 from django.core.exceptions import ObjectDoesNotExist
 
-from django.db.models import Sum
+from django.db.models import Sum ,F, Count,Max,Q,ExpressionWrapper, IntegerField,Subquery, OuterRef
+
 
 # views.py
 from django.shortcuts import render
@@ -652,7 +653,7 @@ def addProduct(request):
         return HttpResponseRedirect('/products')
 
 
-from django.db.models import F, Count,Max,Q
+# from django.db.models import F, Count,Max,Q,ExpressionWrapper, IntegerField
 
 @login_required
 def editProduct(request):
@@ -945,61 +946,7 @@ def addOrder(request):
 
 
 @login_required
-# def editOrder(request):
-#     current_user_id = request.user.added_by
 
-#     if request.method == 'POST':
-#         old_order_id = request.POST.get('old_orderid', '')
-#         edit_quantity = request.POST.get('edit_quantity', '')
-#         edit_price = request.POST.get('edit_price', '')
-#         edit_delivery_date = request.POST.get('edit_delivery_date', '')
-#         edit_ordered_date = request.POST.get('edit_ordered_date', '')
-#         edit_status = request.POST.get('edit_status', '')
-
-#         try:
-#             check_negative_values({
-#             'Quantity': Decimal(edit_quantity),
-#             'Price': Decimal(edit_price)
-#             })
-#         except ValueError as ve:
-#             messages.error(request, str(ve))
-#             return render(request, 'orders.html')
-
-#         try:
-#             order = Order.objects.get(order_id=old_order_id, user_id=current_user_id)
-#         except Order.DoesNotExist:
-#             messages.error(request, 'Order not found.')
-#             return render(request, 'orders.html')
-
-#         # Check if any changes have been made
-#         if (
-#             order.order_id == old_order_id and
-#             order.quantity == edit_quantity and
-#             order.price == edit_price and
-#             order.delivery_date == edit_delivery_date and
-#             order.ordered_date == edit_ordered_date and
-#             order.status == edit_status
-#         ):
-#             messages.info(request, f'No changes made to order {old_order_id}.')
-#             return HttpResponseRedirect('/orders')
-        
-
-#         # Update the order details
-#         order.quantity = edit_quantity
-#         order.price = edit_price
-#         order.total_price = Decimal(edit_quantity) * Decimal(edit_price)
-#         order.delivery_date = edit_delivery_date
-#         order.ordered_date = edit_ordered_date
-#         order.status = edit_status
-
-#         try:
-#             order.save()
-#             messages.success(request, f'Order {old_order_id} Edited.')
-#             return HttpResponseRedirect('/orders')
-#         except IntegrityError:
-#             return HttpResponse("An error occurred while editing the order details")
-
-#     return render(request, 'orders.html')
 def editOrder(request):
     current_user_id = request.user.added_by
 
@@ -1066,10 +1013,17 @@ def editOrder(request):
 
                 # If the order is completed, update InventoryDetailsDate
                 if edit_status == 'Completed':
-                    # Add the quantity to quantity_deducted
-                    InventoryDetailsDate.objects.filter(
+                    # Find the latest date for the product in InventoryDetailsDate
+                    latest_date = InventoryDetailsDate.objects.filter(
                         product__product_id=order.product.product_id,
                         user=current_user_id
+                    ).aggregate(Max('date'))['date__max']
+
+                    # Deduct the quantity from the latest date
+                    InventoryDetailsDate.objects.filter(
+                        product__product_id=order.product.product_id,
+                        user=current_user_id,
+                        date=latest_date
                     ).update(
                         quantity_deducted=F('quantity_deducted') + Decimal(edit_quantity)
                     )
@@ -1079,7 +1033,7 @@ def editOrder(request):
                         product__product_id=order.product.product_id,
                         user=current_user_id
                     ).update(
-                        quantity=F('quantity_added') - F('quantity_deducted')
+                        quantity=F('quantity') - F('quantity_deducted')
                     )
 
                 return HttpResponseRedirect('/orders')
@@ -1138,7 +1092,7 @@ def inventorylist(request, category_name):
 
     # Retrieve the category instance
     category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
-    
+
     # Retrieve the products for the category
     if category_instance:
         category_id = category_instance.id
@@ -1149,20 +1103,29 @@ def inventorylist(request, category_name):
     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
     product_ids = [str(product['product_id']) for product in products]
 
+    # Subquery to get the latest date for each product
+    latest_dates_subquery = (
+        InventoryDetailsDate.objects
+        .filter(product_id=OuterRef('product_id'), user=current_user_id)
+        .order_by('-date')
+        .values('date')[:1]
+    )
+
+    # Retrieve the latest quantity for each product on the latest date
     inventory_details = (
         InventoryDetailsDate.objects
         .filter(product_id__in=product_ids, user=current_user_id)
-        .values('product_id', 'product__product_name')  # Fetch product_name using foreign key relationship
-        .annotate(total_quantity=Sum('quantity'))
+        .annotate(latest_date=Subquery(latest_dates_subquery))
+        .filter(date=F('latest_date'))
+        .values('product_id', 'product__product_name', 'quantity')
     )
-    
 
     items = []
     for row in inventory_details:
         item = {
-            'quantity': row['total_quantity'],
+            'quantity': row['quantity'],
             'product_id': row['product_id'],
-            'product_name': row['product__product_name'],  # Add product_name to the item
+            'product_name': row['product__product_name'],
         }
         items.append(item)
 
@@ -1179,7 +1142,8 @@ def inventorylist(request, category_name):
     return render(request, 'inventorylist.html', context)
 
 @login_required
-def inventoryhistory(request, category_name): 
+
+def inventoryhistory(request, category_name):
     current_user_id = request.user.id
 
     # Retrieve category_id using Django ORM
@@ -1191,14 +1155,55 @@ def inventoryhistory(request, category_name):
         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
 
     # Retrieve products using Django ORM
-    products = Product.objects.filter(category_id=category_id, user_id=current_user_id,deleted_on__isnull=True).values('product_id', 'product_name')
+    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
     product_ids = [str(product['product_id']) for product in products]
-    
+
+    # Check if there are details for today's date for each product, otherwise add the required data
+    for product_id in product_ids:
+        today_details = InventoryDetailsDate.objects.filter(
+            product__product_id=product_id,
+            user_id=current_user_id,
+            date=date.today()
+        ).first()
+
+        if not today_details:
+            # If details for today's date do not exist, get the latest available details
+            latest_details = InventoryDetailsDate.objects.filter(
+                product__product_id=product_id,
+                user_id=current_user_id
+            ).order_by('-date').first()
+
+            if latest_details:
+                # If there are details available, create data for today using the latest available details
+                InventoryDetailsDate.objects.create(
+                    user_id=current_user_id,
+                    product_id=product_id,
+                    quantity=latest_details.quantity,
+                    quantity_added=0,
+                    quantity_deducted=0,
+                    price=latest_details.price,
+                    date=date.today()
+                )
+            else:
+                # If no details are available, create data with default values
+                InventoryDetailsDate.objects.create(
+                    user_id=current_user_id,
+                    product_id=product_id,
+                    quantity=0,
+                    quantity_added=0,
+                    quantity_deducted=0,
+                    price=0,
+                    date=date.today()
+                )
+
+    # Retrieve products and inventory details after adding the required data
+    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+    product_ids = [str(product['product_id']) for product in products]
+
     inventory_details = InventoryDetailsDate.objects.filter(
-    product__product_id__in=product_ids,
-    user_id=current_user_id
+        product__product_id__in=product_ids,
+        user_id=current_user_id
     ).order_by('-id')
-    
 
     # Convert Django ORM QuerySet to list of dictionaries
     products_list = list(products)
@@ -1209,13 +1214,12 @@ def inventoryhistory(request, category_name):
     context = {
         'items': paginated_items,
         'product': products_list
-    } 
+    }
     return render(request, 'inventoryhistory.html', context)
-
-
 @login_required
 
 def addItems(request):
+    request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
     if request.method == 'POST':
         product = request.POST.get('getProductCategory', '')
         quantity = request.POST.get('quantity', '')
@@ -1230,7 +1234,8 @@ def addItems(request):
             })
         except ValueError as ve:
             messages.error(request, str(ve))
-            return render(request, 'inventory.html')
+            return redirect(request.session['referring_page'])
+
 
         try:
             # Try to get existing entry in InventoryDetailsDate
@@ -1251,235 +1256,333 @@ def addItems(request):
         except IntegrityError as e:
             # Handle the IntegrityError, log it, or display an error message
             messages.error(request, f"IntegrityError: {str(e)}")
+            return redirect(request.session['referring_page'])
 
         try:
             # Try to get existing entry in Order
-            existing_data_order_info = Order.objects.get(product_id=product, ordered_date=current_date, user_id=current_user_id)
-            existing_data_order_info.price = price
-            existing_data_order_info.save()
+            existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=current_date, user_id=current_user_id)
+            if existing_data_order_info.exists():
+                for order_info in existing_data_order_info:
+                    order_info.price = price if price else order_info.price
+                    order_info.save()
 
-            existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
-            existing_data_order_info.save()
-            messages.success(request, "Order Updated")
+                    order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
+                    order_info.save()
 
-        except Order.DoesNotExist:
-            # If no order entry exists, you may want to handle this case differently
-            messages.warning(request, "No order for the current date")
+                messages.success(request, "Orders Updated")
+            else:
+                messages.warning(request, "No orders for the current date and conditions")
 
-    return render(request, 'inventory.html')
+        except IntegrityError as e:
+            messages.error(request, f"IntegrityError: {str(e)}")
+            return redirect(request.session['referring_page'])
+            
+
+    return redirect(request.session['referring_page'])
 
 @login_required
 
-# def editItems(request):
-#     if request.method == 'POST':
-#         inventory_id = request.POST.get('edit_inventory_id', '')
-#         product = request.POST.get('edit_getProductCategory', '')
-#         quantity_str = request.POST.get('edit_quantity_added', '')
-#         price = request.POST.get('edit_price', '')
-#         operation = request.POST.get('edit_operation', '')
-#         current_user_id = request.user.added_by
-
-#         try:
-#             quantity_change = int(quantity_str)
-#         except ValueError:
-#             messages.error(request, "Invalid quantity value")
-#             return redirect(request.path)  # Redirect to the same page
-
-#         try:
-#             # Fetch existing inventory details based on inventory_id
-#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
-#             existing_quantity = int(existing_data_history.quantity_added)
-#             ordered_date = existing_data_history.date
-
-#             if operation == 'add':
-#                 new_quantity = existing_quantity + quantity_change
-#             elif operation == 'deduct':
-#                 if quantity_change > existing_quantity:
-#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
-#                     return redirect(request.path)  # Redirect to the same page
-
-#                 new_quantity = existing_quantity - quantity_change
-#             else:
-#                 messages.error(request, "Invalid operation selected")
-#                 return redirect(request.path)  # Redirect to the same page
-
-#             # Update inventory details based on changes
-#             existing_data_history.quantity_added = new_quantity
-#             existing_data_history.price = price
-#             existing_data_history.product_id = product
-#             existing_data_history.save()
-
-#             # Update price and quantity in inventory_details
-#             existing_data_inventory_details = InventoryDetails.objects.get(product_id=product, user_id=current_user_id)
-#             existing_data_inventory_details.price = price
-#             existing_data_inventory_details.quantity = int(existing_data_inventory_details.quantity) + quantity_change if operation == 'add' else -quantity_change
-#             existing_data_inventory_details.save()
-
-#             print("date",ordered_date)
-
-#             try:
-
-#                 # Update order information based on ordered_date
-#                 existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
-#                 existing_data_order_info.price = price
-#                 existing_data_order_info.save()
-
-#                 # Update total_price in order_info based on updated price and quantity
-#                 existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
-#                 existing_data_order_info.save()
-#             except ObjectDoesNotExist:
-#                 messages.warning(request, "No order for the current date")                                                                                  
-
-
-#             messages.success(request, "Inventory Updated.")
-
-#         except InventoryDetailsDate.DoesNotExist:
-#             messages.error(request, "Inventory does not exist for editing")
-
-#         return redirect(request.path)  # Redirect to the same page
-
-#     return render(request, 'inventoryhistory.html')
-
-# def editItems(request):
-#     if request.method == 'POST':
-#         inventory_id = request.POST.get('edit_inventory_id', '')
-#         product = request.POST.get('edit_getProductCategory', '')
-#         quantity_added = request.POST.get('edit_quantity_added', '')
-#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
-#         price = request.POST.get('edit_price', '')
-#         operation = request.POST.get('edit_operation', '')
-#         current_user_id = request.user.added_by
-
-#         try:
-#             quantity_change = int(quantity_added)
-#         except ValueError:
-#             messages.error(request, "Invalid quantity value")
-#             return redirect(request.path)  # Redirect to the same page
-
-#         try:
-#             # Fetch existing inventory details based on inventory_id
-#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
-#             existing_quantity_added = int(existing_data_history.quantity_added)
-#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
-#             ordered_date = existing_data_history.date
-
-
-
-#             if operation == 'add':
-#                 new_quantity = existing_quantity_added + quantity_change
-#             elif operation == 'deduct':
-#                 if quantity_change > existing_quantity_added:
-#                     messages.error(request, "Deducted quantity cannot be greater than available quantity")
-#                     return redirect(request.path)  # Redirect to the same page
-
-#                 new_quantity = existing_quantity_added - quantity_change
-#             else:
-#                 messages.error(request, "Invalid operation selected")
-#                 return redirect(request.path)  # Redirect to the same page
-
-#             # Update inventory details based on changes
-#             existing_data_history.quantity_added = new_quantity
-#             existing_data_history.price = price
-#             existing_data_history.product_id = product
-#             existing_data_history.save()
-
-#             # Update price and quantity in inventory_details
-#             existing_data_inventory_details = InventoryDetails.objects.get(product_id=product, user_id=current_user_id)
-#             existing_data_inventory_details.price = price
-#             existing_data_inventory_details.quantity = int(existing_data_inventory_details.quantity) + quantity_change if operation == 'add' else -quantity_change
-#             existing_data_inventory_details.save()
-
-#             print("date",ordered_date)
-
-#             try:
-
-#                 # Update order information based on ordered_date
-#                 existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
-#                 existing_data_order_info.price = price
-#                 existing_data_order_info.save()
-
-#                 # Update total_price in order_info based on updated price and quantity
-#                 existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
-#                 existing_data_order_info.save()
-#             except ObjectDoesNotExist:
-#                 messages.warning(request, "No order for the current date")                                                                                  
-
-
-#             messages.success(request, "Inventory Updated.")
-
-#         except InventoryDetailsDate.DoesNotExist:
-#             messages.error(request, "Inventory does not exist for editing")
-
-#         return redirect(request.path)  # Redirect to the same page
-
-#     return render(request, 'inventoryhistory.html')
-
 def editItems(request):
     if request.method == 'POST':
+        request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
         inventory_id = request.POST.get('edit_inventory_id', '')
-        product = request.POST.get('edit_getProductCategory', '')
         quantity_added = request.POST.get('edit_quantity_added', '')
         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
-        price = request.POST.get('edit_price', '')
+        price = request.POST.get('edit_price_inventory', '')
         operation = request.POST.get('edit_operation', '')
         current_user_id = request.user.added_by
+        print("test", price)
     
         try:
             # Convert quantity_added and quantity_deducted to integers
-            quantity_added = int(quantity_added)
-            quantity_deducted = int(quantity_deducted)
+            if quantity_added != "":
+                quantity_added = int(quantity_added)
+            if quantity_deducted != "":
+                quantity_deducted = int(quantity_deducted)
         except ValueError:
             messages.error(request, "Invalid quantity value")
-            return redirect(request.path)  # Redirect to the same page
+            return redirect(request.session['referring_page'])
+        
+        try:
+            check_negative_values({
+                'Quantity Added': Decimal(quantity_added) if quantity_added != "" else 0,
+                'Quantity Deducted': Decimal(quantity_deducted) if quantity_deducted != "" else 0
+            })
+        except ValueError as ve:
+            messages.error(request, str(ve))
+            return redirect(request.session['referring_page'])
 
         try:
-            # Fetch existing inventory details based on inventory_id
             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
             existing_quantity_added = int(existing_data_history.quantity_added)
             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
-            ordered_date = existing_data_history.date
+            existing_data_quantity = int(existing_data_history.quantity)
+            date = existing_data_history.date
 
-            # Update quantity_added and quantity_deducted based on changes
-            new_quantity_added = existing_quantity_added + quantity_added
-            new_quantity_deducted = existing_quantity_deducted + quantity_deducted
+            if quantity_added != "":
+                new_quantity_added = existing_quantity_added + quantity_added
+            else:
+                new_quantity_added = existing_quantity_added
+                quantity_added = 0
 
-            # Ensure quantity_deducted is not greater than quantity_added
-            if new_quantity_deducted > existing_quantity_added:
+            # if quantity_deducted != "":
+            #     new_quantity_deducted = existing_quantity_deducted + quantity_deducted
+            # else:
+            #     new_quantity_deducted = existing_quantity_deducted
+            #     quantity_deducted = 0
+                
+            if quantity_deducted != "":
+                new_quantity_deducted = quantity_deducted
+            else:
+                new_quantity_deducted = 0
+                quantity_deducted = 0
+
+            if new_quantity_deducted > existing_data_quantity:
                 messages.error(request, "Deducted quantity cannot be greater than available quantity")
-                return redirect(request.path)  # Redirect to the same page
+                return redirect(request.session['referring_page'])
 
-            # Update inventory details based on changes
-            existing_data_history.quantity_added = new_quantity_added
-            existing_data_history.quantity_deducted = new_quantity_deducted
-            existing_data_history.quantity = new_quantity_added - new_quantity_deducted
+            # Check if there are no changes in quantity added, quantity deducted, and price
+            # if new_quantity_added == existing_quantity_added and new_quantity_deducted == existing_quantity_deducted and price == existing_data_history.price:
+            #     messages.info(request, "No changes in quantity added, quantity deducted, and price.")
+            #     return redirect(request.session['referring_page'])
+            else:
+                # Update inventory details based on changes
+                with transaction.atomic():
+                    existing_data_history.quantity_added = new_quantity_added
+                    existing_data_history.quantity_deducted = existing_quantity_deducted+new_quantity_deducted
+                    existing_data_history.quantity = int(existing_data_history.quantity)+int(quantity_added) - int(quantity_deducted)
+                    existing_data_history.price = price if price != "" else existing_data_history.price
+                    existing_data_history.save()
 
-            # Update price only if it's provided in the form
-            if price:
-                existing_data_history.price = price
+                    # Deduct or add quantity for later dates
+                    later_dates = InventoryDetailsDate.objects.filter(
+                        product__product_id=existing_data_history.product_id,
+                        user_id=current_user_id,
+                        date__gt=date
+                    )
 
-            existing_data_history.product_id = product
-            existing_data_history.save()    
+                   
+                    
 
+                    for later_date in later_dates:
+                        print(later_date.date)
+                        if quantity_added:
+                            quantity_added_value = int(quantity_added)
+                        else:
+                            quantity_added_value = 0
+
+                        if quantity_deducted:
+                            quantity_deducted_value = int(quantity_deducted)
+                        else:
+                            quantity_deducted_value = 0
+
+                        later_date.quantity = str(int(later_date.quantity) + quantity_added_value - quantity_deducted_value)
+                        later_date.save()
+                    
+
+                product = existing_data_history.product_id
+                messages.success(request, "Inventory Updated")
+                print("Product", product)
+            
             try:
-                # Update order information based on ordered_date
-                existing_data_order_info = Order.objects.get(product_id=product, ordered_date=ordered_date, user_id=current_user_id)
-                existing_data_order_info.price = price if price else existing_data_order_info.price
-                existing_data_order_info.save()
+                existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id,deleted_on__isnull=True)
+                if existing_data_order_info.exists():
+                    for order_info in existing_data_order_info:
+                        order_info.price = price if price else order_info.price
+                        order_info.save()
 
-                # Update total_price in order_info based on updated price and quantity
-                existing_data_order_info.total_price = str(int(existing_data_order_info.quantity) * int(existing_data_order_info.price))
-                existing_data_order_info.save()
-            except ObjectDoesNotExist:
-                messages.warning(request, "No order for the current date")
+                        order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
+                        order_info.save()
 
-            messages.success(request, "Inventory Updated.")
+                    messages.success(request, "Orders Updated")
+                else:
+                    messages.warning(request, "No orders for the current date and conditions")
+
+            except IntegrityError as e:
+                messages.error(request, f"IntegrityError: {str(e)}")
+                return redirect(request.session['referring_page'])
 
         except InventoryDetailsDate.DoesNotExist:
             messages.error(request, "Inventory does not exist for editing")
 
-        return redirect(request.path)  # Redirect to the same page
+        return redirect(request.session['referring_page'])
 
     return render(request, 'inventoryhistory.html')
+# def editItems(request):
+#     if request.method == 'POST':
+#         request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         quantity_added = request.POST.get('edit_quantity_added', '')
+#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
+#         price = request.POST.get('edit_price_inventory', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.added_by
+#         print("test", price)
+    
+#         try:
+#             # Convert quantity_added and quantity_deducted to integers
+#             if quantity_added != "":
+#                 quantity_added = int(quantity_added)
+#             if quantity_deducted != "":
+#                 quantity_deducted = int(quantity_deducted)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             return redirect(request.session['referring_page'])
+        
+#         try:
+#             check_negative_values({
+#                 'Quantity Added': Decimal(quantity_added) if quantity_added != "" else 0,
+#                 'Quantity Deducted': Decimal(quantity_deducted) if quantity_deducted != "" else 0
+#             })
+#         except ValueError as ve:
+#             messages.error(request, str(ve))
+#             return redirect(request.session['referring_page'])
+
+#         try:
+#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+#             existing_quantity_added = int(existing_data_history.quantity_added)
+#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
+#             date = existing_data_history.date
+
+#             if quantity_added != "":
+#                 new_quantity_added = existing_quantity_added + quantity_added
+#             else:
+#                 new_quantity_added = existing_quantity_added
+
+#             if quantity_deducted != "":
+#                 new_quantity_deducted = existing_quantity_deducted + quantity_deducted
+#             else:
+#                 new_quantity_deducted = existing_quantity_deducted
+
+#             if new_quantity_deducted > existing_quantity_added:
+#                 messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                 return redirect(request.session['referring_page'])
+
+#             # Check if there are no changes in quantity added, quantity deducted, and price
+#             if new_quantity_added == existing_quantity_added and new_quantity_deducted == existing_quantity_deducted and price == existing_data_history.price:
+#                 messages.info(request, "No changes in quantity added, quantity deducted, and price.")
+#                 return redirect(request.session['referring_page'])
+#             else:
+
+#                 # Update inventory details based on changes
+#                 existing_data_history.quantity_added = new_quantity_added
+#                 existing_data_history.quantity_deducted = new_quantity_deducted
+#                 existing_data_history.quantity = new_quantity_added - new_quantity_deducted
+#                 existing_data_history.price = price if price != "" else existing_data_history.price
+#                 existing_data_history.save()
+
+#                 product = existing_data_history.product_id
+#                 messages.success(request, "Inventory Updated")
+#                 print("Product", product)
+            
+#             try:
+#                 existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id)
+#                 if existing_data_order_info.exists():
+#                     for order_info in existing_data_order_info:
+#                         order_info.price = price if price else order_info.price
+#                         order_info.save()
+
+#                         order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
+#                         order_info.save()
+
+#                     messages.success(request, "Orders Updated")
+#                 else:
+#                     messages.warning(request, "No orders for the current date and conditions")
+
+#             except IntegrityError as e:
+#                 messages.error(request, f"IntegrityError: {str(e)}")
+#                 return redirect(request.session['referring_page'])
+
+#         except InventoryDetailsDate.DoesNotExist:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect(request.session['referring_page'])
+
+#     return render(request, 'inventoryhistory.html')
+
+# def editItems(request):
+#     if request.method == 'POST':
+#         request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
+#         inventory_id = request.POST.get('edit_inventory_id', '')
+#         # product = request.POST.get('product_dropdown', '')
+#         quantity_added = request.POST.get('edit_quantity_added', '')
+#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
+#         price = request.POST.get('edit_price_inventory', '')
+#         operation = request.POST.get('edit_operation', '')
+#         current_user_id = request.user.added_by
+#         print("test",price)
+    
+#         try:
+#             # Convert quantity_added and quantity_deducted to integers
+#             quantity_added = int(quantity_added)
+#             quantity_deducted = int(quantity_deducted)
+#         except ValueError:
+#             messages.error(request, "Invalid quantity value")
+#             # return redirect(request.path)  # Redirect to the same page
+#             return redirect(request.session['referring_page'])
+        
+#         try:
+#             check_negative_values({
+#             'Quantity Added': Decimal(quantity_added),
+#             'Quantity Deducted': Decimal(quantity_deducted)
+#             })
+#         except ValueError as ve:
+#             messages.error(request, str(ve))
+#             return redirect(request.session['referring_page'])
+
+#         try:
+#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+#             existing_quantity_added = int(existing_data_history.quantity_added)
+#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
+#             date = existing_data_history.date
+
+#             new_quantity_added = existing_quantity_added + quantity_added
+#             new_quantity_deducted = existing_quantity_deducted + quantity_deducted
+
+#             if new_quantity_deducted > existing_quantity_added:
+#                 messages.error(request, "Deducted quantity cannot be greater than available quantity")
+#                 return redirect(request.session['referring_page'])
+
+#             # Update inventory details based on changes
+#             existing_data_history.quantity_added = new_quantity_added
+#             existing_data_history.quantity_deducted = new_quantity_deducted
+#             existing_data_history.quantity = new_quantity_added - new_quantity_deducted
+#             exisiting_price = existing_data_history.price 
+#             print(exisiting_price)
+#             if price != "":
+#                 existing_data_history.price = price
+            
+
+#             existing_data_history.save()
+
+#             product=existing_data_history.product_id 
+#             existing_data_history.save()    
+#             print("Product", product)
+#             try:
+#                 existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id)
+#                 if existing_data_order_info.exists():
+#                     for order_info in existing_data_order_info:
+#                         order_info.price = price if price else order_info.price
+#                         order_info.save()
+
+#                         order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
+#                         order_info.save()
+
+#                     messages.success(request, "Orders Updated")
+#                 else:
+#                     messages.warning(request, "No orders for the current date and conditions")
+
+#             except IntegrityError as e:
+#                 messages.error(request, f"IntegrityError: {str(e)}")
+#                 return redirect(request.session['referring_page'])
+
+#         except InventoryDetailsDate.DoesNotExist:
+#             messages.error(request, "Inventory does not exist for editing")
+
+#         return redirect(request.session['referring_page'])
+
+#     return render(request, 'inventoryhistory.html')
+
 @login_required
 def getItems(request):
     current_user_id = request.user.added_by
