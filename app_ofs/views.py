@@ -208,18 +208,167 @@ def forecast(request):
     return render(request, 'forecast.html', context)
 
 @login_required
+# def user_dashboard(request):
+#     current_user_id = request.user
+
+#     # data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
+#     # data.columns = ["Month", "Sales"]
+#     # data = data.dropna()
+#     data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+#     data = pd.DataFrame(data_queryset)
+#     data.columns = ["Month", "Sales"]
+#     data = data.dropna()
+
+#     results = arima_sarimax_forecast(data)
+
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
+#         pendingOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND user_id = %s", (current_user_id,))
+#         ongoingOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND user_id = %s", (current_user_id,))
+#         completedOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE user_id = %s", (current_user_id,))
+#         totalOrders = cursor.fetchone()[0]
+
+#     sarimax_chart = go.Figure()
+
+#     # Plot actual data
+#     sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+
+#     # Plot SARIMAX Forecast
+#     last_date = data.index[-1]
+#     sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+
+#     # Plot confidence intervals
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                        y=results['sarimax_confidence_intervals']['lower Sales'],
+#                                        fill=None,
+#                                        mode='lines',
+#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                        name='SARIMAX Lower CI'))
+
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                        y=results['sarimax_confidence_intervals']['upper Sales'],
+#                                        fill='tonexty',
+#                                        mode='lines',
+#                                        line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                        name='SARIMAX Upper CI'))
+
+#     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+#     # Convert SARIMAX chart to HTML
+#     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+#     context = {
+#         'pendingOrder': pendingOrders,
+#         'ongoingOrder': ongoingOrders,
+#         'completedOrder': completedOrders,
+#         'totalOrder': totalOrders,
+#         'results': results,
+#         'sarimax_chart_html': sarimax_chart_html,
+#     }
+
+#     return render(request, 'dashboard/dashboard.html', context)
+
+
+
+# def user_dashboard(request):
+#     current_user_id = request.user
+
+#     # Retrieve data from ForecastData model
+#     data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+#     data = pd.DataFrame(data_queryset)
+#     data.columns = ["Month", "Sales"]
+#     data = data.dropna()
+
+#     # Get the last available date
+#     last_date = data['Month'].max()
+
+#     # Filter data for the last 12 months
+#     last_12_months_data = data[(data['Month'] >= (last_date - timedelta(days=365))) & (data['Month'] <= last_date)]
+
+#     # Perform forecasting using your function for the next 12 months
+#     results = arima_sarimax_forecast(data)
+
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
+#         pendingOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND user_id = %s", (current_user_id,))
+#         ongoingOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND user_id = %s", (current_user_id,))
+#         completedOrders = cursor.fetchone()[0]
+
+#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE user_id = %s", (current_user_id,))
+#         totalOrders = cursor.fetchone()[0]
+
+#     sarimax_chart = go.Figure()
+
+#     # Plot actual data for the last 12 months
+#     sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'], y=last_12_months_data['Sales'], mode='lines', name='Actual Sales'))
+
+#     # Plot SARIMAX Forecast for the next 12 months
+#     sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'].to_numpy().flatten(), mode='lines', name='SARIMAX Forecast'))
+
+#     # Plot confidence intervals for the next 12 months
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                     y=results['sarimax_confidence_intervals']['lower Sales'].to_numpy().flatten(),
+#                                     fill=None,
+#                                     mode='lines',
+#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                     name='SARIMAX Lower CI'))
+
+#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
+#                                     y=results['sarimax_confidence_intervals']['upper Sales'].to_numpy().flatten(),
+#                                     fill='tonexty',
+#                                     mode='lines',
+#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
+#                                     name='SARIMAX Upper CI'))
+
+#     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+#     # Convert SARIMAX chart to HTML
+#     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+#     context = {
+#         'pendingOrder': pendingOrders,
+#         'ongoingOrder': ongoingOrders,
+#         'completedOrder': completedOrders,
+#         'totalOrder': totalOrders,
+#         'results': results,
+#         'sarimax_chart_html': sarimax_chart_html,
+#     }
+
+#     return render(request, 'dashboard/dashboard.html', context)
+
+
 def user_dashboard(request):
     current_user_id = request.user
 
-    # data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
-    # data.columns = ["Month", "Sales"]
-    # data = data.dropna()
+    # Retrieve data from ForecastData model
     data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
     data = pd.DataFrame(data_queryset)
     data.columns = ["Month", "Sales"]
     data = data.dropna()
 
-    results = arima_sarimax_forecast(data)
+    # Get the last available date
+    last_date = data['Month'].max()
+
+    # Filter data for the last 12 months
+    last_12_months_data = data[(data['Month'] >= (last_date - timedelta(days=365))) & (data['Month'] <= last_date)]
+
+    # Perform forecasting for the last 12 months
+    results_last_12_months = arima_sarimax_forecast(last_12_months_data)
+
+    # Perform forecasting for the next 12 months
+    results_next_12_months = arima_sarimax_forecast(data)
 
     with connection.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
@@ -236,28 +385,45 @@ def user_dashboard(request):
 
     sarimax_chart = go.Figure()
 
-    # Plot actual data
-    sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
+    # Plot actual data for the last 12 months
+    sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'], y=last_12_months_data['Sales'], mode='lines', name='Actual Sales'))
 
-    # Plot SARIMAX Forecast
-    last_date = data.index[-1]
+    # Plot SARIMAX Forecast for the last 12 months
+    sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'], y=results_last_12_months['sarimax_forecast'].to_numpy().flatten(), mode='lines', name='SARIMAX Forecast (Last 12 Months)'))
+
+    # Plot confidence intervals for the last 12 months
+    sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'],
+                                    y=results_last_12_months['sarimax_confidence_intervals']['lower Sales'].to_numpy().flatten(),
+                                    fill=None,
+                                    mode='lines',
+                                    line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                    name='SARIMAX Lower CI (Last 12 Months)'))
+
+    sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'],
+                                    y=results_last_12_months['sarimax_confidence_intervals']['upper Sales'].to_numpy().flatten(),
+                                    fill='tonexty',
+                                    mode='lines',
+                                    line=dict(color='rgba(100, 100, 255, 0.3)'),
+                                    name='SARIMAX Upper CI (Last 12 Months)'))
+
+    # Plot SARIMAX Forecast for the next 12 months
     sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
+    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results_next_12_months['sarimax_forecast'].to_numpy().flatten(), mode='lines', name='SARIMAX Forecast (Next 12 Months)'))
 
-    # Plot confidence intervals
+    # Plot confidence intervals for the next 12 months
     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['lower Sales'],
-                                       fill=None,
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Lower CI'))
+                                    y=results_next_12_months['sarimax_confidence_intervals']['lower Sales'].to_numpy().flatten(),
+                                    fill=None,
+                                    mode='lines',
+                                    line=dict(color='rgba(255, 100, 100, 0.3)'),
+                                    name='SARIMAX Lower CI (Next 12 Months)'))
 
     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['upper Sales'],
-                                       fill='tonexty',
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Upper CI'))
+                                    y=results_next_12_months['sarimax_confidence_intervals']['upper Sales'].to_numpy().flatten(),
+                                    fill='tonexty',
+                                    mode='lines',
+                                    line=dict(color='rgba(255, 100, 100, 0.3)'),
+                                    name='SARIMAX Upper CI (Next 12 Months)'))
 
     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
 
@@ -269,14 +435,10 @@ def user_dashboard(request):
         'ongoingOrder': ongoingOrders,
         'completedOrder': completedOrders,
         'totalOrder': totalOrders,
-        'results': results,
         'sarimax_chart_html': sarimax_chart_html,
     }
 
     return render(request, 'dashboard/dashboard.html', context)
-
-
-
 
 # @login_required
 def logout_view(request):
@@ -1039,15 +1201,27 @@ def editOrder(request):
 
         # Check if the status is being changed to 'Completed'
         if edit_status == 'Completed':
-            # Check the sum of quantity from InventoryDetailsDate
-            sum_quantity = InventoryDetailsDate.objects.filter(
+            # Fetch the latest date for the product in InventoryDetailsDate
+            latest_date = InventoryDetailsDate.objects.filter(
                 product__product_id=order.product.product_id,
                 user=current_user_id
-            ).aggregate(Sum('quantity'))['quantity__sum'] or 0
+            ).aggregate(latest_date=Max('date'))['latest_date']
 
-            if sum_quantity < Decimal(edit_quantity):
+            # Fetch the quantity for the latest date
+            latest_quantity = InventoryDetailsDate.objects.filter(
+                product__product_id=order.product.product_id,
+                user=current_user_id,
+                date=latest_date
+            ).values('quantity').first()
+
+            if latest_quantity is not None:
+                latest_quantity = Decimal(latest_quantity['quantity'])
+            else:
+                latest_quantity = Decimal(0)
+
+            if latest_quantity < Decimal(edit_quantity):
                 messages.error(request, f"Cannot complete order {old_order_id}. Insufficient quantity in inventory.")
-                return redirect(request.session['referring_page'])
+                return redirect(request.session['referring_page'])      
 
         # Update the order details
         order.quantity = Decimal(edit_quantity)
