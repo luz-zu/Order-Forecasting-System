@@ -209,25 +209,29 @@ def forecast(request):
 
 @login_required
 def user_dashboard(request):
-    current_user_id = request.user.added_by
+    current_user_id = request.user
 
-    data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
+    # data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
+    # data.columns = ["Month", "Sales"]
+    # data = data.dropna()
+    data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+    data = pd.DataFrame(data_queryset)
     data.columns = ["Month", "Sales"]
     data = data.dropna()
 
     results = arima_sarimax_forecast(data)
 
     with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
         pendingOrders = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND user_id = %s", (current_user_id,))
         ongoingOrders = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND user_id = %s", (current_user_id,))
         completedOrders = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE userid = %s", (current_user_id,))
+        cursor.execute("SELECT COUNT(*) FROM order_info WHERE user_id = %s", (current_user_id,))
         totalOrders = cursor.fetchone()[0]
 
     sarimax_chart = go.Figure()
@@ -493,9 +497,12 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db import IntegrityError
-from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser
+from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData
 from .forms import CategoryForm
 from django.contrib.auth.decorators import login_required
+from django.core.management.base import BaseCommand
+
+
 
 @login_required
 def get_category(request):
@@ -1053,6 +1060,10 @@ def editOrder(request):
         # Use a transaction to ensure atomicity
         with transaction.atomic():
             try:
+                if edit_status.lower() == 'completed':
+                # If status is "completed", insert today's date into completed_date column
+                    order.completed_date = timezone.now().date()
+                order.save()
                 order.save()
                 messages.success(request, f'Order {old_order_id} Edited.')
 

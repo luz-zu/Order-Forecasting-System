@@ -108,3 +108,12 @@ class Order(models.Model):
 
     class Meta:
         db_table = 'order_info'
+
+
+class ForecastData(models.Model):
+    product_id = models.IntegerField(default=101)
+    # user_id = models.IntegerField(default=39)
+    quantity = models.IntegerField()
+    ordered_date = models.DateField()
+    class Meta:
+        db_table = 'forecast_data'
