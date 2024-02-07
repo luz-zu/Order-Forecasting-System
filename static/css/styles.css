@@ -307,3 +307,10 @@ li{
 nav{
   position: -webkit-sticky; position: sticky; top: 0;
 }
+
+/* search */
+
+.search-border{
+  border: 1px solid #1d2951; 
+  border-radius:8px;
+}

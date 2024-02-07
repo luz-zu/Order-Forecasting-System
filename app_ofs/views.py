@@ -483,11 +483,18 @@ def inventory(request):
         total_products=Count('product_info', filter=Q(product_info__deleted_on__isnull=True))
     ).values('id', 'category', 'total_products')
 
+    search_query = request.GET.get('q')
+    
+
     categories = []
     for row in categories_with_count:
         category_id = row['id']
         category_name = row['category']
         total_products = row['total_products']
+
+        if search_query:
+            if search_query.lower() not in category_name.lower():
+                continue  # Skip categories that don't match the search query
 
         # Only include categories with a count greater than 0
         if total_products > 0:
@@ -1042,14 +1049,29 @@ def getCancelledOrder(request):
 
     # Retrieve completed orders using Django ORM
     cancelled_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled',deleted_on__isnull=True).select_related('product').order_by('-id')
+    search_query = request.GET.get('q')
+
+    if search_query:
+        cancelled_orders = cancelled_orders.filter(
+            Q(order_id__icontains=search_query) |
+            Q(quantity__icontains=search_query) |
+            Q(ordered_date__icontains=search_query) |
+            Q(delivery_date__icontains=search_query) |
+            Q(completed_date__icontains=search_query) |
+            Q(price__icontains=search_query) |
+            Q(status__icontains=search_query) |
+            Q(product__product_name__icontains=search_query)
+
+        )
     page = request.GET.get('page', 1)
     paginated_orders = paginate_data(cancelled_orders, page, 20)
+    
     context = {
         'orders': paginated_orders,
     }
     
 
-    return render(request, 'completedorder.html', context)
+    return render(request, 'cancelledorder.html', context)
 
 @login_required
 def order_filter(request):
@@ -1417,6 +1439,80 @@ def inventorylist(request, category_name):
 
 @login_required
 
+# def inventoryhistory(request, category_name):
+#     current_user_id = request.user.id
+
+#     # Retrieve category_id using Django ORM
+#     category_info = category.objects.filter(category=category_name, userid_id=current_user_id).first()
+
+#     if category_info:
+#         category_id = category_info.id
+#     else:
+#         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
+
+#     # Retrieve products using Django ORM
+#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+#     product_ids = [str(product['product_id']) for product in products]
+
+#     # Check if there are details for today's date for each product, otherwise add the required data
+#     for product_id in product_ids:
+#         today_details = InventoryDetailsDate.objects.filter(
+#             product__product_id=product_id,
+#             user_id=current_user_id,
+#             date=date.today()
+#         ).first()
+
+#         if not today_details:
+#             # If details for today's date do not exist, get the latest available details
+#             latest_details = InventoryDetailsDate.objects.filter(
+#                 product__product_id=product_id,
+#                 user_id=current_user_id
+#             ).order_by('-date').first()
+
+#             if latest_details:
+#                 # If there are details available, create data for today using the latest available details
+#                 InventoryDetailsDate.objects.create(
+#                     user_id=current_user_id,
+#                     product_id=product_id,
+#                     quantity=latest_details.quantity,
+#                     quantity_added=0,
+#                     quantity_deducted=0,
+#                     price=latest_details.price,
+#                     date=date.today()
+#                 )
+#             else:
+#                 # If no details are available, create data with default values
+#                 InventoryDetailsDate.objects.create(
+#                     user_id=current_user_id,
+#                     product_id=product_id,
+#                     quantity=0,
+#                     quantity_added=0,
+#                     quantity_deducted=0,
+#                     price=0,
+#                     date=date.today()
+#                 )
+
+#     # Retrieve products and inventory details after adding the required data
+#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+#     product_ids = [str(product['product_id']) for product in products]
+
+#     inventory_details = InventoryDetailsDate.objects.filter(
+#         product__product_id__in=product_ids,
+#         user_id=current_user_id
+#     ).order_by('-id')
+
+#     # Convert Django ORM QuerySet to list of dictionaries
+#     products_list = list(products)
+#     inventory_list = list(inventory_details)
+#     page = request.GET.get('page', 1)
+#     paginated_items = paginate_data(inventory_list, page, 20)
+
+#     context = {
+#         'items': paginated_items,
+#         'product': products_list
+#     }
+#     return render(request, 'inventoryhistory.html', context)
+
 def inventoryhistory(request, category_name):
     current_user_id = request.user.id
 
@@ -1427,10 +1523,31 @@ def inventoryhistory(request, category_name):
         category_id = category_info.id
     else:
         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
+    category_name = category_info.category
 
     # Retrieve products using Django ORM
     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
     product_ids = [str(product['product_id']) for product in products]
+
+    # Define the search query
+    search_query = request.GET.get('q')
+
+    # Define the date filter
+    date_filter = request.GET.get('date')
+
+    # Define the quantity_added filter
+    quantity_added_filter = request.GET.get('quantity_added')
+
+    # Define the quantity_deducted filter
+    quantity_deducted_filter = request.GET.get('quantity_deducted')
+
+    # Define the quantity filter
+    quantity_filter = request.GET.get('quantity')
+
+    # Filter products based on the search query if available
+    if search_query:
+        products = products.filter(product_name__icontains=search_query)
+        product_ids = [str(product['product_id']) for product in products]
 
     # Check if there are details for today's date for each product, otherwise add the required data
     for product_id in product_ids:
@@ -1479,6 +1596,28 @@ def inventoryhistory(request, category_name):
         user_id=current_user_id
     ).order_by('-id')
 
+    # Filter inventory details based on the search query and other filters if available
+    if search_query:
+        inventory_details = inventory_details.filter(
+            Q(product__product_name__icontains=search_query) |
+            Q(quantity__icontains=search_query) |
+            Q(quantity_added__icontains=search_query) |
+            Q(quantity_deducted__icontains=search_query) |
+            Q(price__icontains=search_query)
+        )
+
+    if date_filter:
+        inventory_details = inventory_details.filter(date=date_filter)
+
+    if quantity_added_filter:
+        inventory_details = inventory_details.filter(quantity_added=quantity_added_filter)
+
+    if quantity_deducted_filter:
+        inventory_details = inventory_details.filter(quantity_deducted=quantity_deducted_filter)
+
+    if quantity_filter:
+        inventory_details = inventory_details.filter(quantity=quantity_filter)
+
     # Convert Django ORM QuerySet to list of dictionaries
     products_list = list(products)
     inventory_list = list(inventory_details)
@@ -1487,9 +1626,11 @@ def inventoryhistory(request, category_name):
 
     context = {
         'items': paginated_items,
-        'product': products_list
+        'product': products_list,
+        'category_name':category_name
     }
     return render(request, 'inventoryhistory.html', context)
+
 @login_required
 
 def addItems(request):
