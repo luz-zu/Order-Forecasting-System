@@ -14,17 +14,14 @@
 
     <hr>
     <div class="d-md-flex d-block pt-3 justify-content-between">
-        <div >
-            <input type="text" class="form-control" id="table-filter" placeholder="Search...">
-        </div>
-        <!-- <div class="text-end pt-md-0 pt-5">
-            <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
-        </div> -->
+        {%include "components/search.html" %}
+       
     </div>
-    <div class="row pt-3">
-        {% for category in categories %}
+    <div class=" pt-3" id="inventory-category-list">
+        <div class="row inventory-list">
+            {% for category in categories %}
 
-        <div class="col-lg-3 col-md-4 col-sm-6 pt-2" >
+        <div class="col-lg-3 col-md-4 col-sm-6 pt-2 " >
             <div class="card bg-blue-gradient text-blue fs-5">
                 <div class="card-body">
                     <div>
@@ -48,10 +45,43 @@
         
         {% endfor %}
 
+        </div>
+        
+
    
     </div>
 </div>
 </div>
 
+<script>
+    function searchCategories() {
+    var searchQuery = $('#table-filter').val();
+    $.ajax({
+        url: '{% url "inventory" %}',
+        type: 'GET',
+        data: { q: searchQuery },
+        success: function(response) {
+            $('#inventory-category-list .inventory-list').html($(response).find('.inventory-list').html());
+        },
+        error: function(xhr, status, error)     {
+            console.error(error);
+        }
+    });
+}
+
+$(document).ready(function() {
+    // Perform search when the search button is clicked
+    $('#search-button').click(function() {
+        searchCategories();
+    });
+
+    // Perform search when Enter key is pressed in the search input
+    $('#table-filter').keypress(function(event) {
+        if (event.keyCode === 13) {
+            searchCategories();
+        }
+    });
+});
+</script>
 {% load static %}
 {% endblock %}
