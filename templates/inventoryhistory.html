@@ -14,9 +14,7 @@
         <hr>
         
         <div class="d-md-flex d-block pt-3 justify-content-between">
-            <div >
-                <input type="text" class="form-control" id="table-filter" placeholder="Search...">
-            </div>
+            {%include "components/search.html" %}
                 <div class="text-end ">
                     <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
                 </div>
@@ -25,7 +23,7 @@
         <div class="row pt-3">
             <div class="col-12">
                 <div  class="table-responsive">
-                    <table>
+                    <table id="inventoryhistory-table">
                         <thead>
                             <tr>
                                 <th scope="col">#</th>
@@ -140,5 +138,36 @@
   </div>
 </div>
 <script src="{% static 'script.js' %}"></script>
+<script>
+    function searchInventory() {
+        var searchQuery = $('#table-filter').val();
+        $.ajax({
+            url: '{% url "inventoryhistory" category_name=category_name %}',
+            type: 'GET',
+            data: { q: searchQuery },
+            success: function(response) {
+                $('#inventoryhistory-table tbody').html($(response).find('tbody').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        // Perform search when the search button is clicked
+        $('#search-button').click(function() {
+            searchInventory();
+        });
+
+        // Perform search when Enter key is pressed in the search input
+        $('#table-filter').keypress(function(event) {
+            if (event.keyCode === 13) {
+                searchInventory();
+            }
+        });
+    });
+</script>
+
 {% load static %}
 {% endblock %}
