@@ -793,7 +793,8 @@ def getProduct(request):
         products = products.filter(
             Q(product_id__icontains=search_query) |
             Q(product_name__icontains=search_query) |
-            Q(product_description__icontains=search_query)
+            Q(product_description__icontains=search_query) |
+           Q(category__category__icontains=search_query)
         )
 
     
