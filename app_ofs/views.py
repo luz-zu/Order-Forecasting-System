@@ -21,7 +21,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.template.loader import render_to_string
 from django.core.exceptions import ObjectDoesNotExist
 
-from django.db.models import Sum ,F, Count,Max,Q,ExpressionWrapper, IntegerField,Subquery, OuterRef
+from django.db.models import Sum ,F, Count,Max,Q,ExpressionWrapper, IntegerField,Subquery, OuterRef,Q
 
 
 # views.py
@@ -206,131 +206,97 @@ def forecast(request):
     }
 
     return render(request, 'forecast.html', context)
+import datetime
+from django.db.models import F, Func, ExpressionWrapper, DateField
+from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
 
 @login_required
-def user_dashboard(request):
-    current_user_id = request.user
-
-    # data = pd.read_csv("/home/lujana/Order-Forecasting-System/app_ofs/data/Electric_Production.csv")
-    # data.columns = ["Month", "Sales"]
-    # data = data.dropna()
-    data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
-    data = pd.DataFrame(data_queryset)
-    data.columns = ["Month", "Sales"]
-    data = data.dropna()
-
-    results = arima_sarimax_forecast(data)
-
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
-        pendingOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND user_id = %s", (current_user_id,))
-        ongoingOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND user_id = %s", (current_user_id,))
-        completedOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE user_id = %s", (current_user_id,))
-        totalOrders = cursor.fetchone()[0]
-
-    sarimax_chart = go.Figure()
-
-    # Plot actual data
-    sarimax_chart.add_trace(go.Scatter(x=data.index, y=data['Sales'], mode='lines', name='Actual Sales'))
-
-    # Plot SARIMAX Forecast
-    last_date = data.index[-1]
-    sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
-
-    # Plot confidence intervals
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['lower Sales'],
-                                       fill=None,
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Lower CI'))
-
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['upper Sales'],
-                                       fill='tonexty',
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Upper CI'))
-
-    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-
-    # Convert SARIMAX chart to HTML
-    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
-
-    context = {
-        'pendingOrder': pendingOrders,
-        'ongoingOrder': ongoingOrders,
-        'completedOrder': completedOrders,
-        'totalOrder': totalOrders,
-        'results': results,
-        'sarimax_chart_html': sarimax_chart_html,
-    }
-
-    return render(request, 'dashboard/dashboard.html', context)
 
 
-
+# old code
 # def user_dashboard(request):
-#     current_user_id = request.user
+#     # Fetch the last 12 months and future 12 months forecast data if available
+#     current_date = datetime.now().date()
+#     current_month = current_date.replace(day=1)
+#     last_12_months = current_date - relativedelta(months=12)
+#     next_12_months = current_date + relativedelta(months=12)
+ 
+#     forecast_data_next_12_months_exists = ForecastData.objects.filter(ordered_date__gte=current_month, ordered_date__lte=next_12_months).order_by('ordered_date')
+#     forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=last_12_months, ordered_date__lte=next_12_months).order_by('ordered_date')
+#     actual_data = ForecastData.objects.filter(ordered_date__lt=current_date -relativedelta(months=1), ordered_date__gte=last_12_months).order_by('ordered_date')
 
-#     # Retrieve data from ForecastData model
-#     data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
-#     data = pd.DataFrame(data_queryset)
-#     data.columns = ["Month", "Sales"]
-#     data = data.dropna()
+#     if not forecast_data_next_12_months_exists.exists():
+#         # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
+#         data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+#         data = pd.DataFrame(data_queryset)
+#         data.columns = ["Month", "Sales"]
+#         data = data.dropna()
 
-#     # Get the last available date
-#     last_date = data['Month'].max()
+#         results = arima_sarimax_forecast(data)
+#         print(results)
+#         results_df = pd.DataFrame()
 
-#     # Filter data for the last 12 months
-#     last_12_months_data = data[(data['Month'] >= (last_date - timedelta(days=365))) & (data['Month'] <= last_date)]
+#         for method, values in results.items():
+#             if method == 'sarimax_forecast':
+#                 dates = list(values.index)
+#                 forecast_values = list(values.values)
+#                 results_df['Dates'] = dates
+#                 results_df['Forecast_Values'] = forecast_values
+#             elif method == 'sarimax_confidence_intervals':
+#                 upper_ci = list(values['upper Sales'])
+#                 lower_ci = list(values['lower Sales'])
+#                 results_df['Upper_CI'] = upper_ci
+#                 results_df['Lower_CI'] = lower_ci
 
-#     # Perform forecasting using your function for the next 12 months
-#     results = arima_sarimax_forecast(data)
+#         # Print the DataFrame to verify
+#         print(results_df)
+#         results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
 
-#     with connection.cursor() as cursor:
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND user_id = %s", (current_user_id,))
-#         pendingOrders = cursor.fetchone()[0]
+#         for index, row in results_df.iterrows():
+#             date = row['Dates']
+#             forecast_value = row['Forecast_Values']
+#             lower_ci = row['Lower_CI']
+#             upper_ci = row['Upper_CI']
+            
 
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND user_id = %s", (current_user_id,))
-#         ongoingOrders = cursor.fetchone()[0]
+#             # Check if data already exists for this date
+#             existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
 
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND user_id = %s", (current_user_id,))
-#         completedOrders = cursor.fetchone()[0]
+#             if existing_data.exists():
+#                 # Update existing data
+#                 existing_data.update(
+#                     forecasted_quantity=forecast_value,
+#                     lower_ci_sarimax=lower_ci,
+#                     upper_ci_sarimax=upper_ci
+#                 )
+#             else:
+#                 # Create new data
+#                 ForecastData.objects.create(
+#                     quantity=0,
+#                     ordered_date=date,
+#                     forecasted_quantity=forecast_value,
+#                     lower_ci_sarimax=lower_ci,
+#                     upper_ci_sarimax=upper_ci
+#                 )
 
-#         cursor.execute("SELECT COUNT(*) FROM order_info WHERE user_id = %s", (current_user_id,))
-#         totalOrders = cursor.fetchone()[0]
+#     forecast_dates = [forecast.ordered_date.strftime("%b %Y") for forecast in forecast_data_queryset]
+#     forecast_quantity = [forecast.forecasted_quantity for forecast in forecast_data_queryset]
+#     upper_ci_sarimax = [forecast.upper_ci_sarimax for forecast in forecast_data_queryset]
+#     lower_ci_sarimax = [forecast.lower_ci_sarimax for forecast in forecast_data_queryset]
+#     actual_quantity = [actual.quantity for actual in actual_data]
 
+#     # Create SARIMAX chart
 #     sarimax_chart = go.Figure()
 
-#     # Plot actual data for the last 12 months
-#     sarimax_chart.add_trace(go.Scatter(x=last_12_months_data['Month'], y=last_12_months_data['Sales'], mode='lines', name='Actual Sales'))
+#     # Plot actual data if available
+#     if actual_quantity:
+#         sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
 
-#     # Plot SARIMAX Forecast for the next 12 months
-#     sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
-#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'].to_numpy().flatten(), mode='lines', name='SARIMAX Forecast'))
-
-#     # Plot confidence intervals for the next 12 months
-#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-#                                     y=results['sarimax_confidence_intervals']['lower Sales'].to_numpy().flatten(),
-#                                     fill=None,
-#                                     mode='lines',
-#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
-#                                     name='SARIMAX Lower CI'))
-
-#     sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-#                                     y=results['sarimax_confidence_intervals']['upper Sales'].to_numpy().flatten(),
-#                                     fill='tonexty',
-#                                     mode='lines',
-#                                     line=dict(color='rgba(100, 100, 255, 0.3)'),
-#                                     name='SARIMAX Upper CI'))
+#     # Plot forecast data and confidence intervals
+#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
+#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
+#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
 
 #     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
 
@@ -338,15 +304,108 @@ def user_dashboard(request):
 #     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
 
 #     context = {
-#         'pendingOrder': pendingOrders,
-#         'ongoingOrder': ongoingOrders,
-#         'completedOrder': completedOrders,
-#         'totalOrder': totalOrders,
-#         'results': results,
 #         'sarimax_chart_html': sarimax_chart_html,
 #     }
 
 #     return render(request, 'dashboard/dashboard.html', context)
+
+def user_dashboard(request):
+    # Fetch the last 12 months and future 12 months forecast data if available
+    current_date = datetime.now().date()
+    # current_date = datetime(2024, 5, 1).date()
+    current_month = current_date.replace(day=1)
+    last_12_months = current_date - relativedelta(months=12)
+    next_12_months = current_date + relativedelta(months=12)
+    
+    # Check if there's any missing data in the next 12 months (excluding the current month)
+    missing_data_exists = any(not ForecastData.objects.filter(ordered_date=current_month + relativedelta(months=i)).exists() for i in range(1, 13) if current_month + relativedelta(months=i) != current_month)
+
+    if missing_data_exists:
+        # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
+        data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+        data = pd.DataFrame(data_queryset)
+        data.columns = ["Month", "Sales"]
+        data = data.dropna()
+
+        results = arima_sarimax_forecast(data)
+        results_df = pd.DataFrame()
+
+        for method, values in results.items():
+            if method == 'sarimax_forecast':
+                dates = list(values.index)
+                forecast_values = list(values.values)
+                results_df['Dates'] = dates
+                results_df['Forecast_Values'] = forecast_values
+            elif method == 'sarimax_confidence_intervals':
+                upper_ci = list(values['upper Sales'])
+                lower_ci = list(values['lower Sales'])
+                results_df['Upper_CI'] = upper_ci
+                results_df['Lower_CI'] = lower_ci
+
+        # Print the DataFrame to verify
+        print(results_df)
+        results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
+
+        for index, row in results_df.iterrows():
+            date = row['Dates']
+            forecast_value = row['Forecast_Values']
+            lower_ci = row['Lower_CI']
+            upper_ci = row['Upper_CI']
+
+            # Check if data already exists for this date
+            existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
+
+            # Do not update data for current month
+            if existing_data.exists() and date.month != current_date.month:
+                # Update existing data
+                existing_data.update(
+                    forecasted_quantity=forecast_value,
+                    lower_ci_sarimax=lower_ci,
+                    upper_ci_sarimax=upper_ci
+                )
+            elif not existing_data.exists():
+                # Create new data
+                ForecastData.objects.create(
+                    quantity=0,
+                    ordered_date=date,
+                    forecasted_quantity=forecast_value,
+                    lower_ci_sarimax=lower_ci,
+                    upper_ci_sarimax=upper_ci
+                )
+
+    # Fetch updated forecast data queryset after potential updates
+    forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=last_12_months, ordered_date__lte=next_12_months).order_by('ordered_date')
+    actual_data = ForecastData.objects.filter(ordered_date__lt=current_date - relativedelta(months=1), ordered_date__gte=last_12_months).order_by('ordered_date')
+
+    actual_quantity = [actual.quantity for actual in actual_data]
+
+    forecast_dates = [forecast.ordered_date.strftime("%b %Y") for forecast in forecast_data_queryset]
+    forecast_quantity = [forecast.forecasted_quantity for forecast in forecast_data_queryset]
+    upper_ci_sarimax = [forecast.upper_ci_sarimax for forecast in forecast_data_queryset]
+    lower_ci_sarimax = [forecast.lower_ci_sarimax for forecast in forecast_data_queryset]
+
+    # Create SARIMAX chart
+    sarimax_chart = go.Figure()
+
+    # Plot actual data if available
+    if actual_quantity:
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
+
+    # Plot forecast data and confidence intervals
+    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
+    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
+    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
+
+    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+
+    # Convert SARIMAX chart to HTML
+    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+    context = {
+        'sarimax_chart_html': sarimax_chart_html,
+    }
+
+    return render(request, 'dashboard/dashboard.html', context)
 
 
 # @login_required
@@ -576,16 +635,50 @@ from django.core.management.base import BaseCommand
 
 
 @login_required
+# def get_category(request):
+#     current_user_id = request.user.added_by
+#     categories = category.objects.filter(userid=current_user_id)
+#     page = request.GET.get('page', 1)
+
+#     # Paginate the products with 20 items per page
+#     paginated_products = paginate_data(categories, page, 20)
+
+#     context = {'categories': paginated_products,
+#                'category': categories}
+#     return render(request, 'category.html', context)
+
+# def get_category(request):
+#     current_user_id = request.user.added_by
+#     categories = category.objects.filter(userid=current_user_id)
+#     search_query = request.GET.get('q')
+
+#     if search_query:
+#         categories = categories.filter(Q(category__icontains=search_query))
+
+#     page = request.GET.get('page', 1)
+#     paginated_products = paginate_data(categories, page, 20)
+
+#     context = {
+#         'categories': paginated_products,
+#         'category': categories,
+#         'search_query': search_query,  # Pass search query back to the template
+#     }
+#     return render(request, 'category.html', context)
+
 def get_category(request):
     current_user_id = request.user.added_by
     categories = category.objects.filter(userid=current_user_id)
-    page = request.GET.get('page', 1)
+    search_query = request.GET.get('q')
 
-    # Paginate the products with 20 items per page
+    if search_query:
+        categories = categories.filter(Q(category__icontains=search_query) | Q(id__icontains=search_query))
+    page = request.GET.get('page', 1)
     paginated_products = paginate_data(categories, page, 20)
 
-    context = {'categories': paginated_products,
-               'category': categories}
+    context = {
+        'categories': paginated_products,
+        'search_query': search_query,  # Pass search query back to the template
+    }
     return render(request, 'category.html', context)
 
 @login_required
@@ -694,6 +787,15 @@ def getProduct(request):
 
     products = Product.objects.filter(user_id=current_user, deleted_on__isnull=True).order_by('-id')
     categories = category.objects.filter(userid_id=current_user)
+    search_query = request.GET.get('q')
+
+    if search_query:
+        products = products.filter(
+            Q(product_id__icontains=search_query) |
+            Q(product_name__icontains=search_query) |
+            Q(product_description__icontains=search_query)
+        )
+
     
     # Get the page number from the request's GET parameters
     page = request.GET.get('page', 1)
@@ -1901,7 +2003,51 @@ def changepassword(request):
 
     return render(request, 'changepassword.html', {'form': form})
 
-def arima_sarimax_forecast(data, forecast_steps=12):
+# def arima_sarimax_forecast(data, forecast_steps=12):
+#     # Convert 'Month' column to datetime format if not already
+#     data['Month'] = pd.to_datetime(data['Month'])
+
+#     # Set 'Month' as the index
+#     data.set_index('Month', inplace=True)
+
+#     # Perform differencing to make the time series stationary
+#     data_diff = data['Sales'].diff().dropna()
+
+#     # Use pmdarima to automatically choose the best parameters for ARIMA
+#     arima_model = pm.auto_arima(data['Sales'], seasonal=False, suppress_warnings=True, stepwise=True)
+#     arima_order = arima_model.get_params()['order']
+
+#     # Fit ARIMA model
+#     arima_result = ARIMA(data['Sales'], order=arima_order).fit()
+
+#     # Use pmdarima to automatically choose the best parameters for SARIMAX
+#     sarimax_model = pm.auto_arima(data['Sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12)
+#     sarimax_order = sarimax_model.get_params()['order']
+#     sarimax_seasonal_order = sarimax_model.get_params()['seasonal_order']
+
+#     # Fit SARIMAX model
+#     sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
+
+#     # Forecast using ARIMA
+#     # arima_forecast_steps = 12
+#     arima_forecast = arima_result.get_forecast(steps=forecast_steps)
+#     arima_confidence_intervals = arima_forecast.conf_int()
+
+#     # Forecast using SARIMAX
+#     # sarimax_forecast_steps = 12
+#     sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
+#     sarimax_confidence_intervals = sarimax_forecast.conf_int()
+
+#     return {
+#         'arima_forecast': arima_forecast.predicted_mean,
+#         'arima_confidence_intervals': arima_confidence_intervals,
+#         'sarimax_forecast': sarimax_forecast.predicted_mean,
+#         'sarimax_confidence_intervals': sarimax_confidence_intervals,
+#     }
+
+from datetime import datetime
+
+def arima_sarimax_forecast(data):
     # Convert 'Month' column to datetime format if not already
     data['Month'] = pd.to_datetime(data['Month'])
 
@@ -1926,13 +2072,17 @@ def arima_sarimax_forecast(data, forecast_steps=12):
     # Fit SARIMAX model
     sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
 
+    # Get the current date
+    current_date = datetime.now()
+
+    # Forecast for the next 12 months from the current month
+    forecast_steps = 12 - current_date.month + 1  # Adjusting for the current month
+
     # Forecast using ARIMA
-    # arima_forecast_steps = 12
     arima_forecast = arima_result.get_forecast(steps=forecast_steps)
     arima_confidence_intervals = arima_forecast.conf_int()
 
     # Forecast using SARIMAX
-    # sarimax_forecast_steps = 12
     sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
     sarimax_confidence_intervals = sarimax_forecast.conf_int()
 

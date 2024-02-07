@@ -25,8 +25,9 @@
       <hr>
       <div class="d-md-flex d-block pt-3 justify-content-between">
         <div>
-          <input type="text" class="form-control" id="table-filter" placeholder="Search...">
-        </div>
+          {%include "components/search.html" %}
+            <!-- { % include "components/search.html" % } -->
+          </div>
         {% if user.userrole == 'admin' %}
           <div class="text-end pt-md-0 pt-5">
             <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_category" data-bs-whatever="add_category">Add New Category</button>
@@ -36,8 +37,8 @@
       
     <div class="row pt-3">
       <div class="col-12">
-        <div  class="table-responsive">
-          <table >
+        <div  class="table-responsive" >
+          <table id="category-table" >
             <!-- <thead> -->
               <tr>
                 <th >#</th>
@@ -48,7 +49,6 @@
                 {% endif %}
               </tr>
             <!-- </thead> -->
-            <!-- <tbody> -->
               {% for category in categories %}
                 <tr>
                     <td >{{ forloop.counter }}</td>
@@ -63,7 +63,6 @@
                     {% endif %}
                 </tr>
                 {% endfor %}
-            <!-- </tbody> -->
           </table>
         </div>
           
@@ -129,7 +128,68 @@
   </div>
 </div>
 
+<!-- <script>
+  function filterCategories() {
+    var input, filter, table, tr, td, i, txtValue;
+    input = document.getElementById("table-filter");
+    filter = input.value.toUpperCase();
+    table = document.getElementsByTagName("table")[0];
+    tr = table.getElementsByTagName("tr");
+  
+    for (i = 0; i < tr.length; i++) {
+      td = tr[i].getElementsByTagName("td")[2]; // Assuming category name is in the third column (index 2)
+      if (td) {
+        txtValue = td.textContent || td.innerText;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+    }
+  }
+  </script> -->
+  <script>
 
+console.log("Document is ready"); // Check if document is ready
+
+// Verify jQuery is loaded
+if (typeof jQuery !== 'undefined') {
+    console.log("jQuery is loaded");
+} else {
+    console.error("jQuery is not loaded");
+}
+
+$(document).ready(function() {
+        // Perform search when the search button is clicked
+        $('#search-button').click(function() {
+            searchCategories();
+        });
+
+        // Perform search when Enter key is pressed in the search input
+        $('#table-filter').keypress(function(event) {
+            if (event.keyCode === 13) {
+                searchCategories();
+            }
+        });
+
+        // Function to perform AJAX search and update the category table
+        function searchCategories() {
+            var searchQuery = $('#table-filter').val();
+            $.ajax({
+                url: '{% url "category" %}',
+                type: 'GET',
+                data: { q: searchQuery },
+                success: function(response) {
+                    $('#category-table tbody').html($(response).find('tbody').html());
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                }
+            });
+        }
+    });
+  </script>
 
 <script src="{% static 'script.js' %}"></script>
 
