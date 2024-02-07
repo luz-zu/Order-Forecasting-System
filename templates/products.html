@@ -15,14 +15,7 @@
     <div class="pt-3">
       <hr />
       <div class="d-md-flex d-block pt-3 justify-content-between">
-        <div>
-          <input
-            type="text"
-            class="form-control"
-            id="table-filter"
-            placeholder="Search..."
-          />
-        </div>
+        {%include "components/search.html" %}
         {% if user.userrole == 'admin' %}
         <div class="text-end pt-md-0 pt-5">
           <button
@@ -41,7 +34,7 @@
       <div class="row pt-3" >
         <div class="col-12">
           <div class="table-responsive">
-            <table>
+            <table id="product-table">
               <thead>
                 <tr>
                   <th scope="col">#</th>
@@ -318,6 +311,36 @@
 
 <!-- Your script -->
 <script>
+
+  // Function to perform AJAX search and update the product table
+  function searchProducts() {
+    var searchQuery = $('#table-filter').val();
+    $.ajax({
+      url: '{% url "products" %}',
+      type: 'GET',
+      data: { q: searchQuery },
+      success: function(response) {
+        $('#product-table tbody').html($(response).find('tbody').html());
+      },
+      error: function(xhr, status, error) {
+        console.error(error);
+      }
+    });
+  }
+
+  $(document).ready(function() {
+    // Perform search when the search button is clicked
+    $('#search-button').click(function() {
+      searchProducts();
+    });
+
+    // Perform search when Enter key is pressed in the search input
+    $('#table-filter').keypress(function(event) {
+      if (event.keyCode === 13) {
+        searchProducts();
+      }
+    });
+  });
   function setProductDetails(productId, productName, productDescription) {
     document.getElementById('deleteProductId').value = productId;
     document.getElementById('deleteProductName').innerText = productName;
