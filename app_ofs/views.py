@@ -1010,9 +1010,25 @@ def getCompletedOrder(request):
     current_user_id = request.user.added_by
 
     # Retrieve completed orders using Django ORM
-    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed',deleted_on__isnull=True).select_related('product').order_by('-id')
+    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed', deleted_on__isnull=True).select_related('product').order_by('-id')
+    
+    search_query = request.GET.get('q')
+
+    if search_query:
+        completed_orders = completed_orders.filter(
+            Q(order_id__icontains=search_query) |
+            Q(quantity__icontains=search_query) |
+            Q(ordered_date__icontains=search_query) |
+            Q(delivery_date__icontains=search_query) |
+            Q(completed_date__icontains=search_query) |
+            Q(price__icontains=search_query) |
+            Q(status__icontains=search_query) |
+            Q(product__product_name__icontains=search_query)  # Search by product name (assuming it's a field in Product)
+        )
+    
     page = request.GET.get('page', 1)
     paginated_orders = paginate_data(completed_orders, page, 20)
+
     context = {
         'orders': paginated_orders,
     }

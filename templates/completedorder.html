@@ -11,14 +11,7 @@
 <div class=" container pt-3">
   <hr />
   <div class="d-md-flex d-block pt-3 justify-content-between">
-    <div>
-      <input
-        type="text"
-        class="form-control"
-        id="table-filter"
-        placeholder="Search..."
-      />
-    </div>
+    {%include "components/search.html" %}
     <div class="d-flex align-items-center justify-content-end w-100">
       <div class="pt-md-0 pt-3">
         <button
@@ -42,7 +35,7 @@
   <div class="row pt-3">
     <div class="col-12">
       <div class="table-responsive">
-        <table id="orderTable">
+        <table id="order-completed-table">
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -148,6 +141,36 @@
 
 
 <script>
+
+function searchOrders() {
+    var searchQuery = $('#table-filter').val();
+    $.ajax({
+        url: '{% url "getCompletedOrder" %}',
+        type: 'GET',
+        data: { q: searchQuery },
+        success: function(response) {
+            $('#order-completed-table tbody').html($(response).find('tbody').html());
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+        }
+    });
+}
+
+$(document).ready(function() {
+    // Perform search when the search button is clicked
+    $('#search-button').click(function() {
+        searchOrders();
+    });
+
+    // Perform search when Enter key is pressed in the search input
+    $('#table-filter').keypress(function(event) {
+        if (event.keyCode === 13) {
+            searchOrders();
+        }
+    });
+});
+
 
 function prepareDeleteOrderForm(orderId) {
   document.getElementById("deleteOrderId").value = orderId;
