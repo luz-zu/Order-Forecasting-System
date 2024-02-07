@@ -309,6 +309,7 @@ from dateutil.relativedelta import relativedelta
 
 #     return render(request, 'dashboard/dashboard.html', context)
 
+# correct code
 def user_dashboard(request):
     # Fetch the last 12 months and future 12 months forecast data if available
     current_date = datetime.now().date()
