@@ -113,6 +113,9 @@ class Order(models.Model):
 class ForecastData(models.Model):
     product_id = models.IntegerField(default=101)
     # user_id = models.IntegerField(default=39)
+    forecasted_quantity =  models.CharField(max_length=500, null=True)
+    upper_ci_sarimax =  models.CharField(max_length=500, null=True)
+    lower_ci_sarimax =  models.CharField(max_length=500, null=True)
     quantity = models.IntegerField()
     ordered_date = models.DateField()
     class Meta:
