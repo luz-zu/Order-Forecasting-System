@@ -1,11 +1,11 @@
 {%extends "base.html" %} {% block title %} Dashboard {% endblock %} 
 {% block content %}
-<nav style="position: -webkit-sticky;
-position: sticky;
-top: 0;
-">{%include "components/navbar.html" %}</nav>
-<div>{%include "components/sidebar.html" %}</div>
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
+<nav>{%include "components/navbar.html" %}</nav>
+<div>{%include "components/sidebar.html" %}</div>
+<div>
 <div id="messages" style="display: none">
   {% for msg in messages %}
   <div class="alert alert-success" role="alert">{{ msg }}</div>
@@ -14,43 +14,44 @@ top: 0;
 
 <div class="d-flex" id="main">
   <div class=" container pt-3">
+    <div class="text-blue fs-3">Dashboard</div>
     <hr />
     <div class="row">
-      <div class="col-lg-3 col-6">
-        <div class="card">
+      <div class="col-lg-3 col-sm-6 pt-3">
+        <div class="card" style="background-color: #E5ECF6; ">
           <div class="card-body">
             <div class="fs-3 text-center">Pending Orders</div>
             <hr />
-            <div class="order_num text-center fs-4">{{ pendingOrder }}</div>
+            <div class="order_num text-center fs-4">{{ pending_orders }}</div>
           </div>
         </div>
       </div>
   
-      <div class="col-lg-3 col-6">
-        <div class="card">
+      <div class="col-lg-3 col-sm-6 pt-3">
+        <div class="card" style="background-color: #E5ECF6;">
           <div class="card-body">
             <div class="fs-3 text-center">Ongoing Orders</div>
             <hr />
-            <div class="order_num text-center fs-4">{{ ongoingOrder }}</div>
+            <div class="order_num text-center fs-4">{{ ongoing_orders }}</div>
           </div>
         </div>
       </div>
-      <div class="col-lg-3 col-6">
-        <div class="card">
+      <div class="col-lg-3 col-sm-6 pt-3">
+        <div class="card" style="background-color: #E5ECF6;">
           <div class="card-body">
             <div class="fs-3 text-center">Completed Orders</div>
             <hr />
-            <div class="order_num text-center fs-4">{{ completedOrder }}</div>
+            <div class="order_num text-center fs-4">{{ completed_orders }}</div>
           </div>
         </div>
       </div>
   
-      <div class="col-lg-3 col-6">
+      <div class="col-lg-3 col-sm-6 pt-3">
         <div class="card">
-          <div class="card-body">
+          <div class="card-body" style="background-color: #E5ECF6;">
             <div class="fs-3 text-center">Total Orders</div>
             <hr />
-            <div class="order_num text-center fs-4">{{ totalOrder }}</div>
+            <div class="order_num text-center fs-4">{{ total_orders }}</div>
           </div>
         </div>
       </div>
@@ -69,7 +70,10 @@ top: 0;
             {% endif %}
             <div>
               <div>
-                {{ monthlyChartDiv|safe }}
+                <!-- {{ monthlyChartDiv|safe }} -->
+                <!-- <canvas id="myChart" style="width:100%;max-width:700px"></canvas> -->
+                
+
               </div>
           </div>
 
@@ -78,7 +82,11 @@ top: 0;
         </div>
       </div>
   
-      <div class="col-lg-6 col-12">
+      <div class="col-lg-6 col-12 pt-lg-0 pt-3">
+        <div class="card">
+          {{ bar_graph_html | safe }}
+        </div>
+        
         
       </div>
     </div>
@@ -100,9 +108,42 @@ top: 0;
     
   </div>
 </div>
-
+</div>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+
+var xyValues = [
+  {x:50, y:7},
+  {x:60, y:8},
+  {x:70, y:8},
+  {x:80, y:9},
+  {x:90, y:9},
+  {x:100, y:9},
+  {x:110, y:10},
+  {x:120, y:11},
+  {x:130, y:14},
+  {x:140, y:14},
+  {x:150, y:15}
+];
+
+new Chart("myChart", {
+  type: "scatter",
+  data: {
+    datasets: [{
+      pointRadius: 4,
+      pointBackgroundColor: "rgb(0,0,255)",
+      data: xyValues
+    }]
+  },
+  options: {
+    legend: {display: false},
+    scales: {
+      xAxes: [{ticks: {min: 40, max:160}}],
+      yAxes: [{ticks: {min: 6, max:16}}],
+    }
+  }
+});
 
 
 function initializeTopProductChart(labels, data) {

@@ -187,10 +187,11 @@ window.onload = function () {
     });
 
     // Calender
-    $('.datepicker').datepicker({
-        format: 'yyyy-mm-dd',
-        autoclose: true,
-    });
+    // $('.datepicker').datepicker({
+    //     format: 'yyyy-mm-dd',
+    //     autoclose: true,
+    //     startDate: new Date()
+    // });
 
     // This code disables the select product text after selecting the new data
     $("#product_dropdown").on("change", function () {
@@ -211,7 +212,8 @@ window.onload = function () {
             row.toggle(row.text().toLowerCase().indexOf(value) > -1);
         });
     };
-
+    
+      
 
     // monthly graph
     let xValues = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -241,24 +243,6 @@ window.onload = function () {
     let x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
     let y = [7, 8, 8, 9, 9, 9, 10, 11, 14, 14, 15, 28];
 
-    new Chart("daily", {
-        type: "line",
-        data: {
-            labels: x,
-            datasets: [{
-                fill: false,
-                lineTension: 0,
-                backgroundColor: "rgba(0,0,255,1.0)",
-                borderColor: "rgba(0,0,255,0.1)",
-                data: y
-            }]
-        },
-        options: {
-            legend: { display: false },
-            scales: {
-                yAxes: [{ ticks: { min: 1, max: 100 } }],
-            }
-        }
-    });
+   
 };
 

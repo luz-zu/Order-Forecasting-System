@@ -15,7 +15,7 @@
         
         <div class="d-md-flex d-block pt-3 justify-content-between">
             {%include "components/search.html" %}
-                <div class="text-end ">
+                <div class="text-end pt-3">
                     <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
                 </div>
         </div>
@@ -39,14 +39,14 @@
                         <tbody>
                             {% for item in items %}
                             <tr>
-                                <td scope="row">{{ forloop.counter }}</td>
-                                <td>{{ item.product.product_name }}</td>
-                                <td>{{ item.date }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{item.quantity_added}}</td>
-                                <td>{{item.quantity_deducted}}</td>
-                                <td>{{ item.price }}</td>
-                                <td>
+                                <td data-label="#"  scope="row">{{ forloop.counter }}</td>
+                                <td data-label="Product">{{ item.product.product_name }}</td>
+                                <td data-label="Date">{{ item.date }}</td>
+                                <td data-label="Quantity">{{ item.quantity }}</td>
+                                <td data-label="Quantity Added">{{item.quantity_added}}</td>
+                                <td data-label="Quantity Deducted">{{item.quantity_deducted}}</td>
+                                <td data-label="Price (per Unit)">{{ item.price }}</td>
+                                <td data-label="Action">
                                     <div class="d-flex justify-content-center align-items-center">
 
                                       <div>

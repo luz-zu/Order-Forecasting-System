@@ -23,7 +23,14 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from django.db.models import Sum ,F, Count,Max,Q,ExpressionWrapper, IntegerField,Subquery, OuterRef,Q
 
-
+# from django.shortcuts import render, redirect
+# from django.contrib import messages
+# from django.http import JsonResponse
+from django.db import IntegrityError
+from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData,ProductStatistics  
+from .forms import CategoryForm
+from django.contrib.auth.decorators import login_required
+from django.core.management.base import BaseCommand
 # views.py
 from django.shortcuts import render
 from .models import SalesData
@@ -49,6 +56,8 @@ from statsmodels.tsa.arima.model import ARIMA
 import statsmodels.api as sm
 import pmdarima as pm
 from statsmodels.tsa.stattools import adfuller, acf, pacf
+
+
 
 def get_image():
     buffer = BytesIO()
@@ -411,9 +420,31 @@ from dateutil.relativedelta import relativedelta
 
 def user_dashboard(request):
     # Fetch the last 12 months and future 30 days forecast data if available
+    user = request.user
+    total_orders = Order.objects.filter(user=user,deleted_on__isnull=True).count()
+    pending_orders = Order.objects.filter(user=user, status='Pending',deleted_on__isnull=True).count()
+    ongoing_orders = Order.objects.filter(user=user, status='Ongoing',deleted_on__isnull=True).count()
+    completed_orders = Order.objects.filter(user=user, status='Completed',deleted_on__isnull=True).count()
+
+
+    
     current_date = datetime.now().date()
     current_month = current_date.replace(day=1)
     next_30_days = current_date + timedelta(days=30)
+
+    last_7_days = current_date - timedelta(days=7)
+    orders_per_day_last_7_days = Order.objects.filter(user=user, ordered_date__gte=last_7_days, ordered_date__lte=current_date).values('ordered_date').annotate(num_orders=Count('id')).order_by('ordered_date')
+
+    # Extract dates and corresponding number of orders
+    order_dates = [order['ordered_date'].strftime("%b %d, %Y") for order in orders_per_day_last_7_days]
+    num_orders_per_day = [order['num_orders'] for order in orders_per_day_last_7_days]
+
+    # Create a bar graph of orders per day for the last 7 days
+    bar_graph = go.Figure(data=[go.Bar(x=order_dates, y=num_orders_per_day)])
+    bar_graph.update_layout(title='Number of Orders per Day for Last 7 Days', xaxis_title='Date', yaxis_title='Number of Orders')
+
+    # Convert bar graph to HTML
+    bar_graph_html = bar_graph.to_html(full_html=False)
     
     # Check if there's any missing data in the next 30 days (excluding the current day)
     missing_data_exists = any(not ForecastData.objects.filter(ordered_date=current_date + timedelta(days=i)).exists() for i in range(1, 31) if current_date + timedelta(days=i) != current_date)
@@ -501,6 +532,12 @@ def user_dashboard(request):
 
     context = {
         'sarimax_chart_html': sarimax_chart_html,
+        'total_orders': total_orders,
+        'pending_orders': pending_orders,
+        'ongoing_orders': ongoing_orders,
+        'completed_orders': completed_orders,
+        'orders_per_day_last_7_days': orders_per_day_last_7_days,
+        'bar_graph_html': bar_graph_html,
     }
 
     return render(request, 'dashboard/dashboard.html', context)
@@ -608,6 +645,94 @@ def inventory(request):
    
     return render(request, 'inventory.html', context)
 
+@login_required
+def get_products(request):
+    if request.method == 'GET' and request.is_ajax():
+        category_id = request.GET.get('category')
+        if category_id:
+            products = Product.objects.filter(category_id=category_id)
+            product_data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
+            return JsonResponse(product_data, safe=False)
+    return JsonResponse([], safe=False)
+
+# def productStatistics(request):
+#     categories = category.objects.filter(userid=request.user)
+#     latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
+#     start_date = latest_date_entry + timedelta(days=1)
+#     end_date = date.today()
+
+#     for dt in daterange(start_date, end_date):
+#         generate_statistics_for_date(dt)
+
+#     product_statistics = ProductStatistics.objects.all()
+
+#     context = {'product_statistics': product_statistics,
+#                'categories': categories}
+#     return render(request, 'product_statistics.html', context)
+
+def productStatistics(request):
+    if request.method == 'GET':
+        categories = category.objects.filter(userid=request.user)
+        products = []  # Placeholder for products
+        latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
+        start_date = latest_date_entry + timedelta(days=1)
+        end_date = date.today()
+
+        for dt in daterange(start_date, end_date):
+            generate_statistics_for_date(dt)
+
+        if 'category' in request.GET:
+            category_id = request.GET.get('category_id')
+            if category_id:
+                products = Product.objects.filter(category_id=category_id)
+
+        product_statistics = ProductStatistics.objects.all()
+
+        context = {
+            'product_statistics': product_statistics,
+            'categories': categories,
+            'products': products
+        }
+        return render(request, 'product_statistics.html', context)
+
+def get_products(request):
+    category_id = request.GET.get('category')
+    if category_id:
+        products = Product.objects.filter(category_id=category_id)
+    else:
+        products = Product.objects.all()
+
+    data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
+    return JsonResponse(data, safe=False)
+def generate_statistics_for_date(current_date):
+    for user in CustomUser.objects.all():
+        for product in Product.objects.all():
+            existing_statistic = ProductStatistics.objects.filter(user_id=user.id, product_id=product.product_id, date=current_date).first()
+            if not existing_statistic:
+                product_statistic = ProductStatistics.objects.create(
+                    user_id=user.id,
+                    product_id=product.product_id,
+                    date=current_date,
+                    order_quantity=0,
+                    completed_quantity=0,
+                    pending_quantity=0,
+                    ongoing_quantity=0,
+                    production_quantity=0,
+                    deduction_quantity=0
+                )
+
+                yesterday_orders = Order.objects.filter(product_id=product, added_on=current_date - timedelta(days=1))
+                for order in yesterday_orders:
+                    if order.status == 'Pending':
+                        product_statistic.pending_quantity += order.quantity
+                    elif order.status == 'Ongoing':
+                        product_statistic.ongoing_quantity += order.quantity
+                
+                product_statistic.save()
+
+def daterange(start_date, end_date):
+    for n in range(int((end_date - start_date).days) + 1):
+        yield start_date + timedelta(n)
 @login_required
 def staff(request):
     current_user_id = request.user.added_by
@@ -727,47 +852,13 @@ def addStaff(request):
 
     return render(request, 'staff.html')
 
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.http import JsonResponse
-from django.db import IntegrityError
-from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData
-from .forms import CategoryForm
-from django.contrib.auth.decorators import login_required
-from django.core.management.base import BaseCommand
+
+from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData,ProductStatistics  
 
 
 
 @login_required
-# def get_category(request):
-#     current_user_id = request.user.added_by
-#     categories = category.objects.filter(userid=current_user_id)
-#     page = request.GET.get('page', 1)
 
-#     # Paginate the products with 20 items per page
-#     paginated_products = paginate_data(categories, page, 20)
-
-#     context = {'categories': paginated_products,
-#                'category': categories}
-#     return render(request, 'category.html', context)
-
-# def get_category(request):
-#     current_user_id = request.user.added_by
-#     categories = category.objects.filter(userid=current_user_id)
-#     search_query = request.GET.get('q')
-
-#     if search_query:
-#         categories = categories.filter(Q(category__icontains=search_query))
-
-#     page = request.GET.get('page', 1)
-#     paginated_products = paginate_data(categories, page, 20)
-
-#     context = {
-#         'categories': paginated_products,
-#         'category': categories,
-#         'search_query': search_query,  # Pass search query back to the template
-#     }
-#     return render(request, 'category.html', context)
 
 def get_category(request):
     current_user_id = request.user.added_by
@@ -781,7 +872,7 @@ def get_category(request):
 
     context = {
         'categories': paginated_products,
-        'search_query': search_query,  # Pass search query back to the template
+        'search_query': search_query,  
     }
     return render(request, 'category.html', context)
 
@@ -1303,9 +1394,35 @@ def addOrder(request):
                 user_id=current_user_id
             )
             if status.lower() == 'completed':
-                # If status is "completed", insert today's date into completed_date column
                 order.completed_date = timezone.now().date()
                 order.save()
+            if status.lower() == 'cancelled':
+                order.cancelled_date = timezone.now().date()
+                order.save()
+            
+            product_statistic_order_quantity, created = ProductStatistics.objects.get_or_create(product_id=order_product_name, date = ordered_date)
+
+            quantity_int = int(quantity) if quantity else 0
+
+            # Update order quantity
+            product_statistic_order_quantity.order_quantity = str(int(product_statistic_order_quantity.order_quantity or 0) + quantity_int)
+
+            product_statistic, created = ProductStatistics.objects.get_or_create(product_id=order_product_name, date = timezone.now().date())
+
+            # Update completed_quantity and cancelled_quantity
+            if status.lower() == 'completed':
+                print("Test", status)
+                
+                product_statistic.completed_quantity = str(int(product_statistic.completed_quantity or 0) + quantity_int)
+                product_statistic.save()
+            elif status.lower() == 'cancelled':
+                print("Test", status)
+                
+                product_statistic.cancelled_quantity = str(int(product_statistic.cancelled_quantity or 0) + quantity_int)
+                product_statistic.save()
+            
+            product_statistic_order_quantity.save()
+
 
             messages.success(request, 'New Order Added')
 
@@ -1332,7 +1449,7 @@ def editOrder(request):
         edit_delivery_date = request.POST.get('edit_delivery_date', '')
         edit_ordered_date = request.POST.get('edit_ordered_date', '')
         edit_status = request.POST.get('edit_status', '')
-
+        
         try:
             check_negative_values({
                 'Quantity': Decimal(edit_quantity),
@@ -1347,6 +1464,13 @@ def editOrder(request):
         except Order.DoesNotExist:
             messages.error(request, 'Order not found.')
             return redirect(request.session['referring_page'])
+        
+
+        old_quantity=int(order.quantity )
+        old_price=order.price
+        old_delivery_date=order.delivery_date 
+        old_ordered_date=order.ordered_date
+        old_status=order.status 
 
         # Check if any changes have been made
         if (
@@ -1359,6 +1483,7 @@ def editOrder(request):
         ):
             messages.info(request, f'No changes made to order {old_order_id}.')
             return redirect(request.session['referring_page'])
+            # return redirect(request.session['referring_page'])
 
         # Check if the status is being changed to 'Completed'
         if edit_status == 'Completed':
@@ -1391,15 +1516,17 @@ def editOrder(request):
         order.delivery_date = edit_delivery_date
         order.ordered_date = edit_ordered_date
         order.status = edit_status
+        order.updated_on =datetime.now()
 
         # Use a transaction to ensure atomicity
         with transaction.atomic():
             try:
                 if edit_status.lower() == 'completed':
-                # If status is "completed", insert today's date into completed_date column
                     order.completed_date = timezone.now().date()
+                if edit_status.lower() == 'cancelled':
+                    order.cancelled_date = timezone.now().date()
                 order.save()
-                order.save()
+
                 messages.success(request, f'Order {old_order_id} Edited.')
 
                 # If the order is completed, update InventoryDetailsDate
@@ -1424,9 +1551,114 @@ def editOrder(request):
                         product__product_id=order.product.product_id,
                         user=current_user_id
                     ).update(
-                        quantity=F('quantity') - F('quantity_deducted')
+                        quantity=F('quantity') - Decimal(edit_quantity)
                     )
+                    messages.success(request,f"Inventory Updated for product: {order.product.product_name}.")
 
+                print("old_quantity", old_quantity)
+                print("new quantity", order.quantity)
+                print("type of old_quantity:", type(int(order.quantity)))
+                
+                if order.ordered_date != old_ordered_date and order.quantity != old_quantity:
+                    # If both order date and quantity changed
+                    # Deduct quantity from old order date
+                    old_product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=old_ordered_date)
+                    old_product_stat.order_quantity = str(int(old_product_stat.order_quantity or 0) - int(old_quantity))
+                    old_product_stat.save()
+
+                    # Add quantity to new order date
+                    new_product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=order.ordered_date)
+                    new_product_stat.order_quantity = str(int(new_product_stat.order_quantity or 0) + int(order.quantity))
+                    new_product_stat.save()
+                    messages.success(request,f"Statistics Updated for product: {order.product.product_name}.")
+
+                elif order.ordered_date != old_ordered_date:
+                    # If only order date changed
+                    # Deduct quantity from old order date
+                    old_product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=old_ordered_date)
+                    old_product_stat.order_quantity = str(int(old_product_stat.order_quantity or 0) - int(old_quantity))
+                    old_product_stat.save()
+
+                    # Add quantity to new order date
+                    new_product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=order.ordered_date)
+                    new_product_stat.order_quantity = str(int(new_product_stat.order_quantity or 0) + int(old_quantity))  # Adding the old quantity
+                    new_product_stat.save()
+                    messages.success(request,f"Statistics Updated for product: {order.product.product_name}.")
+
+                elif order.quantity != old_quantity:
+                    # If only quantity changed
+                    product_stat, created = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=order.ordered_date)
+                    product_stat.order_quantity = str(int(product_stat.order_quantity or 0) - (int(order.quantity) - int(old_quantity)))
+                    product_stat.save()
+                    messages.success(request,f"Statistics Updated for product: {order.product.product_name}.")
+
+                
+                if edit_status != old_status:
+                    if edit_status.lower() == 'completed':
+                        # Get the current date
+                        current_date = timezone.now().date()
+
+                        # Get or create the ProductStatistic object
+                        product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=current_date)
+
+                        # Update the completed quantity
+                        product_stat.completed_quantity = str(int(product_stat.completed_quantity or 0) + int(order.quantity))
+                        product_stat.save()
+
+                        # Provide success message based on status
+                        if edit_status.lower() == 'completed':
+                            messages.success(request, f"Completed quantity updated for product: {order.product.product_name}.")
+                        else:
+                            messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
+                    elif edit_status.lower() == 'cancelled':
+                        # Get the current date
+                        current_date = timezone.now().date()
+
+                        # Get or create the ProductStatistic object
+                        product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=current_date)
+
+                        # Update the completed quantity
+                        product_stat.cancelled_quantity = str(int(product_stat.cancelled_quantity or 0) + int(order.quantity))
+                        product_stat.save()
+
+                        # Provide success message based on status
+                        if edit_status.lower() == 'completed':
+                            messages.success(request, f"Completed quantity updated for product: {order.product.product_name}.")
+                        else:
+                            messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
+
+
+#                 if order.quantity != old_quantity:
+                    
+# # Calculate difference in quantity
+#                     quantity_diff = old_quantity - int(order.quantity)
+                    
+#                     # Update ProductStatistics based on quantity change
+#                     product_stat, created = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=order.ordered_date)
+#                     if product_stat.order_quantity == "":
+#                         product_stat.order_quantity = 0
+                        
+
+#                     if product_stat.order_quantity == 0:
+#                         final_quantity = order.quantity
+#                         product_stat.order_quantity = str(final_quantity)
+#                         product_stat.save()
+                    
+#                     elif quantity_diff < 0:
+#                         final_quantity = int(product_stat.order_quantity) + abs(quantity_diff)
+#                         product_stat.order_quantity = str(final_quantity)
+#                         product_stat.save()
+#                     else:
+#                         print("else\n")
+#                         print("product_stat.order_quantity", product_stat.order_quantity)
+#                         print("quantity_diff", quantity_diff)
+#                         final_quantity = int(product_stat.order_quantity) - abs(quantity_diff)
+#                         product_stat.order_quantity =str(abs(final_quantity))
+#                         product_stat.save()
+                     
+
+
+                # messages.success(request, 'New Order Added')
                 return HttpResponseRedirect('/orders')
             except IntegrityError:
                 return HttpResponse("An error occurred while editing the order details")
@@ -1769,6 +2001,19 @@ def addItems(request):
             # Handle the IntegrityError, log it, or display an error message
             messages.error(request, f"IntegrityError: {str(e)}")
             return redirect(request.session['referring_page'])
+        
+        try:
+            # Update product statistics
+            ProductStatistics.objects.update_or_create(
+                product_id=product,
+                date=current_date,
+                defaults={
+                    'production_quantity': F('production_quantity') + int(quantity)
+                }
+            )
+        except Exception as e:
+            messages.error(request, f"Error updating product statistics: {str(e)}")
+            return redirect(request.session['referring_page'])
 
         try:
             # Try to get existing entry in Order
@@ -1837,11 +2082,7 @@ def editItems(request):
                 new_quantity_added = existing_quantity_added
                 quantity_added = 0
 
-            # if quantity_deducted != "":
-            #     new_quantity_deducted = existing_quantity_deducted + quantity_deducted
-            # else:
-            #     new_quantity_deducted = existing_quantity_deducted
-            #     quantity_deducted = 0
+         
                 
             if quantity_deducted != "":
                 new_quantity_deducted = quantity_deducted
@@ -1893,6 +2134,10 @@ def editItems(request):
                     
 
                 product = existing_data_history.product_id
+                ProductStatistics.objects.filter(product=existing_data_history.product_id, date=date).update(
+                    production_quantity=F('production_quantity') + quantity_added,
+                    deduction_quantity=F('deduction_quantity') + quantity_deducted
+                )
                 messages.success(request, "Inventory Updated")
                 print("Product", product)
             
@@ -1920,180 +2165,7 @@ def editItems(request):
         return redirect(request.session['referring_page'])
 
     return render(request, 'inventoryhistory.html')
-# def editItems(request):
-#     if request.method == 'POST':
-#         request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
-#         inventory_id = request.POST.get('edit_inventory_id', '')
-#         quantity_added = request.POST.get('edit_quantity_added', '')
-#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
-#         price = request.POST.get('edit_price_inventory', '')
-#         operation = request.POST.get('edit_operation', '')
-#         current_user_id = request.user.added_by
-#         print("test", price)
-    
-#         try:
-#             # Convert quantity_added and quantity_deducted to integers
-#             if quantity_added != "":
-#                 quantity_added = int(quantity_added)
-#             if quantity_deducted != "":
-#                 quantity_deducted = int(quantity_deducted)
-#         except ValueError:
-#             messages.error(request, "Invalid quantity value")
-#             return redirect(request.session['referring_page'])
-        
-#         try:
-#             check_negative_values({
-#                 'Quantity Added': Decimal(quantity_added) if quantity_added != "" else 0,
-#                 'Quantity Deducted': Decimal(quantity_deducted) if quantity_deducted != "" else 0
-#             })
-#         except ValueError as ve:
-#             messages.error(request, str(ve))
-#             return redirect(request.session['referring_page'])
 
-#         try:
-#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
-#             existing_quantity_added = int(existing_data_history.quantity_added)
-#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
-#             date = existing_data_history.date
-
-#             if quantity_added != "":
-#                 new_quantity_added = existing_quantity_added + quantity_added
-#             else:
-#                 new_quantity_added = existing_quantity_added
-
-#             if quantity_deducted != "":
-#                 new_quantity_deducted = existing_quantity_deducted + quantity_deducted
-#             else:
-#                 new_quantity_deducted = existing_quantity_deducted
-
-#             if new_quantity_deducted > existing_quantity_added:
-#                 messages.error(request, "Deducted quantity cannot be greater than available quantity")
-#                 return redirect(request.session['referring_page'])
-
-#             # Check if there are no changes in quantity added, quantity deducted, and price
-#             if new_quantity_added == existing_quantity_added and new_quantity_deducted == existing_quantity_deducted and price == existing_data_history.price:
-#                 messages.info(request, "No changes in quantity added, quantity deducted, and price.")
-#                 return redirect(request.session['referring_page'])
-#             else:
-
-#                 # Update inventory details based on changes
-#                 existing_data_history.quantity_added = new_quantity_added
-#                 existing_data_history.quantity_deducted = new_quantity_deducted
-#                 existing_data_history.quantity = new_quantity_added - new_quantity_deducted
-#                 existing_data_history.price = price if price != "" else existing_data_history.price
-#                 existing_data_history.save()
-
-#                 product = existing_data_history.product_id
-#                 messages.success(request, "Inventory Updated")
-#                 print("Product", product)
-            
-#             try:
-#                 existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id)
-#                 if existing_data_order_info.exists():
-#                     for order_info in existing_data_order_info:
-#                         order_info.price = price if price else order_info.price
-#                         order_info.save()
-
-#                         order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
-#                         order_info.save()
-
-#                     messages.success(request, "Orders Updated")
-#                 else:
-#                     messages.warning(request, "No orders for the current date and conditions")
-
-#             except IntegrityError as e:
-#                 messages.error(request, f"IntegrityError: {str(e)}")
-#                 return redirect(request.session['referring_page'])
-
-#         except InventoryDetailsDate.DoesNotExist:
-#             messages.error(request, "Inventory does not exist for editing")
-
-#         return redirect(request.session['referring_page'])
-
-#     return render(request, 'inventoryhistory.html')
-
-# def editItems(request):
-#     if request.method == 'POST':
-#         request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
-#         inventory_id = request.POST.get('edit_inventory_id', '')
-#         # product = request.POST.get('product_dropdown', '')
-#         quantity_added = request.POST.get('edit_quantity_added', '')
-#         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
-#         price = request.POST.get('edit_price_inventory', '')
-#         operation = request.POST.get('edit_operation', '')
-#         current_user_id = request.user.added_by
-#         print("test",price)
-    
-#         try:
-#             # Convert quantity_added and quantity_deducted to integers
-#             quantity_added = int(quantity_added)
-#             quantity_deducted = int(quantity_deducted)
-#         except ValueError:
-#             messages.error(request, "Invalid quantity value")
-#             # return redirect(request.path)  # Redirect to the same page
-#             return redirect(request.session['referring_page'])
-        
-#         try:
-#             check_negative_values({
-#             'Quantity Added': Decimal(quantity_added),
-#             'Quantity Deducted': Decimal(quantity_deducted)
-#             })
-#         except ValueError as ve:
-#             messages.error(request, str(ve))
-#             return redirect(request.session['referring_page'])
-
-#         try:
-#             existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
-#             existing_quantity_added = int(existing_data_history.quantity_added)
-#             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
-#             date = existing_data_history.date
-
-#             new_quantity_added = existing_quantity_added + quantity_added
-#             new_quantity_deducted = existing_quantity_deducted + quantity_deducted
-
-#             if new_quantity_deducted > existing_quantity_added:
-#                 messages.error(request, "Deducted quantity cannot be greater than available quantity")
-#                 return redirect(request.session['referring_page'])
-
-#             # Update inventory details based on changes
-#             existing_data_history.quantity_added = new_quantity_added
-#             existing_data_history.quantity_deducted = new_quantity_deducted
-#             existing_data_history.quantity = new_quantity_added - new_quantity_deducted
-#             exisiting_price = existing_data_history.price 
-#             print(exisiting_price)
-#             if price != "":
-#                 existing_data_history.price = price
-            
-
-#             existing_data_history.save()
-
-#             product=existing_data_history.product_id 
-#             existing_data_history.save()    
-#             print("Product", product)
-#             try:
-#                 existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id)
-#                 if existing_data_order_info.exists():
-#                     for order_info in existing_data_order_info:
-#                         order_info.price = price if price else order_info.price
-#                         order_info.save()
-
-#                         order_info.total_price = str(int(order_info.quantity) * int(order_info.price))
-#                         order_info.save()
-
-#                     messages.success(request, "Orders Updated")
-#                 else:
-#                     messages.warning(request, "No orders for the current date and conditions")
-
-#             except IntegrityError as e:
-#                 messages.error(request, f"IntegrityError: {str(e)}")
-#                 return redirect(request.session['referring_page'])
-
-#         except InventoryDetailsDate.DoesNotExist:
-#             messages.error(request, "Inventory does not exist for editing")
-
-#         return redirect(request.session['referring_page'])
-
-#     return render(request, 'inventoryhistory.html')
 
 @login_required
 def getItems(request):

@@ -51,19 +51,19 @@
                 {% for product in products %}
 
                 <tr>
-                  <td scope="row">{{ forloop.counter }}</td>
-                  <td>{{product.product_id}}</td>
-                  <td>
+                  <td data-label="#" scope="row">{{ forloop.counter }}</td>
+                  <td data-label="Product Id">{{product.product_id}}</td>
+                  <td data-label="Category">
                     {% for category in categories %}
                         {% if category.id == product.category_id %}
                             {{ category.category }}
                         {% endif %}
                     {% endfor %}
                 </td>                  
-                <td>{{product.product_name}}</td>
-                  <td>{{product.product_description}}</td>
+                <td data-label="Product">{{product.product_name}}</td>
+                  <td data-label="Description">{{product.product_description}}</td>
                   {% if user.userrole == 'admin' %}
-                  <td>
+                  <td data-label="Actions">
                     <div style="display: flex; align-items: center; margin-left: 35%">
                       <a
                         href=""

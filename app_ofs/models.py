@@ -97,6 +97,7 @@ class Order(models.Model):
     ordered_date = models.DateField(null=True)
     delivery_date = models.DateField(null=True)
     completed_date = models.DateField(null=True)
+    cancelled_date = models.DateField(null=True)
     price = models.CharField(max_length=50, null=True)
     status = models.CharField(max_length=50, null=True)
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, db_column='product_id', related_name='order_info', to_field='product_id')
@@ -120,3 +121,20 @@ class ForecastData(models.Model):
     ordered_date = models.DateField()
     class Meta:
         db_table = 'forecast_data'
+
+class ProductStatistics(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, db_column='product_id', related_name='product_statistics', to_field='product_id')
+    order_quantity = models.CharField(max_length=50, default='')
+    completed_quantity = models.CharField(max_length=50, default='')
+    cancelled_quantity = models.CharField(max_length=50, default='')
+    pending_quantity = models.CharField(max_length=50, default='')
+    ongoing_quantity = models.CharField(max_length=50, default='')
+    production_quantity = models.CharField(max_length=50, default='')
+    deduction_quantity = models.CharField(max_length=50, default='')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    date = models.DateField()
+    def __str__(self):
+        return f'Statistics for {self.product.product_id}'
+
+    class Meta:
+        db_table = 'product_statistics'

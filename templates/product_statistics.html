@@ -1,0 +1,109 @@
+{%extends "base.html" %} {% block title %} Dashboard {% endblock %} 
+{% block content %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
+
+
+
+<nav>{%include "components/navbar.html" %}</nav>
+<div>{%include "components/sidebar.html" %}</div>
+
+<div  class="d-block" id="main">
+    <div class="container pt-3">
+        <hr>
+        <div>
+            <form id="productStatisticsForm">
+                <select id="categorySelect" name="category">
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.category }}</option>
+                    {% endfor %}
+                </select>
+                <select id="productSelect" name="product">
+                    <option value="">Select Product</option>
+                    {% for product in products %}
+                        <option value="{{ product.product_id }}">{{ product.product_name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Order Quantity</th>
+                    <th>Completed Quantity</th>
+                    <th>Pending Quantity</th>
+                    <th>Ongoing Quantity</th>
+                    <th>Cancelled Quantity</th>
+                    <th>Production Quantity</th>
+                    <th>Deduction Quantity</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product_statistic in product_statistics %}
+                <tr>
+                    <td>{{ product_statistic.product.product_name }}</td>
+                    <td>{{ product_statistic.order_quantity }}</td>
+                    <td>{{ product_statistic.completed_quantity }}</td>
+                    <td>{{ product_statistic.pending_quantity }}</td>
+                    <td>{{ product_statistic.ongoing_quantity }}</td>
+                    <td>{{ product_statistic.cancelled_quantity }}</td>
+                    <td>{{ product_statistic.production_quantity }}</td>
+                    <td>{{ product_statistic.deduction_quantity }}</td>
+                    <td>{{ product_statistic.date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+ document.getElementById('categorySelect').addEventListener('change', function() {
+            var categoryId = this.value;
+            console.log("test", categoryId);
+            if (categoryId) {
+                fetchProducts(categoryId);
+            } else {
+                resetProductSelect();
+            }
+        });
+
+        function fetchProducts(categoryId) {
+    fetch('/get-products/?category=' + categoryId)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            var productSelect = document.getElementById('productSelect');
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            data.forEach(product => {
+                var option = document.createElement('option');
+                option.value = product.product_id;
+                option.text = product.product_name;
+                productSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching products:', error);
+            // Handle the error gracefully, such as displaying an error message to the user
+        });
+}
+
+
+        function resetProductSelect() {
+            var productSelect = document.getElementById('productSelect');
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+        }
+</script>
+
+
+{% load static %} {% endblock %}

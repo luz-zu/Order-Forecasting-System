@@ -157,8 +157,8 @@ table {
 
 th,
 td {
-  border: 1px solid #585858a6;
-  padding: 8px;
+  border-bottom: 1px solid #c9c1c1a6;
+   /*padding: 8px; */
 }
 
 table tr,
@@ -166,7 +166,7 @@ table th,
 table td {
   background-color: white;
   text-align: center;
-  padding: 1rem;
+  padding: 12px;
 }
 
 table th {
@@ -178,6 +178,107 @@ table th {
 tr:nth-child(even) {
   background: #ebebeb;
 }
+
+/*  */
+@media screen and (max-width: 600px) {
+  table {
+    border: 0;
+  }
+
+  table caption {
+    font-size: 1.3em;
+  }
+  
+  table thead {
+    border: none;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+  
+  table tr {
+    border-bottom: 3px solid #ddd;
+    display: block;
+    margin-bottom: .625em;
+  }
+  
+  table td {
+    color: black;
+    border-bottom: 1px solid #ddd;
+    display: block;
+    font-size: .8em;
+    text-align: right;
+  }
+  
+  table td::before {
+    /*
+    * aria-label has no advantage, it won't be read inside a table
+    content: attr(aria-label);
+    */
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  
+  table td:last-child {
+    border-bottom: 0;
+  }
+}
+/*  */
+
+/*  */
+@media screen and (max-width: 800px) {
+  #order-table, #order-completed-table, #order-cancelled-table, #inventoryhistory-table {
+    border: 0;
+  }
+
+  #order-table thead, #order-completed-table thead, #order-cancelled-table thead, #inventoryhistory-table thead{
+    border: none;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+  
+  #order-table tr, #order-completed-table tr, #order-cancelled-table tr, #inventoryhistory-table tr{
+    border-bottom: 3px solid #ddd;
+    display: block;
+    margin-bottom: .625em;
+  }
+  
+  #order-table td, #order-completed-table td, #order-cancelled-table td, #inventoryhistory-table td{
+    color: black;
+    border-bottom: 1px solid #ddd;
+    display: block;
+    font-size: .8em;
+    text-align: right;
+  }
+  
+  #order-table td::before, #order-completed-table td::before, #order-cancelled-table td::before, #inventoryhistory-table td::before{
+    /*
+    * aria-label has no advantage, it won't be read inside a table
+    content: attr(aria-label);
+    */
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  
+  #order-table td:last-child, #order-completed-table td:last-child, #order-cancelled-table td:last-child, #inventoryhistory-table td:last-child{
+    border-bottom: 0;
+  }
+}
+/*  */
+
 
 .product .card-title_ {
   color: #1d2951;

@@ -9,19 +9,12 @@
 <div>
     {%include "components/sidebar.html" %}
 </div>
-<script>
-  // Hide messages after 10 seconds
-  setTimeout(function() {
-      var messagesContainer = document.querySelector('.messages');
-      if (messagesContainer) {
-          messagesContainer.style.display = 'none';
-      }
-  }, 10000); // 10 seconds
-</script>
+
 
     <div class="d-block" id="main">
     <div class=" container pt-3" >
      
+      
       <hr>
       <div class="d-md-flex d-block pt-3 justify-content-between">
         <div>
@@ -39,7 +32,7 @@
       <div class="col-12">
         <div  class="table-responsive" >
           <table id="category-table" >
-            <!-- <thead> -->
+            <thead>
               <tr>
                 <th >#</th>
                 <th >Category Id</th>
@@ -48,14 +41,14 @@
                   <th >Actions</th>
                 {% endif %}
               </tr>
-            <!-- </thead> -->
+            </thead>
               {% for category in categories %}
                 <tr>
-                    <td >{{ forloop.counter }}</td>
-                    <td>{{ category.id }}</td>
-                    <td>{{ category.category }}</td>
+                    <td data-label="#">{{ forloop.counter }}</td>
+                    <td data-label="Category Id">{{ category.id }}</td>
+                    <td data-label="Category">{{ category.category }}</td>
                     {% if user.userrole == 'admin' %}
-                      <td>
+                      <td class="Actions">
                         <a href="#" data-bs-toggle="modal" data-bs-target="#edit_category" data-bs-whatever="edit_category" data-category-id="{{ category.id }}" data-category-name="{{ category.category }}">
                           <i class="fa-solid fa-pen-to-square pe-2 me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"></i>
                         </a>

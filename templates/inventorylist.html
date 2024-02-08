@@ -46,10 +46,9 @@
                         <tbody>
                             {% for item in items %}
                             <tr>
-                                <td scope="row">{{ forloop.counter }}</td>
-                                <td>{{ item.product_name }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <!-- <td>{{ item.price }}</td> -->
+                                <td data-label="#" scope="row">{{ forloop.counter }}</td>
+                                <td data-label="Product">{{ item.product_name }}</td>
+                                <td data-label="Quantity">{{ item.quantity }}</td>
                                 
                             </tr>
                             {% endfor %}
