@@ -670,24 +670,68 @@ def get_products(request):
 #                'categories': categories}
 #     return render(request, 'product_statistics.html', context)
 
+# def productStatistics(request):
+#     if request.method == 'GET':
+#         categories = category.objects.filter(userid=request.user)
+#         products = []  # Placeholder for products
+#         latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
+#         start_date = latest_date_entry + timedelta(days=1)
+#         end_date = date.today()
+
+#         for dt in daterange(start_date, end_date):
+#             generate_statistics_for_date(dt)
+
+#         if 'category' in request.GET:
+#             category_id = request.GET.get('category_id')
+#             if category_id:
+#                 products = Product.objects.filter(category_id=category_id)
+
+#         product_statistics = ProductStatistics.objects.all()
+
+#         context = {
+#             'product_statistics': product_statistics,
+#             'categories': categories,
+#             'products': products
+#         }
+#         return render(request, 'product_statistics.html', context)
+
 def productStatistics(request):
     if request.method == 'GET':
+        current_user_id = request.user.id
         categories = category.objects.filter(userid=request.user)
         products = []  # Placeholder for products
+
+        # Calculate the start date as the latest date available in ProductStatistics
         latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
+        end_date = date.today() - timedelta(days=1)  # Yesterday's date
         start_date = latest_date_entry + timedelta(days=1)
-        end_date = date.today()
 
+        # Generate statistics for each date within the range
         for dt in daterange(start_date, end_date):
-            generate_statistics_for_date(dt)
+            generate_statistics_for_date(current_user_id,dt)
 
-        if 'category' in request.GET:
+        # If start_date is after yesterday, generate statistics only for today
+        if start_date > end_date:
+            generate_statistics_for_date(current_user_id,date.today())
+
+        # Retrieve products filtered by category if provided in the request
+        if 'category_id' in request.GET:
             category_id = request.GET.get('category_id')
             if category_id:
                 products = Product.objects.filter(category_id=category_id)
 
+        # Update pending and ongoing quantities for dates before today
+        orders_until_yesterday = Order.objects.filter(added_on__lt=date.today())
+        for order in orders_until_yesterday:
+            if order.status == 'pending':
+                ProductStatistics.objects.filter(date__lt=date.today()).update(pending_quantity=F('pending_quantity') + order.quantity)
+            elif order.status == 'ongoing':
+                ProductStatistics.objects.filter(date__lt=date.today()).update(ongoing_quantity=F('ongoing_quantity') + order.quantity)
+
+        # Retrieve all product statistics
         product_statistics = ProductStatistics.objects.all()
 
+        # Add pending and ongoing quantities to context
         context = {
             'product_statistics': product_statistics,
             'categories': categories,
@@ -704,35 +748,43 @@ def get_products(request):
 
     data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
     return JsonResponse(data, safe=False)
-def generate_statistics_for_date(current_date):
-    for user in CustomUser.objects.all():
-        for product in Product.objects.all():
-            existing_statistic = ProductStatistics.objects.filter(user_id=user.id, product_id=product.product_id, date=current_date).first()
-            if not existing_statistic:
-                product_statistic = ProductStatistics.objects.create(
-                    user_id=user.id,
-                    product_id=product.product_id,
-                    date=current_date,
-                    order_quantity=0,
-                    completed_quantity=0,
-                    pending_quantity=0,
-                    ongoing_quantity=0,
-                    production_quantity=0,
-                    deduction_quantity=0
-                )
+def generate_statistics_for_date(current_user_id, current_date):
+    # Get all products for the current user
+    user_products = Product.objects.filter(user_id=current_user_id)
+    
+    # Iterate over each product
+    for product in user_products:
+        # Check if statistics already exist for the current date and product
+        existing_statistic = ProductStatistics.objects.filter(user_id=current_user_id, product_id=product.product_id, date=current_date).first()
+        if not existing_statistic:
+            product_statistic = ProductStatistics.objects.create(
+                user_id=current_user_id,
+                product_id=product.product_id,
+                date=current_date,
+                order_quantity=0,
+                completed_quantity=0,
+                pending_quantity=0,
+                ongoing_quantity=0,
+                production_quantity=0,
+                deduction_quantity=0
+            )
 
-                yesterday_orders = Order.objects.filter(product_id=product, added_on=current_date - timedelta(days=1))
-                for order in yesterday_orders:
-                    if order.status == 'Pending':
-                        product_statistic.pending_quantity += order.quantity
-                    elif order.status == 'Ongoing':
-                        product_statistic.ongoing_quantity += order.quantity
-                
-                product_statistic.save()
+            # Update quantities based on orders for the previous day
+            yesterday_orders = Order.objects.filter(product_id=product, added_on=current_date - timedelta(days=1))
+            for order in yesterday_orders:
+                if order.status == 'Pending':
+                    product_statistic.pending_quantity += order.quantity
+                elif order.status == 'Ongoing':
+                    product_statistic.ongoing_quantity += order.quantity
+            
+            product_statistic.save()
+
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days) + 1):
         yield start_date + timedelta(n)
+
+
 @login_required
 def staff(request):
     current_user_id = request.user.added_by
@@ -984,28 +1036,35 @@ def getProduct(request):
     categories = category.objects.filter(userid_id=current_user)
     search_query = request.GET.get('q')
 
+    # Initialize products_search
+    products_search = None
+
     if search_query:
-        products = products.filter(
+        products_search = products.filter(
             Q(product_id__icontains=search_query) |
             Q(product_name__icontains=search_query) |
             Q(product_description__icontains=search_query) |
-           Q(category__category__icontains=search_query)
+            Q(category__category__icontains=search_query)
         )
 
-    
-    # Get the page number from the request's GET parameters
-    page = request.GET.get('page', 1)
+        # Paginate search results separately
+        paginator = Paginator(products_search, 20)
+        page = request.GET.get('page', 1)
+        products_search = paginator.get_page(page)
 
-    # Paginate the products with 20 items per page
-    paginated_products = paginate_data(products, page, 20)
+    else:
+        # Paginate all products
+        paginator = Paginator(products, 20)
+        page = request.GET.get('page', 1)
+        products = paginator.get_page(page)
 
     context = { 
-        'products': paginated_products,
+        'products': products,
+        'products_search': products_search,
         'categories': categories,
     }
-    
-    return render(request, 'products.html', context)
 
+    return render(request, 'products.html', context)
 @login_required
 def addProduct(request):
     if request.method == 'POST':

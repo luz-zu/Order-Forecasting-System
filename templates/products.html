@@ -41,7 +41,7 @@
                   <th scope="col">Product Id</th>
                   <th scope="col">Category</th>
                   <th scope="col">Product</th>
-                  <th scope="col">Description</th>
+                  <!-- <th scope="col">Description</th> -->
                   {% if user.userrole == 'admin' %}
                   <th scope="col">Actions</th>
                   {% endif %}
@@ -61,7 +61,7 @@
                     {% endfor %}
                 </td>                  
                 <td data-label="Product">{{product.product_name}}</td>
-                  <td data-label="Description">{{product.product_description}}</td>
+                  <!-- <td data-label="Description">{{product.product_description}}</td> -->
                   {% if user.userrole == 'admin' %}
                   <td data-label="Actions">
                     <div style="display: flex; align-items: center; margin-left: 35%">
@@ -166,7 +166,7 @@
               >
                 <option value="">Select a category</option>
                 {% for category in categories_list %}
-                <option value="{{ category.category_id }}">
+                <option value="{{ category.id }}">
                   {{ category.category_name }}
                 </option>
 
@@ -312,35 +312,58 @@
 <!-- Your script -->
 <script>
 
-  // Function to perform AJAX search and update the product table
-  function searchProducts() {
+
+
+function searchProducts() {
     var searchQuery = $('#table-filter').val();
     $.ajax({
-      url: '{% url "products" %}',
-      type: 'GET',
-      data: { q: searchQuery },
-      success: function(response) {
-        $('#product-table tbody').html($(response).find('tbody').html());
-      },
-      error: function(xhr, status, error) {
-        console.error(error);
-      }
+        url: '{% url "products" %}',
+        type: 'GET',
+        data: { q: searchQuery },
+        success: function(response) {
+            $('#product-table').html($(response).find('#product-table').html());
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+        }
     });
-  }
+}
 
-  $(document).ready(function() {
-    // Perform search when the search button is clicked
-    $('#search-button').click(function() {
-      searchProducts();
-    });
-
-    // Perform search when Enter key is pressed in the search input
-    $('#table-filter').keypress(function(event) {
-      if (event.keyCode === 13) {
+$(document).ready(function() {
+    // Function to handle search
+    function handleSearch() {
         searchProducts();
-      }
+    }
+
+        $('#table-filter').keypress(function(event) {
+        if (event.keyCode === 13) {
+            handleSearch();
+        }
     });
-  });
+
+    // Perform search when the search input value changes
+    $('#table-filter').on('input', function() {
+        handleSearch();
+    });
+
+    // Pagination click event (if pagination is dynamic)
+    $(document).on('click', '.pagination a', function(event) {
+        event.preventDefault();
+        var page_url = $(this).attr('href');
+        $.ajax({
+            url: page_url,
+            type: 'GET',
+            success: function(response) {
+                $('#product-table').html($(response).find('#product-table').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    });
+});
+
+
   function setProductDetails(productId, productName, productDescription) {
     document.getElementById('deleteProductId').value = productId;
     document.getElementById('deleteProductName').innerText = productName;
@@ -349,8 +372,7 @@
   function deleteProduct() {
     var productId = document.getElementById('deleteProductId').value;
 
-    // Perform an AJAX request to delete the product
-    // Use 'application/x-www-form-urlencoded' content type to send data as form data
+  
     fetch(`/delete_product/${productId}/`, {
       method: 'POST',
       headers: {

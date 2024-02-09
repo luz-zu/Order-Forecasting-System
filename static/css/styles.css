@@ -232,7 +232,7 @@ tr:nth-child(even) {
 /*  */
 
 /*  */
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 1000px) {
   #order-table, #order-completed-table, #order-cancelled-table, #inventoryhistory-table {
     border: 0;
   }

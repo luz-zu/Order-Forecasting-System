@@ -45,7 +45,7 @@
               {% for category in categories %}
                 <tr>
                     <td data-label="#">{{ forloop.counter }}</td>
-                    <td data-label="Category Id">{{ category.id }}</td>
+                    <td data-label="Category Id">{{ category.category_id }}</td>
                     <td data-label="Category">{{ category.category }}</td>
                     {% if user.userrole == 'admin' %}
                       <td class="Actions">
