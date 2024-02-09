@@ -153,35 +153,80 @@ if (typeof jQuery !== 'undefined') {
     console.error("jQuery is not loaded");
 }
 
-$(document).ready(function() {
-        // Perform search when the search button is clicked
-        $('#search-button').click(function() {
-            searchCategories();
-        });
+// $(document).ready(function() {
+//         // Perform search when the search button is clicked
+//         $('#search-button').click(function() {
+//             searchCategories();
+//         });
 
-        // Perform search when Enter key is pressed in the search input
-        $('#table-filter').keypress(function(event) {
-            if (event.keyCode === 13) {
-                searchCategories();
-            }
-        });
+//         // Perform search when Enter key is pressed in the search input
+//         $('#table-filter').keypress(function(event) {
+//             if (event.keyCode === 13) {
+//                 searchCategories();
+//             }
+//         });
 
-        // Function to perform AJAX search and update the category table
-        function searchCategories() {
-            var searchQuery = $('#table-filter').val();
-            $.ajax({
-                url: '{% url "category" %}',
-                type: 'GET',
-                data: { q: searchQuery },
-                success: function(response) {
-                    $('#category-table tbody').html($(response).find('tbody').html());
-                },
-                error: function(xhr, status, error) {
-                    console.error(error);
-                }
-            });
+//         // Function to perform AJAX search and update the category table
+//         function searchCategories() {
+//             var searchQuery = $('#table-filter').val();
+//             $.ajax({
+//                 url: '{% url "category" %}',
+//                 type: 'GET',
+//                 data: { q: searchQuery },
+//                 success: function(response) {
+//                     $('#category-table tbody').html($(response).find('tbody').html());
+//                 },
+//                 error: function(xhr, status, error) {
+//                     console.error(error);
+//                 }
+//             });
+//         }
+//     });
+  
+
+function searchCategories() {
+    var searchQuery = $('#table-filter').val();
+    $.ajax({
+        url: '{% url "category" %}',
+        type: 'GET',
+        data: { q: searchQuery },
+        success: function(response) {
+            $('#category-table').html($(response).find('#category-table').html());
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
         }
     });
+}
+
+$(document).ready(function() {
+    // Function to handle search
+    function handleSearch() {
+        searchCategories();
+    }
+
+    // Perform search when the search input value changes
+    $('#table-filter').on('input', function() {
+        handleSearch();
+    });
+
+    // Pagination click event (if pagination is dynamic)
+    $(document).on('click', '.pagination a', function(event) {
+        event.preventDefault();
+        var page_url = $(this).attr('href');
+        $.ajax({
+            url: page_url,
+            type: 'GET',
+            success: function(response) {
+                $('#category-table').html($(response).find('#category-table').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    });
+});
+
   </script>
 
 <script src="{% static 'script.js' %}"></script>

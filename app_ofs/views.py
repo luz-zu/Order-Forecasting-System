@@ -912,6 +912,28 @@ from .models import category, Product, InventoryDetails, InventoryDetailsDate, O
 @login_required
 
 
+# def get_category(request):
+#     current_user_id = request.user.added_by
+#     categories = category.objects.filter(userid=current_user_id)
+#     search_query = request.GET.get('q')
+
+#     if search_query:
+#         categories_search = categories.filter(Q(category__icontains=search_query) | Q(id__icontains=search_query))
+ 
+#     else:
+#         categories_search = None
+
+#     # Paginate categories
+#     paginator = Paginator(categories, 20)
+#     page = request.GET.get('page', 1)
+#     paginated_categories = paginator.get_page(page)
+
+#     context = {
+#         'categories': paginated_categories,
+#         'categories_search': categories_search,
+#         'search_query': search_query,
+#     }
+#     return render(request, 'category.html', context)
 def get_category(request):
     current_user_id = request.user.added_by
     categories = category.objects.filter(userid=current_user_id)
@@ -919,12 +941,21 @@ def get_category(request):
 
     if search_query:
         categories = categories.filter(Q(category__icontains=search_query) | Q(id__icontains=search_query))
-    page = request.GET.get('page', 1)
-    paginated_products = paginate_data(categories, page, 20)
+
+    # Paginate categories
+    paginator = Paginator(categories, 20)
+    page = request.GET.get('page')
+
+    try:
+        paginated_categories = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_categories = paginator.page(1)
+    except EmptyPage:
+        paginated_categories = paginator.page(paginator.num_pages)
 
     context = {
-        'categories': paginated_products,
-        'search_query': search_query,  
+        'categories': paginated_categories,
+        'search_query': search_query,
     }
     return render(request, 'category.html', context)
 
