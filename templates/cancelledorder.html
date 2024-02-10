@@ -128,6 +128,9 @@
       </div>
     </div>
   </div>
+
+  {%include "components/pagination.html"  with data=orders %}
+
 </div>
 
 
@@ -140,39 +143,76 @@
 
 
 <script>
-  function searchOrders() {
-    var searchQuery = $('#table-filter').val();
-    console.log("button")
-    $.ajax({
-        url: '{% url "getCancelledOrder" %}',
-        type: 'GET',
-        data: { q: searchQuery },
-        success: function(response) {
-            $('#order-cancelled-table tbody').html($(response).find('tbody').html());
-        },
-        error: function(xhr, status, error) {
-            console.error(error);
-        }
-    });
-}
+//   function searchOrders() {
+//     var searchQuery = $('#table-filter').val();
+//     console.log("button")
+//     $.ajax({
+//         url: '{% url "getCancelledOrder" %}',
+//         type: 'GET',
+//         data: { q: searchQuery },
+//         success: function(response) {
+//             $('#order-cancelled-table tbody').html($(response).find('tbody').html());
+//         },
+//         error: function(xhr, status, error) {
+//             console.error(error);
+//         }
+//     });
+// }
+
+// $(document).ready(function() {
+//     // Perform search when the search button is clicked
+//     $('#search-button').click(function() {
+      
+//         searchOrders();
+//     });
+
+//     // Perform search when Enter key is pressed in the search input
+//     $('#table-filter').keypress(function(event) {
+//         if (event.keyCode === 13) {
+//             console.log(12)
+//             searchOrders();
+//         }
+//     });
+// });
 
 $(document).ready(function() {
-    // Perform search when the search button is clicked
-    $('#search-button').click(function() {
-      
+    // Function to handle search while typing
+    $('#table-filter').on('input', function() {
         searchOrders();
     });
 
-    // Perform search when Enter key is pressed in the search input
-    $('#table-filter').keypress(function(event) {
-        if (event.keyCode === 13) {
-            console.log(12)
-            searchOrders();
-        }
+    // Function to perform search and update table
+    function searchOrders() {
+        var searchQuery = $('#table-filter').val();
+        $.ajax({
+            url: '{% url "getCancelledOrder" %}',
+            type: 'GET',
+            data: { q: searchQuery },
+            success: function(response) {
+                $('#order-cancelled-table tbody').html($(response).find('tbody').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
+    }
+
+    // Pagination click event (if pagination is dynamic)
+    $(document).on('click', '.pagination a', function(event) {
+        event.preventDefault();
+        var page_url = $(this).attr('href');
+        $.ajax({
+            url: page_url,
+            type: 'GET',
+            success: function(response) {
+                $('#order-cancelled-table').html($(response).find('#order-cancelled-table').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
     });
 });
-
-
 
 function prepareDeleteOrderForm(orderId) {
   document.getElementById("deleteOrderId").value = orderId;

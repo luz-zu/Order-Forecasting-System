@@ -20,6 +20,8 @@ from datetime import datetime, timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.template.loader import render_to_string
 from django.core.exceptions import ObjectDoesNotExist
+from django.template.defaultfilters import date as django_date_filter
+
 
 from django.db.models import Sum ,F, Count,Max,Q,ExpressionWrapper, IntegerField,Subquery, OuterRef,Q
 
@@ -648,7 +650,7 @@ def inventory(request):
 @login_required
 def get_products(request):
     if request.method == 'GET' and request.is_ajax():
-        category_id = request.GET.get('category')
+        category_id = request.GET.get('category') or request.GET.get('categorySelect_order_filter')
         if category_id:
             products = Product.objects.filter(category_id=category_id)
             product_data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
@@ -694,6 +696,28 @@ def get_products(request):
 #             'products': products
 #         }
 #         return render(request, 'product_statistics.html', context)
+from datetime import date, timedelta
+def update_product_statistics():
+    # Get yesterday's date
+    yesterday = date.today() - timedelta(days=1)
+
+    # Filter orders added until yesterday
+    orders_until_yesterday = Order.objects.filter(added_on__lte=yesterday)
+
+    # Loop through each order
+    for order in orders_until_yesterday:
+        # Get or create ProductStatistics for the order's date
+        product_statistic, created = ProductStatistics.objects.get_or_create(date=order.added_on, deleted_on__isnull = True)
+
+        # Update pending_quantity and ongoing_quantity based on order status
+        if order.status == 'Pending':
+            product_statistic.pending_quantity = F('pending_quantity') + order.quantity
+        elif order.status == 'Ongoing':
+            product_statistic.ongoing_quantity = F('ongoing_quantity') + order.quantity
+
+        # Save the updated ProductStatistics
+        product_statistic.save()
+# Call the function to update product statistics
 
 def productStatistics(request):
     if request.method == 'GET':
@@ -720,16 +744,14 @@ def productStatistics(request):
             if category_id:
                 products = Product.objects.filter(category_id=category_id)
 
-        # Update pending and ongoing quantities for dates before today
-        orders_until_yesterday = Order.objects.filter(added_on__lt=date.today())
-        for order in orders_until_yesterday:
-            if order.status == 'pending':
-                ProductStatistics.objects.filter(date__lt=date.today()).update(pending_quantity=F('pending_quantity') + order.quantity)
-            elif order.status == 'ongoing':
-                ProductStatistics.objects.filter(date__lt=date.today()).update(ongoing_quantity=F('ongoing_quantity') + order.quantity)
-
         # Retrieve all product statistics
         product_statistics = ProductStatistics.objects.all()
+
+        product_id = request.GET.get('product')
+        if product_id:
+            product_statistics = ProductStatistics.objects.filter(product_id=product_id)
+        else:
+            product_statistics = ProductStatistics.objects.none()
 
         # Add pending and ongoing quantities to context
         context = {
@@ -740,7 +762,7 @@ def productStatistics(request):
         return render(request, 'product_statistics.html', context)
 
 def get_products(request):
-    category_id = request.GET.get('category')
+    category_id = request.GET.get('category') 
     if category_id:
         products = Product.objects.filter(category_id=category_id)
     else:
@@ -763,19 +785,12 @@ def generate_statistics_for_date(current_user_id, current_date):
                 date=current_date,
                 order_quantity=0,
                 completed_quantity=0,
-                pending_quantity=0,
-                ongoing_quantity=0,
+                cancelled_quantity=0,
+
                 production_quantity=0,
                 deduction_quantity=0
             )
 
-            # Update quantities based on orders for the previous day
-            yesterday_orders = Order.objects.filter(product_id=product, added_on=current_date - timedelta(days=1))
-            for order in yesterday_orders:
-                if order.status == 'Pending':
-                    product_statistic.pending_quantity += order.quantity
-                elif order.status == 'Ongoing':
-                    product_statistic.ongoing_quantity += order.quantity
             
             product_statistic.save()
 
@@ -1077,11 +1092,12 @@ def getProduct(request):
             Q(product_description__icontains=search_query) |
             Q(category__category__icontains=search_query)
         )
+        context = { 
+            'search_query': search_query,
+            'products': products_search,
+            'categories': categories,
+        }
 
-        # Paginate search results separately
-        paginator = Paginator(products_search, 20)
-        page = request.GET.get('page', 1)
-        products_search = paginator.get_page(page)
 
     else:
         # Paginate all products
@@ -1089,11 +1105,10 @@ def getProduct(request):
         page = request.GET.get('page', 1)
         products = paginator.get_page(page)
 
-    context = { 
-        'products': products,
-        'products_search': products_search,
-        'categories': categories,
-    }
+        context = { 
+            'products': products,
+            'categories': categories,
+        }
 
     return render(request, 'products.html', context)
 @login_required
@@ -1248,46 +1263,109 @@ from datetime import datetime, timedelta
 
 @login_required
 
+# def getOrder(request):
+#     current_user = request.user
+
+#     orders = Order.objects.filter(
+#         user_id=current_user,
+#         status__in=['Ongoing', 'Pending'],
+#         deleted_on__isnull=True
+#     ).select_related('product').order_by('-id')
+
+#     for order in orders:
+#         delivery_date = order.delivery_date
+#         current_date = timezone.now().date()
+
+#         if delivery_date < current_date:
+#             order.status = 'Pending'
+#             order.save()
+#         elif delivery_date == current_date or delivery_date > current_date:
+#             order.status = 'Ongoing'
+#             order.save()
+
+#     search_query = request.GET.get('q')
+
+#     if search_query:
+#         orders = orders.filter(
+#             Q(order_id__icontains=search_query) |
+#             Q(quantity__icontains=search_query) |
+#             Q(ordered_date__icontains=search_query) |
+#             Q(delivery_date__icontains=search_query) |
+#             Q(completed_date__icontains=search_query) |
+#             Q(price__icontains=search_query) |
+#             Q(status__icontains=search_query) |
+#             Q(product__product_name__icontains=search_query)  # Search by product name (assuming it's a field in Product)
+#         )
+#     page = request.GET.get('page', 1)
+#     paginated_orders = paginate_data(orders, page, 20)
+#     context = {
+#         'orders': paginated_orders,
+#     }
+
+#     return render(request, 'orders.html', context)
+
 def getOrder(request):
+    categories = category.objects.filter(userid=request.user)
     current_user = request.user
 
+    # Retrieve all orders for the current user with status 'Ongoing' or 'Pending' and not deleted
     orders = Order.objects.filter(
         user_id=current_user,
         status__in=['Ongoing', 'Pending'],
         deleted_on__isnull=True
     ).select_related('product').order_by('-id')
 
+    # Update the status of orders based on delivery date
+    current_date = timezone.now().date()
     for order in orders:
         delivery_date = order.delivery_date
-        current_date = timezone.now().date()
-
         if delivery_date < current_date:
             order.status = 'Pending'
             order.save()
-        elif delivery_date == current_date or delivery_date > current_date:
+        elif delivery_date >= current_date:
             order.status = 'Ongoing'
             order.save()
 
     search_query = request.GET.get('q')
 
     if search_query:
-        orders = orders.filter(
+        # Filter orders based on the search query
+        orders_search = orders.filter(
             Q(order_id__icontains=search_query) |
             Q(quantity__icontains=search_query) |
-            Q(ordered_date__icontains=search_query) |
-            Q(delivery_date__icontains=search_query) |
-            Q(completed_date__icontains=search_query) |
             Q(price__icontains=search_query) |
             Q(status__icontains=search_query) |
             Q(product__product_name__icontains=search_query)  # Search by product name (assuming it's a field in Product)
         )
-    page = request.GET.get('page', 1)
-    paginated_orders = paginate_data(orders, page, 20)
-    context = {
-        'orders': paginated_orders,
-    }
+
+
+        # No pagination for search results
+        context = {
+            'orders': orders_search,
+            'search_query': search_query,
+            'categories':categories
+        }
+    else:
+        # Paginate orders for display
+        page = request.GET.get('page', 1)
+        paginated_orders = paginate_data(orders, page, 20)
+        context = {
+            'orders': paginated_orders,
+            'categories':categories
+        }
 
     return render(request, 'orders.html', context)
+
+def get_products_by_category(request):
+    category_id = request.GET.get('categorySelect_order_filter')
+    if category_id:
+        products = Product.objects.filter(category_id=category_id)
+        product_options = ''
+        for product in products:
+            product_options += f'<option value="{product.product_id}">{product.product_name}</option>'
+        return JsonResponse({'products': product_options})
+    return JsonResponse({'products': ''})
+
 
 @login_required
 
@@ -1303,20 +1381,28 @@ def getCompletedOrder(request):
         completed_orders = completed_orders.filter(
             Q(order_id__icontains=search_query) |
             Q(quantity__icontains=search_query) |
-            Q(ordered_date__icontains=search_query) |
-            Q(delivery_date__icontains=search_query) |
-            Q(completed_date__icontains=search_query) |
+
             Q(price__icontains=search_query) |
             Q(status__icontains=search_query) |
             Q(product__product_name__icontains=search_query)  # Search by product name (assuming it's a field in Product)
         )
-    
-    page = request.GET.get('page', 1)
-    paginated_orders = paginate_data(completed_orders, page, 20)
+        for order in paginated_orders:
+            order.ordered_date = order.ordered_date.strftime("%b %d, %Y")
+            order.delivery_date = order.delivery_date.strftime("%b %d, %Y")
+            order.completed_date = order.completed_date.strftime("%b %d, %Y")
 
-    context = {
-        'orders': paginated_orders,
-    }
+        context = {
+            'orders': completed_orders,
+            'search_query': search_query,
+        }
+    else:
+        page = request.GET.get('page', 1)
+        paginated_orders = paginate_data(completed_orders, page, 20)
+
+        context = {
+            'orders': paginated_orders,
+            'search_query':search_query,
+        }
 
     return render(request, 'completedorder.html', context)
 
@@ -1325,33 +1411,79 @@ def getCompletedOrder(request):
 def getCancelledOrder(request):
     current_user_id = request.user.added_by
 
-    # Retrieve completed orders using Django ORM
-    cancelled_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled',deleted_on__isnull=True).select_related('product').order_by('-id')
+    cancelled_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled').order_by('-id')
+    
     search_query = request.GET.get('q')
+
 
     if search_query:
         cancelled_orders = cancelled_orders.filter(
             Q(order_id__icontains=search_query) |
             Q(quantity__icontains=search_query) |
-            Q(ordered_date__icontains=search_query) |
-            Q(delivery_date__icontains=search_query) |
-            Q(completed_date__icontains=search_query) |
+
             Q(price__icontains=search_query) |
             Q(status__icontains=search_query) |
             Q(product__product_name__icontains=search_query)
 
         )
-    page = request.GET.get('page', 1)
-    paginated_orders = paginate_data(cancelled_orders, page, 20)
-    
-    context = {
-        'orders': paginated_orders,
-    }
-    
+        context = {
+            'orders': cancelled_orders,
+            'search_query': search_query,
+        }
+    else:
+        page = request.GET.get('page', 1)
+        paginated_orders = paginate_data(cancelled_orders, page, 20)
+
+        context = {
+            'orders': paginated_orders,
+            'search_query': search_query,
+        }
 
     return render(request, 'cancelledorder.html', context)
 
 @login_required
+# def order_filter(request):
+#     if request.method == 'POST':
+#         basedon = request.POST.get('basedon')
+#         from_date = request.POST.get('from-date')
+#         to_date = request.POST.get('to-date')
+#         max_price = request.POST.get('max-price')
+#         min_price = request.POST.get('min-price')
+#         max_quantity = request.POST.get('max-quantity')
+#         min_quantity = request.POST.get('min-quantity')
+
+#         filter_params = {
+#             'user_id': request.user,
+#         }
+
+#         if from_date:
+#             filter_params[f'{basedon}__gte'] = from_date
+#         if to_date:
+#             filter_params[f'{basedon}__lte'] = to_date
+#         if min_price:
+#             filter_params['price__gte'] = min_price
+#         if max_price:
+#             filter_params['price__lte'] = max_price
+#         if min_quantity:
+#             filter_params['quantity__gte'] = min_quantity
+#         if max_quantity:
+#             filter_params['quantity__lte'] = max_quantity
+
+#         filtered_orders = Order.objects.filter(
+#             Q(user_id=request.user),
+#             **filter_params
+#         )
+
+#         context = {
+           
+#             'orders':filtered_orders
+#         }
+#             # filteredList.append(context)
+
+#         return render(request, 'orders.html', context)
+
+#     return HttpResponseRedirect('/orders')
+
 def order_filter(request):
     if request.method == 'POST':
         basedon = request.POST.get('basedon')
@@ -1361,9 +1493,13 @@ def order_filter(request):
         min_price = request.POST.get('min-price')
         max_quantity = request.POST.get('max-quantity')
         min_quantity = request.POST.get('min-quantity')
+        status = request.POST.get('status')
+        category_id = request.POST.get('categorySelect_order_filter')
+        product_id = request.POST.get('product')
 
         filter_params = {
             'user_id': request.user,
+            'product__deleted_on__isnull': True,  # Exclude deleted products
         }
 
         if from_date:
@@ -1378,17 +1514,24 @@ def order_filter(request):
             filter_params['quantity__gte'] = min_quantity
         if max_quantity:
             filter_params['quantity__lte'] = max_quantity
+        if status:
+            filter_params['status'] = status
+        if category_id:
+            filter_params['product__category_id'] = category_id
+        if product_id:
+            filter_params['product_id'] = product_id
 
         filtered_orders = Order.objects.filter(
             Q(user_id=request.user),
             **filter_params
         )
+        categories = category.objects.filter(userid_id=request.user.id)
+        products = []  # Initially, no products until a category is selected
 
         context = {
-           
-            'orders':filtered_orders
+            'orders': filtered_orders,
+            'categories': categories
         }
-            # filteredList.append(context)
 
         return render(request, 'orders.html', context)
 
@@ -1428,6 +1571,7 @@ def addOrder(request):
         current_user_id = request.user.added_by
         product_name_object = Product.objects.get(product_id=order_product_name)
         product_name = product_name_object.product_name
+        previous_page = request.META.get('HTTP_REFERER')
 
         # Convert dates to datetime objects
         ordered_date = timezone.datetime.strptime(ordered_date, '%Y-%m-%d').date()
@@ -1452,6 +1596,7 @@ def addOrder(request):
             price = inventory_entry.price
             # Calculate total_price
             total_price = Decimal(quantity) * Decimal(price)
+            
         except InventoryDetailsDate.DoesNotExist:
             # If price for the specified date is not found, get the latest price for the product
             latest_price_entry = InventoryDetailsDate.objects.filter(product__product_id=order_product_name,
@@ -1465,12 +1610,29 @@ def addOrder(request):
                 price = latest_inventory_entry.price
                 # Calculate total_price
                 total_price = Decimal(quantity) * Decimal(price)
+                available_quanity = latest_inventory_entry.quantity
+                
             except InventoryDetailsDate.DoesNotExist:
                 messages.error(request, f'Price not found for the specified {product_name}.')
                 price = 0
                 total_price = 0
+        try:
+            latest_inventory_entry_quantity = InventoryDetailsDate.objects.filter(
+                product__product_id=order_product_name,
+                user=current_user_id
+            ).latest('date')
 
-        # Insert order information into order_info table
+            available_quantity = Decimal(latest_inventory_entry_quantity.quantity)
+
+            # Check if the requested quantity exceeds the available quantity
+            if Decimal(quantity) > available_quantity:
+                messages.error(request, f"Requested quantity exceeds available quantity.")
+                return HttpResponseRedirect(previous_page)
+            
+        except InventoryDetailsDate.DoesNotExist:
+            messages.error(request, f'Inventory details not found for the specified product and date.')
+            return HttpResponseRedirect(previous_page)
+   
         try:
             order=Order.objects.create(
                 order_id=order_id,
@@ -1485,6 +1647,7 @@ def addOrder(request):
             )
             if status.lower() == 'completed':
                 order.completed_date = timezone.now().date()
+
                 order.save()
             if status.lower() == 'cancelled':
                 order.cancelled_date = timezone.now().date()
@@ -1496,27 +1659,41 @@ def addOrder(request):
 
             # Update order quantity
             product_statistic_order_quantity.order_quantity = str(int(product_statistic_order_quantity.order_quantity or 0) + quantity_int)
-
-            product_statistic, created = ProductStatistics.objects.get_or_create(product_id=order_product_name, date = timezone.now().date())
-
-            # Update completed_quantity and cancelled_quantity
-            if status.lower() == 'completed':
-                print("Test", status)
-                
-                product_statistic.completed_quantity = str(int(product_statistic.completed_quantity or 0) + quantity_int)
-                product_statistic.save()
-            elif status.lower() == 'cancelled':
-                print("Test", status)
-                
-                product_statistic.cancelled_quantity = str(int(product_statistic.cancelled_quantity or 0) + quantity_int)
-                product_statistic.save()
-            
             product_statistic_order_quantity.save()
 
+            if status.lower() == 'completed':
+                        # Get the current date
+                        current_date = timezone.now().date()
 
+                        # Get or create the ProductStatistic object
+                        product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=current_date)
+
+                        # Update the completed quantity
+                        product_stat.completed_quantity = str(int(product_stat.completed_quantity or 0) + int(order.quantity))
+                        print(product_stat.completed_quantity)
+                        product_stat.save()
+                        print("status save",product_stat.save())
+
+                        # Provide success message based on status
+                        
+            elif status.lower() == 'cancelled':
+                # Get the current date
+                current_date = timezone.now().date()
+
+                # Get or create the ProductStatistic object
+                product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=current_date)
+
+                # Update the completed quantity
+                product_stat.cancelled_quantity = str(int(product_stat.cancelled_quantity or 0) + int(order.quantity))
+                product_stat.save()
+
+
+
+            messages.success(request, f"Statistics updated for product: {order.product.product_name}.")
+                
             messages.success(request, 'New Order Added')
 
-            previous_page = request.META.get('HTTP_REFERER')
+            
             return HttpResponseRedirect(previous_page)
         except IntegrityError:
             return HttpResponse("An error occurred while adding the order")
@@ -1596,7 +1773,7 @@ def editOrder(request):
                 latest_quantity = Decimal(0)
 
             if latest_quantity < Decimal(edit_quantity):
-                messages.error(request, f"Cannot complete order {old_order_id}. Insufficient quantity in inventory.")
+                messages.error(request, f"Cannot complete order {old_order_id}. Requested quantity exceeds available quantity.")
                 return redirect(request.session['referring_page'])      
 
         # Update the order details
@@ -1694,12 +1871,10 @@ def editOrder(request):
                         # Update the completed quantity
                         product_stat.completed_quantity = str(int(product_stat.completed_quantity or 0) + int(order.quantity))
                         product_stat.save()
+                        print("status save",product_stat.save())
 
                         # Provide success message based on status
-                        if edit_status.lower() == 'completed':
-                            messages.success(request, f"Completed quantity updated for product: {order.product.product_name}.")
-                        else:
-                            messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
+                        messages.success(request, f"Completed quantity updated for product: {order.product.product_name}.")
                     elif edit_status.lower() == 'cancelled':
                         # Get the current date
                         current_date = timezone.now().date()
@@ -1710,12 +1885,9 @@ def editOrder(request):
                         # Update the completed quantity
                         product_stat.cancelled_quantity = str(int(product_stat.cancelled_quantity or 0) + int(order.quantity))
                         product_stat.save()
+                        messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
 
-                        # Provide success message based on status
-                        if edit_status.lower() == 'completed':
-                            messages.success(request, f"Completed quantity updated for product: {order.product.product_name}.")
-                        else:
-                            messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
+
 
 
 #                 if order.quantity != old_quantity:
@@ -1951,22 +2123,7 @@ def inventoryhistory(request, category_name):
     # Define the search query
     search_query = request.GET.get('q')
 
-    # Define the date filter
-    date_filter = request.GET.get('date')
 
-    # Define the quantity_added filter
-    quantity_added_filter = request.GET.get('quantity_added')
-
-    # Define the quantity_deducted filter
-    quantity_deducted_filter = request.GET.get('quantity_deducted')
-
-    # Define the quantity filter
-    quantity_filter = request.GET.get('quantity')
-
-    # Filter products based on the search query if available
-    if search_query:
-        products = products.filter(product_name__icontains=search_query)
-        product_ids = [str(product['product_id']) for product in products]
 
     # Check if there are details for today's date for each product, otherwise add the required data
     for product_id in product_ids:
@@ -2006,48 +2163,46 @@ def inventoryhistory(request, category_name):
                     date=date.today()
                 )
 
-    # Retrieve products and inventory details after adding the required data
-    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
-    product_ids = [str(product['product_id']) for product in products]
+    # # Retrieve products and inventory details after adding the required data
+    # products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+    # product_ids = [str(product['product_id']) for product in products]
 
     inventory_details = InventoryDetailsDate.objects.filter(
         product__product_id__in=product_ids,
         user_id=current_user_id
     ).order_by('-id')
 
-    # Filter inventory details based on the search query and other filters if available
+    products_list = list(products)
+    # inventory_list = list(inventory_details)
     if search_query:
-        inventory_details = inventory_details.filter(
+        # Apply search query to filter inventory details
+        inventory_items = inventory_details.filter(
             Q(product__product_name__icontains=search_query) |
             Q(quantity__icontains=search_query) |
             Q(quantity_added__icontains=search_query) |
             Q(quantity_deducted__icontains=search_query) |
             Q(price__icontains=search_query)
         )
+        context = {
+            'product': products_list,
+            'category_name':category_name,
+            'search_query':search_query,
+            'items': inventory_items
+        }
+    else:
+        inventory_items = inventory_details
 
-    if date_filter:
-        inventory_details = inventory_details.filter(date=date_filter)
 
-    if quantity_added_filter:
-        inventory_details = inventory_details.filter(quantity_added=quantity_added_filter)
+        
+        page = request.GET.get('page', 1)
+        paginated_items = paginate_data(inventory_items, page, 20)
 
-    if quantity_deducted_filter:
-        inventory_details = inventory_details.filter(quantity_deducted=quantity_deducted_filter)
-
-    if quantity_filter:
-        inventory_details = inventory_details.filter(quantity=quantity_filter)
-
-    # Convert Django ORM QuerySet to list of dictionaries
-    products_list = list(products)
-    inventory_list = list(inventory_details)
-    page = request.GET.get('page', 1)
-    paginated_items = paginate_data(inventory_list, page, 20)
-
-    context = {
-        'items': paginated_items,
-        'product': products_list,
-        'category_name':category_name
-    }
+        context = {
+            'items': paginated_items,
+            'product': products_list,
+            'category_name':category_name,
+        }
+    
     return render(request, 'inventoryhistory.html', context)
 
 @login_required

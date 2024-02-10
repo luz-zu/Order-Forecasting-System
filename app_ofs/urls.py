@@ -47,6 +47,7 @@ urlpatterns = [
     path('inventorylist/<str:category_name>/', views.inventorylist, name='inventorylist'),
     path('inventoryhistory/<str:category_name>/', views.inventoryhistory, name='inventoryhistory'),
     path('get-products/', views.get_products, name='get_products'),
+    path('get-products-by-category/', views.get_products_by_category, name='get_products_by_category'),
     # path('get-products/', views.get_products, name='get_products'),
 
 ]

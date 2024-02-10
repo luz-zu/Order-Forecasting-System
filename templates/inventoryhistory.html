@@ -13,8 +13,12 @@
     <div class="container pt-3">
         <hr>
         
-        <div class="d-md-flex d-block pt-3 justify-content-between">
-            {%include "components/search.html" %}
+        <div class="d-md-flex d-block pt-3 justify-content-between align-items-center">
+            <div>
+                {%include "components/search.html" %}
+
+            </div>
+            
                 <div class="text-end pt-3">
                     <button class="blue-btn" data-bs-toggle="modal" data-bs-target="#add_items" data-bs-whatever="add_items">Add New Items</button>
                 </div>
@@ -139,34 +143,62 @@
 </div>
 <script src="{% static 'script.js' %}"></script>
 <script>
+ 
+
     function searchInventory() {
-        var searchQuery = $('#table-filter').val();
+    var searchQuery = $('#table-filter').val();
+    var page = $('.pagination .active').text(); // Get the current page number
+    $.ajax({
+        url: '{% url "inventoryhistory" category_name=category_name %}',
+        type: 'GET',
+        data: { q: searchQuery, page: page }, // Include the search query and page number
+        success: function(response) {
+            $('#inventoryhistory-table').html($(response).find('#inventoryhistory-table').html());
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+        }
+    });
+}
+
+$(document).ready(function() {
+    // Perform search while typing in the search input
+    $('#table-filter').keyup(function() {
+        searchInventory();
+    });
+
+    // Pagination click event (if pagination is dynamic)
+    $(document).on('click', '.pagination a', function(event) {
+        event.preventDefault();
+        var page_url = $(this).attr('href');
         $.ajax({
-            url: '{% url "inventoryhistory" category_name=category_name %}',
+            url: page_url,
             type: 'GET',
-            data: { q: searchQuery },
             success: function(response) {
-                $('#inventoryhistory-table tbody').html($(response).find('tbody').html());
+                $('#inventoryhistory-table').html($(response).find('#inventoryhistory-table').html());
             },
             error: function(xhr, status, error) {
                 console.error(error);
             }
         });
-    }
-
-    $(document).ready(function() {
-        // Perform search when the search button is clicked
-        $('#search-button').click(function() {
-            searchInventory();
-        });
-
-        // Perform search when Enter key is pressed in the search input
-        $('#table-filter').keypress(function(event) {
-            if (event.keyCode === 13) {
-                searchInventory();
-            }
-        });
     });
+});
+
+
+// $(document).ready(function() {
+//     // Perform search when the search button is clicked
+//     $('#search-button').click(function() {
+//         searchInventory();
+//     });
+
+//     // Perform search when Enter key is pressed in the search input
+//     $('#table-filter').keypress(function(event) {
+//         if (event.keyCode === 13) {
+//             searchInventory();
+//         }
+//     });
+// });
+
 </script>
 
 {% load static %}

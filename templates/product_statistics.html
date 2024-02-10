@@ -38,16 +38,15 @@
             </div>
                 
             </form>
-        </div>
+        </div>  
         <div class="pt-3">
-            <table>
+            <table id="productStatisticsTableBody">
                 <thead>
                     <tr>
                         <th>Product ID</th>
                         <th>Order Quantity</th>
                         <th>Completed Quantity</th>
-                        <th>Pending Quantity</th>
-                        <th>Ongoing Quantity</th>
+
                         <th>Cancelled Quantity</th>
                         <th>Production Quantity</th>
                         <th>Deduction Quantity</th>
@@ -60,8 +59,7 @@
                         <td>{{ product_statistic.product.product_name }}</td>
                         <td>{{ product_statistic.order_quantity }}</td>
                         <td>{{ product_statistic.completed_quantity }}</td>
-                        <td>{{ product_statistic.pending_quantity }}</td>
-                        <td>{{ product_statistic.ongoing_quantity }}</td>
+
                         <td>{{ product_statistic.cancelled_quantity }}</td>
                         <td>{{ product_statistic.production_quantity }}</td>
                         <td>{{ product_statistic.deduction_quantity }}</td>
@@ -117,6 +115,9 @@
             var productSelect = document.getElementById('productSelect');
             productSelect.innerHTML = '<option value="">Select Product</option>';
         }
+
+
+        
 </script>
 
 

@@ -59,7 +59,7 @@ class Product(models.Model):
 
     # def __str__(self):
     #     return self.product_name
-    
+   
 class InventoryDetailsDate(models.Model):
     date = models.DateField()
     quantity = models.CharField(max_length=100)
@@ -127,8 +127,7 @@ class ProductStatistics(models.Model):
     order_quantity = models.CharField(max_length=50, default='')
     completed_quantity = models.CharField(max_length=50, default='')
     cancelled_quantity = models.CharField(max_length=50, default='')
-    pending_quantity = models.CharField(max_length=50, default='')
-    ongoing_quantity = models.CharField(max_length=50, default='')
+ 
     production_quantity = models.CharField(max_length=50, default='')
     deduction_quantity = models.CharField(max_length=50, default='')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)

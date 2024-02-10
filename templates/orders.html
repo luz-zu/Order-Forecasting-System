@@ -150,7 +150,7 @@ function searchOrders() {
         type: 'GET',
         data: { q: searchQuery },
         success: function(response) {
-            $('#order-table tbody').html($(response).find('tbody').html());
+            $('#order-table').html($(response).find('#order-table').html());
         },
         error: function(xhr, status, error) {
             console.error(error);
@@ -159,19 +159,28 @@ function searchOrders() {
 }
 
 $(document).ready(function() {
-    // Perform search when the search button is clicked
-    $('#search-button').click(function() {
+    // Perform search while typing in the search input
+    $('#table-filter').keyup(function() {
         searchOrders();
     });
 
-    // Perform search when Enter key is pressed in the search input
-    $('#table-filter').keypress(function(event) {
-        if (event.keyCode === 13) {
-          
-            searchOrders();
-        }
+    // Pagination click event (if pagination is dynamic)
+    $(document).on('click', '.pagination a', function(event) {
+        event.preventDefault();
+        var page_url = $(this).attr('href');
+        $.ajax({
+            url: page_url,
+            type: 'GET',
+            success: function(response) {
+                $('#order-table').html($(response).find('#order-table').html());
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
+        });
     });
 });
+
 
 
 function prepareDeleteOrderForm(orderId) {
