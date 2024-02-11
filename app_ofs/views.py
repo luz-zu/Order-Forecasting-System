@@ -101,7 +101,7 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=username, password=password, deleted_on__isnull=True)
         user_ip_address = request.META.get('REMOTE_ADDR')
         if user is not None:
             login(request, user)
@@ -143,7 +143,15 @@ def register(request):
             else:
                 # Generate a random 2-digit company_id
                 form.instance.userrole = 'admin'
-                form.instance.company_id = 1
+                # form.instance.company_id = 1
+                # Check if there are existing records
+                if CustomUser.objects.exists():
+                    # Get the latest company_id and increment by 1
+                    latest_company_id = CustomUser.objects.latest('company_id').company_id
+                    form.instance.company_id = latest_company_id + 1
+                else:
+                    # Start with company_id = 1
+                    form.instance.company_id = 1
                 form.save()
                 messages.success(request, 'Registration successful! You are now logged in.')
                 return HttpResponseRedirect('/register')
@@ -153,7 +161,7 @@ def register(request):
 
 @login_required
 def forecast(request):
-    current_user_id = request.user.added_by
+    current_user_id = request.user.company_id
 
     query = "SELECT ordered_date, quantity FROM forecast_data"
 
@@ -422,7 +430,7 @@ from dateutil.relativedelta import relativedelta
 
 def user_dashboard(request):
     # Fetch the last 12 months and future 30 days forecast data if available
-    user = request.user
+    user = request.user.added_by
     total_orders = Order.objects.filter(user=user,deleted_on__isnull=True).count()
     pending_orders = Order.objects.filter(user=user, status='Pending',deleted_on__isnull=True).count()
     ongoing_orders = Order.objects.filter(user=user, status='Ongoing',deleted_on__isnull=True).count()
@@ -566,53 +574,8 @@ def addnewproduct(request):
 
 @login_required
 
-# def inventory(request):
-#     current_user_id = request.user.added_by
-  
-#     sql_category_with_count = """
-#         SELECT
-#             c.id,
-#             c.category,
-#             COUNT(p.product_id) AS total_products
-#         FROM
-#             category_info c
-#         LEFT JOIN
-#             product_info p ON c.id = p.category_id
-#         WHERE
-#             c.userid_id = %s
-#         GROUP BY
-#             c.id, c.category
-#     """
-
-#     value = (current_user_id,)
-#     with connection.cursor() as cursor:
-#         cursor.execute(sql_category_with_count, value)
-#         categories_with_count = cursor.fetchall()
-
-#     categories = []
-#     for row in categories_with_count:
-#         category_id = row[0]
-#         category_name = row[1]
-#         total_products = row[2]
-
-#         # Only include categories with a count greater than 0
-#         if total_products > 0:
-#             category = {
-#                 'category_id': category_id,
-#                 'category': category_name,
-#                 'total_products': total_products,
-#             }
-#             categories.append(category)
-
-#     context = {
-#         'categories': categories,
-#     }
-   
-#     return render(request, 'inventory.html', context)
-
-
 def inventory(request):
-    current_user = request.user
+    current_user = request.user.added_by
 
     # Filter products where deleted_on is NULL
     categories_with_count = category.objects.filter(userid_id=current_user).annotate(
@@ -657,71 +620,252 @@ def get_products(request):
             return JsonResponse(product_data, safe=False)
     return JsonResponse([], safe=False)
 
-# def productStatistics(request):
-#     categories = category.objects.filter(userid=request.user)
-#     latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
-#     start_date = latest_date_entry + timedelta(days=1)
-#     end_date = date.today()
 
-#     for dt in daterange(start_date, end_date):
-#         generate_statistics_for_date(dt)
-
-#     product_statistics = ProductStatistics.objects.all()
-
-#     context = {'product_statistics': product_statistics,
-#                'categories': categories}
-#     return render(request, 'product_statistics.html', context)
-
-# def productStatistics(request):
-#     if request.method == 'GET':
-#         categories = category.objects.filter(userid=request.user)
-#         products = []  # Placeholder for products
-#         latest_date_entry = ProductStatistics.objects.latest('date').date if ProductStatistics.objects.exists() else date(2024, 2, 1)
-#         start_date = latest_date_entry + timedelta(days=1)
-#         end_date = date.today()
-
-#         for dt in daterange(start_date, end_date):
-#             generate_statistics_for_date(dt)
-
-#         if 'category' in request.GET:
-#             category_id = request.GET.get('category_id')
-#             if category_id:
-#                 products = Product.objects.filter(category_id=category_id)
-
-#         product_statistics = ProductStatistics.objects.all()
-
-#         context = {
-#             'product_statistics': product_statistics,
-#             'categories': categories,
-#             'products': products
-#         }
-#         return render(request, 'product_statistics.html', context)
+from django.db.models import Sum, Avg
+from django.db.models.functions import ExtractDay, ExtractMonth, ExtractWeek
 from datetime import date, timedelta
-def update_product_statistics():
-    # Get yesterday's date
-    yesterday = date.today() - timedelta(days=1)
 
-    # Filter orders added until yesterday
-    orders_until_yesterday = Order.objects.filter(added_on__lte=yesterday)
 
-    # Loop through each order
-    for order in orders_until_yesterday:
-        # Get or create ProductStatistics for the order's date
-        product_statistic, created = ProductStatistics.objects.get_or_create(date=order.added_on, deleted_on__isnull = True)
+# def daily_statistics(product_id, from_date=None, to_date=None):
+#     # Query database to get the data
+#     daily_stats = ProductStatistics.objects.filter(product_id=product_id, date__gte=from_date, date__lte=to_date).order_by('date')
 
-        # Update pending_quantity and ongoing_quantity based on order status
-        if order.status == 'Pending':
-            product_statistic.pending_quantity = F('pending_quantity') + order.quantity
-        elif order.status == 'Ongoing':
-            product_statistic.ongoing_quantity = F('ongoing_quantity') + order.quantity
+#     # Extracting data for each column
+#     dates = [entry.date.strftime("%b %d, %Y") for entry in daily_stats]
+#     order_quantity = [int(entry.order_quantity) for entry in daily_stats]
+#     completed_quantity = [int(entry.completed_quantity) for entry in daily_stats]
+#     cancelled_quantity = [int(entry.cancelled_quantity) for entry in daily_stats]
+#     production_quantity = [int(entry.production_quantity) for entry in daily_stats]
 
-        # Save the updated ProductStatistics
-        product_statistic.save()
-# Call the function to update product statistics
+#     # Concatenate all quantities into a single list
+#     all_quantities = order_quantity + completed_quantity + cancelled_quantity + production_quantity
+
+#     # Find the minimum and maximum values
+#     min_value = min(all_quantities)
+#     max_value = max(all_quantities)
+
+#     # Create traces for each column
+#     trace_order_quantity = go.Scatter(x=dates, y=order_quantity, mode='lines', name='Order Quantity')
+#     trace_completed_quantity = go.Scatter(x=dates, y=completed_quantity, mode='lines', name='Completed Quantity')
+#     trace_cancelled_quantity = go.Scatter(x=dates, y=cancelled_quantity, mode='lines', name='Cancelled Quantity')
+#     trace_production_quantity = go.Scatter(x=dates, y=production_quantity, mode='lines', name='Production Quantity')
+
+#     # Create a Plotly figure
+#     fig = go.Figure()
+
+#     # Add traces to the figure
+#     fig.add_trace(trace_order_quantity)
+#     fig.add_trace(trace_completed_quantity)
+#     fig.add_trace(trace_cancelled_quantity)
+#     fig.add_trace(trace_production_quantity)
+
+#     # Update layout
+#     fig.update_layout(title='Daily Statistics',
+#                       xaxis=dict(title='Date', tickangle=90),
+#                       yaxis=dict(title='Quantity', range=[min_value, max_value]),
+#                       xaxis_rangeslider_visible=True)  # Enable scrollbar
+
+#     # Convert figure to HTML
+#     plot_div = fig.to_html(full_html=False)
+
+#     return plot_div
+
+def daily_statistics(product_id, from_date=None, to_date=None, selected_columns=None):
+    # Query database to get the data
+    daily_stats = ProductStatistics.objects.filter(product_id=product_id, date__gte=from_date, date__lte=to_date).order_by('date')
+
+    # Extracting data for each column
+    dates = [entry.date.strftime("%b %d, %Y") for entry in daily_stats]
+
+    traces = []
+
+    # Add traces for selected columns
+    if selected_columns is None or 'order_quantity' in selected_columns:
+        order_quantity = [int(entry.order_quantity) for entry in daily_stats]
+        trace_order_quantity = go.Scatter(x=dates, y=order_quantity, mode='lines', name='Order Quantity')
+        traces.append(trace_order_quantity)
+    
+    if selected_columns is None or 'completed_quantity' in selected_columns:
+        completed_quantity = [int(entry.completed_quantity) for entry in daily_stats]
+        trace_completed_quantity = go.Scatter(x=dates, y=completed_quantity, mode='lines', name='Completed Quantity')
+        traces.append(trace_completed_quantity)
+    
+    if selected_columns is None or 'cancelled_quantity' in selected_columns:
+        cancelled_quantity = [int(entry.cancelled_quantity) for entry in daily_stats]
+        trace_cancelled_quantity = go.Scatter(x=dates, y=cancelled_quantity, mode='lines', name='Cancelled Quantity')
+        traces.append(trace_cancelled_quantity)
+    
+    if selected_columns is None or 'production_quantity' in selected_columns:
+        production_quantity = [int(entry.production_quantity) for entry in daily_stats]
+        trace_production_quantity = go.Scatter(x=dates, y=production_quantity, mode='lines', name='Production Quantity')
+        traces.append(trace_production_quantity)
+
+    # Create a Plotly figure
+    fig = go.Figure(data=traces)
+
+    # Update layout
+    fig.update_layout(title='Daily Statistics',
+                      xaxis=dict(title='Date', tickangle=90),
+                      yaxis=dict(title='Quantity'),
+                      xaxis_rangeslider_visible=True)  # Enable scrollbar
+
+    # Convert figure to HTML
+    plot_div = fig.to_html(full_html=False)
+
+    return plot_div
+
+def monthly_statistics(product_id, from_date=None, to_date=None):
+    monthly_stats = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
+    if from_date and to_date:
+        monthly_stats = monthly_stats.filter(date__range=[from_date, to_date])
+
+    monthly_stats = monthly_stats.annotate(
+        month=ExtractMonth('date')
+    ).values('month').annotate(
+        total_order_quantity=Sum('order_quantity'),
+        total_completed_quantity=Sum('completed_quantity'),
+        total_production_quantity=Sum('production_quantity'),
+        total_cancelled_quantity=Sum('cancelled_quantity'),
+        average_order_quantity=Avg('order_quantity'),
+        average_completed_quantity=Avg('completed_quantity'),
+        average_production_quantity=Avg('production_quantity'),
+        average_cancelled_quantity=Avg('cancelled_quantity')
+    ).order_by('month')
+    
+    return monthly_stats
+
+def weekly_statistics(product_id, from_date=None, to_date=None):
+    weekly_stats = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
+    if from_date and to_date:
+        weekly_stats = weekly_stats.filter(date__range=[from_date, to_date])
+
+    weekly_stats = weekly_stats.annotate(
+        week=ExtractWeek('date')
+    ).values('week').annotate(
+        total_order_quantity=Sum('order_quantity'),
+        total_completed_quantity=Sum('completed_quantity'),
+        total_production_quantity=Sum('production_quantity'),
+        total_cancelled_quantity=Sum('cancelled_quantity'),
+        average_order_quantity=Avg('order_quantity'),
+        average_completed_quantity=Avg('completed_quantity'),
+        average_production_quantity=Avg('production_quantity'),
+        average_cancelled_quantity=Avg('cancelled_quantity')
+    ).order_by('week')
+    
+    return weekly_stats
+
+
+def print_daily_statistics(product_id):
+    daily_stats = daily_statistics(product_id)
+    print("Daily Statistics:")
+    for stat in daily_stats:
+        print(f"Day {stat['day']}:")
+        print(f"Total Order Quantity: {stat['total_order_quantity']}")
+        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
+        print(f"Total Production Quantity: {stat['total_production_quantity']}")
+        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
+        print(f"Average Order Quantity: {stat['average_order_quantity']}")
+        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
+        print(f"Average Production Quantity: {stat['average_production_quantity']}")
+        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
+        print("\n")
+
+# Function calls and print statements for monthly statistics
+def print_monthly_statistics(product_id):
+    monthly_stats = monthly_statistics(product_id)
+    print("Monthly Statistics:")
+    for stat in monthly_stats:
+        print(f"Month {stat['month']}:")
+        print(f"Total Order Quantity: {stat['total_order_quantity']}")
+        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
+        print(f"Total Production Quantity: {stat['total_production_quantity']}")
+        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
+        print(f"Average Order Quantity: {stat['average_order_quantity']}")
+        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
+        print(f"Average Production Quantity: {stat['average_production_quantity']}")
+        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
+        print("\n")
+
+# Function calls and print statements for weekly statistics
+def print_weekly_statistics(product_id):
+    weekly_stats = weekly_statistics(product_id)
+    print("Weekly Statistics:")
+    for stat in weekly_stats:
+        print(stat['week'])
+        print(f"Total Order Quantity: {stat['total_order_quantity']}")
+        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
+        print(f"Total Production Quantity: {stat['total_production_quantity']}")
+        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
+        print(f"Average Order Quantity: {stat['average_order_quantity']}")
+        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
+        print(f"Average Production Quantity: {stat['average_production_quantity']}")
+        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
+        print("\n")
+
+def get_week_dates(year, week):
+    d = datetime(year, 1, 1)
+    if d.weekday() <= 3:
+        d = d - timedelta(days=d.weekday())
+    else:
+        d = d + timedelta(days=7 - d.weekday())
+    
+    dlt = timedelta(days=(week - 1) * 7)
+    start_date = d + dlt
+    end_date = start_date + timedelta(days=6)
+    return start_date, end_date
+
+def order_statistics(product_id):
+    today = datetime.now().date()
+    
+    # Total orders till date
+    total_quantity_till_date = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_quantity=Sum('production_quantity'))
+
+    # Total orders this week
+    start_of_week = today - timedelta(days=today.weekday())
+    total_quantity_this_week = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_week).aggregate(total_quantity=Sum('production_quantity'))
+
+    # Total orders this month
+    start_of_month = today.replace(day=1)
+    total_quantity_this_month = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_month).aggregate(total_quantity=Sum('production_quantity'))
+
+    # Total orders this year
+    start_of_year = today.replace(month=1, day=1)
+    total_quantity_this_year = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_year).aggregate(total_quantity=Sum('production_quantity'))
+    
+    return {
+        'total_quantity_till_date': total_quantity_till_date['total_quantity'] or 0,
+        'total_quantity_this_week': total_quantity_this_week['total_quantity'] or 0,
+        'total_quantity_this_month': total_quantity_this_month['total_quantity'] or 0,
+        'total_quantity_this_year': total_quantity_this_year['total_quantity'] or 0
+    }
+
+# def update_product_statistics():
+#     # Get yesterday's date
+#     yesterday = date.today() - timedelta(days=1)
+
+#     # Filter orders added until yesterday
+#     orders_until_yesterday = Order.objects.filter(added_on__lte=yesterday)
+
+#     # Loop through each order
+#     for order in orders_until_yesterday:
+#         # Get or create ProductStatistics for the order's date
+#         product_statistic, created = ProductStatistics.objects.get_or_create(date=order.added_on, deleted_on__isnull = True)
+
+#         # Update pending_quantity and ongoing_quantity based on order status
+#         if order.status == 'Pending':
+#             product_statistic.pending_quantity = F('pending_quantity') + order.quantity
+#         elif order.status == 'Ongoing':
+#             product_statistic.ongoing_quantity = F('ongoing_quantity') + order.quantity
+
+#         # Save the updated ProductStatistics
+#         product_statistic.save()
+# # Call the function to update product statistics
 
 def productStatistics(request):
+
     if request.method == 'GET':
-        current_user_id = request.user.id
+        # current_user_id = request.user.id
+        current_user_id = request.user.added_by
         categories = category.objects.filter(userid=request.user)
         products = []  # Placeholder for products
 
@@ -748,8 +892,48 @@ def productStatistics(request):
         product_statistics = ProductStatistics.objects.all()
 
         product_id = request.GET.get('product')
+        print(request.POST)
         if product_id:
-            product_statistics = ProductStatistics.objects.filter(product_id=product_id)
+            
+            from_date_str = request.GET.get('from_date')
+            to_date_str = request.GET.get('to_date')
+
+            frequency = request.GET.get('time_interval')    
+            print("frequency",frequency)
+
+            selected_columns_str = request.POST.get('selected_columns')
+            selected_columns = selected_columns_str.split(',') if selected_columns_str else []
+            print("first",selected_columns)
+
+            from_date = datetime.strptime(from_date_str, '%Y-%m-%d') if from_date_str else None
+            to_date = datetime.strptime(to_date_str, '%Y-%m-%d') if to_date_str else None
+
+            if 'all' in selected_columns:
+                selected_columns = ['order_quantity', 'completed_quantity', 'cancelled_quantity', 'production_quantity']
+            
+
+            product_statistics = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
+            if from_date and to_date:
+                product_statistics = product_statistics.filter(date__range=[from_date, to_date])
+
+            print("product_id", product_id)
+            # Daily production statistics function call
+            # print_daily_statistics(product_id)
+            # print_monthly_statistics(product_id)
+            # print_weekly_statistics(product_id)
+            # daily_stats = daily_statistics(product_id, from_date, to_date)
+            # if frequency == 'daily':
+            #     print("selected", selected_columns)
+            #     plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
+            # elif frequency == 'monthly':
+            #     monthly_stats= monthly_statistics(product_id, from_date, to_date)
+            # elif frequency == 'weekly':
+            #     weekly_stats= weekly_statistics(product_id, from_date, to_date)
+            # plot_div = None
+            plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
+            monthly_stats = None
+            weekly_stats = None
+
         else:
             product_statistics = ProductStatistics.objects.none()
 
@@ -757,7 +941,10 @@ def productStatistics(request):
         context = {
             'product_statistics': product_statistics,
             'categories': categories,
-            'products': products
+            'products': products,
+            'plot_div': plot_div,
+            'monthly_stats': monthly_stats,
+            'weekly_stats': weekly_stats,
         }
         return render(request, 'product_statistics.html', context)
 
@@ -770,6 +957,8 @@ def get_products(request):
 
     data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
     return JsonResponse(data, safe=False)
+
+
 def generate_statistics_for_date(current_user_id, current_date):
     # Get all products for the current user
     user_products = Product.objects.filter(user_id=current_user_id)
@@ -802,105 +991,65 @@ def daterange(start_date, end_date):
 
 @login_required
 def staff(request):
-    current_user_id = request.user.added_by
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM app_ofs_customuser WHERE userrole = 'staff' AND added_by = %s", [current_user_id])
-        staff_members = cursor.fetchall()
+    current_user_id = request.user.id
+    search_query = request.GET.get('search_query')
     
-    staff_details = []
-    for row in staff_members:
-        staff = {
-            'fname': row[6],
-            'lname': row[7],
-            'username': row[5],
-            'email': row[8],
-            'phone': row[13],
-            'role': row[17],
-        }
-        staff_details.append(staff)
+    # Fetch all staff members
+    staff_members = CustomUser.objects.filter(added_by=current_user_id, deleted_on__isnull=True)
     
-    context = {
-        'staff_members': staff_details
+    if search_query:
+        staff_members = staff_members.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(userrole__icontains=search_query)
+        )
+        context = {
+        'staff_members': staff_members,
+        'search_query': search_query
     }
+    else:
+    
+        # Paginate the results
+        paginator = Paginator(staff_members, 20)  # 20 items per page
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        context = {
+            'staff_members': page_obj,
+            'search_query': search_query
+        }
+            
+    
     return render(request, 'staff.html', context)
 
 @login_required
 
 
-# def addStaff(request):
-#     if request.method == 'POST':
-#         # Get current user ID
-#         current_user_id = request.user.id if request.user.is_authenticated else None
 
-#         fname = request.POST.get('first_name', '')
-#         lname = request.POST.get('last_name', '')
-#         email = request.POST.get('staff_email', '')
-#         password = 'ofs@12345'  # Note: You may want to generate a secure password
-#         phone = request.POST.get('staff_phone', '')
-#         role = request.POST.get('staff_role', '')
-
-#         # Validate phone number length
-#         if len(phone) != 10:
-#             messages.error(request, 'Phone number must be 10 digits.')
-#             return HttpResponseRedirect('/staff')
-
-#         # Check if the email already exists
-#         email_exists_query = "SELECT COUNT(*) FROM app_ofs_customuser WHERE email = %s"
-#         email_exists_values = (email,)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(email_exists_query, email_exists_values)
-#             email_count = cursor.fetchone()[0]
-
-#         if email_count > 0:
-#             messages.error(request, 'Email already exists. Please use a different email address.')
-#             return HttpResponseRedirect('/staff')
-
-#         # Generate a random username
-#         randNumber = random.randint(100, 999)
-#         username = f'{fname.lower()}_{randNumber}'
-
-#         # Hash the password
-#         hashed_password = make_password(password)
-
-#         # Select company_id based on current_user_id
-#         company_id_query = "SELECT company_id FROM app_ofs_customuser WHERE id = %s"
-#         with connection.cursor() as cursor:
-#             cursor.execute(company_id_query, [current_user_id])
-#             company_id = cursor.fetchone()[0]
-
-#         # Insert into app_ofs_customuser
-#         sql_query = "INSERT INTO app_ofs_customuser (first_name, last_name, username, email, password, phone_number, userrole, added_by, company_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-#         sql_values = (fname, lname, username, email, hashed_password, phone, role, current_user_id, company_id)
-
-#         with connection.cursor() as cursor:
-#             cursor.execute(sql_query, sql_values)
-
-#         messages.success(request, 'Staff member added successfully!')
-#         return HttpResponseRedirect('/staff')
-
-#     return render(request, 'staff.html')
 
 def addStaff(request):
     if request.method == 'POST':
-        current_user = request.user
+        current_user = request.user.id
 
         fname = request.POST.get('first_name', '')
         lname = request.POST.get('last_name', '')
         email = request.POST.get('staff_email', '')
-        password = 'ofs@12345'  # Note: You may want to generate a secure password
+        password = 'ofs@12345'  
         phone = request.POST.get('staff_phone', '')
         role = request.POST.get('staff_role', '')
 
         # Validate phone number length
         if len(phone) != 10:
-            messages.error(request, 'Phone number must be 10 digits.')
+            messages.error(request, 'Failed! Phone number must be 10 digits.')
             return HttpResponseRedirect('/staff')
 
         try:
             # Create a new CustomUser (staff member)
             user = CustomUser.objects.create_user(
                 username=email,
+                company_id=current_user,
                 email=email,
                 password=password,
                 first_name=fname,
@@ -919,6 +1068,100 @@ def addStaff(request):
 
     return render(request, 'staff.html')
 
+def deactivatedStaff(request):
+    current_user_id = request.user.id
+    search_query = request.GET.get('search_query')
+    
+    # Fetch all deactivated staff members where deleted_on is null
+    staffs = CustomUser.objects.filter(added_by=current_user_id, deleted_on__isnull=False)
+    
+    if search_query:
+        staffs = staffs.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(userrole__icontains=search_query)
+        )
+        context = {
+            'staff_members': staffs,
+            'search_query': search_query
+        }
+    else:
+        # Paginate the results
+        paginator = Paginator(staffs, 20)  # 20 items per page
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        context = {
+            'staff_members': page_obj,
+            'search_query': search_query
+        }
+            
+    return render(request, 'deactivatedstaff.html', context)
+@login_required
+def editStaff(request):
+    if request.method == 'POST':
+        staff_id = request.POST.get('staff_id', '')
+        fname = request.POST.get('edit_first_name', '')
+        lname = request.POST.get('edit_last_name', '')
+        email = request.POST.get('edit_staff_email', '')
+        phone = request.POST.get('edit_staff_phone', '')
+        role = request.POST.get('edit_staff_role', '')
+
+        # Validate phone number length
+        if len(phone) != 10:
+            messages.error(request, 'Failed! Phone number must be 10 digits.')
+            return HttpResponseRedirect('/staff')
+
+        try:
+            # Get the existing staff member by ID
+            staff_member = CustomUser.objects.get(id=staff_id)
+
+            # Check if any data has been changed
+            if staff_member.first_name == fname and staff_member.last_name == lname and staff_member.email== email and staff_member.phone_number== phone and staff_member.userrole== role:
+                messages.info(request, f'No data has been changed for staff {staff_member.first_name} {staff_member.last_name}.')
+            else:
+                # Update the staff member information
+                staff_member.first_name = fname
+                staff_member.last_name = lname
+                staff_member.email = email
+                staff_member.phone_number = phone
+                staff_member.userrole = role
+                staff_member.save()
+
+                messages.success(request, 'Staff member information updated successfully!')
+
+            return HttpResponseRedirect('/staff')
+
+        except CustomUser.DoesNotExist:
+            messages.error(request, 'Staff member does not exist.')
+            return HttpResponseRedirect('/staff')
+        except IntegrityError:
+            messages.error(request, 'Email already exists. Please use a different email address.')
+            return HttpResponseRedirect('/staff')
+
+    return render(request, 'staff.html')
+
+
+from django.urls import reverse
+
+
+@login_required
+def delete_staff(request, staff_id):
+    staff = get_object_or_404(CustomUser, id=staff_id)
+    staff.deleted_on = timezone.now()
+    staff.save()
+    messages.success(request, f"Successfully Deactivated Staff: {staff.first_name} {staff.last_name}.")
+    return render(request, 'staff.html')
+
+@login_required
+def reactivate_staff(request, staff_id):
+    staff = get_object_or_404(CustomUser, id=staff_id)
+    staff.deleted_on = None
+    staff.save()
+    messages.success(request, f"Successfully Reactivated Staff: {staff.first_name} {staff.last_name}.")
+    return render(request, 'staff.html')
 
 from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData,ProductStatistics  
 
@@ -926,29 +1169,6 @@ from .models import category, Product, InventoryDetails, InventoryDetailsDate, O
 
 @login_required
 
-
-# def get_category(request):
-#     current_user_id = request.user.added_by
-#     categories = category.objects.filter(userid=current_user_id)
-#     search_query = request.GET.get('q')
-
-#     if search_query:
-#         categories_search = categories.filter(Q(category__icontains=search_query) | Q(id__icontains=search_query))
- 
-#     else:
-#         categories_search = None
-
-#     # Paginate categories
-#     paginator = Paginator(categories, 20)
-#     page = request.GET.get('page', 1)
-#     paginated_categories = paginator.get_page(page)
-
-#     context = {
-#         'categories': paginated_categories,
-#         'categories_search': categories_search,
-#         'search_query': search_query,
-#     }
-#     return render(request, 'category.html', context)
 def get_category(request):
     current_user_id = request.user.added_by
     categories = category.objects.filter(userid=current_user_id)
@@ -1076,7 +1296,7 @@ def paginate_data(data, page_number, items_per_page):
 
 @login_required
 def getProduct(request):
-    current_user = request.user
+    current_user = request.user.added_by
 
     products = Product.objects.filter(user_id=current_user, deleted_on__isnull=True).order_by('-id')
     categories = category.objects.filter(userid_id=current_user)
@@ -1130,41 +1350,41 @@ def addProduct(request):
                 deleted_on__isnull=False
             ).first()
 
+            # if existing_product:
+            #     existing_product.deleted_on = None
+            #     existing_product.save()
+            #     messages.success(request, 'Product added successfully!')
+            # else:
+            existing_product = Product.objects.filter(
+                product_name=product_name,
+                user=current_user,
+                deleted_on__isnull=True
+            ).first()
+
             if existing_product:
-                existing_product.deleted_on = None
-                existing_product.save()
-                messages.success(request, 'Product added successfully!')
+                messages.info(request, 'Product already exists!')
             else:
-                existing_product = Product.objects.filter(
-                    product_name=product_name,
-                    user=current_user,
-                    deleted_on__isnull=True
-                ).first()
-
-                if existing_product:
-                    messages.info(request, 'Product already exists!')
+                max_product_id = Product.objects.filter(user=current_user).aggregate(Max('product_id'))['product_id__max']
+                if max_product_id is not None:
+            # Increment the product ID for a new product
+                    form.instance.product_id = int(max_product_id) + 1
                 else:
-                    max_product_id = Product.objects.filter(user=current_user).aggregate(Max('product_id'))['product_id__max']
-                    if max_product_id is not None:
-                # Increment the product ID for a new product
-                        form.instance.product_id = int(max_product_id) + 1
-                    else:
-                # Set initial product_id to 101 if no existing products
-                        form.instance.product_id =  101
-                    category_name = request.POST.get('product_category')
-                    
-                    try:
-                        category_instance = category.objects.get(category=category_name, userid_id=current_user)
-                        form.instance.category_id = category_instance.id
-                    except category.DoesNotExist:
-                        messages.error(request, 'Category not found!')
-                        return HttpResponseRedirect('/products')
+            # Set initial product_id to 101 if no existing products
+                    form.instance.product_id =  101
+                category_name = request.POST.get('product_category')
+                
+                try:
+                    category_instance = category.objects.get(category=category_name, userid_id=current_user)
+                    form.instance.category_id = category_instance.id
+                except category.DoesNotExist:
+                    messages.error(request, 'Category not found!')
+                    return HttpResponseRedirect('/products')
 
-                    form.instance.user = current_user
-                    form.cleaned_data['product_name'] = product_name
-                    form.save()
+                form.instance.user = current_user
+                form.cleaned_data['product_name'] = product_name
+                form.save()
 
-                    messages.success(request, 'Product added successfully!')
+                messages.success(request, 'Product added successfully!')
 
             return HttpResponseRedirect('/products')
         else:
@@ -1594,7 +1814,6 @@ def addOrder(request):
                                                                date=ordered_date,
                                                                user=current_user_id)
             price = inventory_entry.price
-            # Calculate total_price
             total_price = Decimal(quantity) * Decimal(price)
             
         except InventoryDetailsDate.DoesNotExist:
@@ -1616,22 +1835,21 @@ def addOrder(request):
                 messages.error(request, f'Price not found for the specified {product_name}.')
                 price = 0
                 total_price = 0
-        try:
-            latest_inventory_entry_quantity = InventoryDetailsDate.objects.filter(
-                product__product_id=order_product_name,
-                user=current_user_id
-            ).latest('date')
+        latest_inventory_entry_quantity = InventoryDetailsDate.objects.filter(
+            product__product_id=order_product_name,
+            user=current_user_id
+        ).latest('date')
 
-            available_quantity = Decimal(latest_inventory_entry_quantity.quantity)
+        available_quantity = Decimal(latest_inventory_entry_quantity.quantity)
 
-            # Check if the requested quantity exceeds the available quantity
+        
+
+        # Check if the requested quantity exceeds the available quantity
+        if status == "Completed":
             if Decimal(quantity) > available_quantity:
                 messages.error(request, f"Requested quantity exceeds available quantity.")
                 return HttpResponseRedirect(previous_page)
-            
-        except InventoryDetailsDate.DoesNotExist:
-            messages.error(request, f'Inventory details not found for the specified product and date.')
-            return HttpResponseRedirect(previous_page)
+     
    
         try:
             order=Order.objects.create(
@@ -1652,6 +1870,11 @@ def addOrder(request):
             if status.lower() == 'cancelled':
                 order.cancelled_date = timezone.now().date()
                 order.save()
+
+            inventory_quantity, created_quantity = InventoryDetailsDate.objects.get_or_create(product__product_id=order_product_name,
+                                                                           date=timezone.now().date(),
+                                                                           user=current_user_id)
+            
             
             product_statistic_order_quantity, created = ProductStatistics.objects.get_or_create(product_id=order_product_name, date = ordered_date)
 
@@ -1664,6 +1887,15 @@ def addOrder(request):
             if status.lower() == 'completed':
                         # Get the current date
                         current_date = timezone.now().date()
+                        if created_quantity:
+                            inventory_quantity.quantity = str(int(order.quantity)) 
+                            inventory_quantity.quantity_deducted = str(int(order.quantity))
+                            inventory_quantity.save()
+                        else:
+                            inventory_quantity.quantity = str(int(available_quantity)-int(order.quantity)) 
+                            inventory_quantity.quantity_deducted = str(int(inventory_quantity.quantity_deducted) + int(order.quantity))
+                            inventory_quantity.save()
+
 
                         # Get or create the ProductStatistic object
                         product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=current_date)
@@ -1816,7 +2048,8 @@ def editOrder(request):
                     # Update the quantity by subtracting total quantity deducted
                     InventoryDetailsDate.objects.filter(
                         product__product_id=order.product.product_id,
-                        user=current_user_id
+                        user=current_user_id,
+                        date=latest_date
                     ).update(
                         quantity=F('quantity') - Decimal(edit_quantity)
                     )
@@ -1827,8 +2060,7 @@ def editOrder(request):
                 print("type of old_quantity:", type(int(order.quantity)))
                 
                 if order.ordered_date != old_ordered_date and order.quantity != old_quantity:
-                    # If both order date and quantity changed
-                    # Deduct quantity from old order date
+                    
                     old_product_stat, _ = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=old_ordered_date)
                     old_product_stat.order_quantity = str(int(old_product_stat.order_quantity or 0) - int(old_quantity))
                     old_product_stat.save()
@@ -2256,6 +2488,7 @@ def addItems(request):
                     'production_quantity': F('production_quantity') + int(quantity)
                 }
             )
+            messages.success(request, f"Statistics updated for product: {existing_data_history.product.product_name}.")
         except Exception as e:
             messages.error(request, f"Error updating product statistics: {str(e)}")
             return redirect(request.session['referring_page'])
@@ -2319,6 +2552,7 @@ def editItems(request):
             existing_quantity_added = int(existing_data_history.quantity_added)
             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
             existing_data_quantity = int(existing_data_history.quantity)
+            product_id = existing_data_history.product_id
             date = existing_data_history.date
 
             if quantity_added != "":
@@ -2379,10 +2613,13 @@ def editItems(request):
                     
 
                 product = existing_data_history.product_id
-                ProductStatistics.objects.filter(product=existing_data_history.product_id, date=date).update(
-                    production_quantity=F('production_quantity') + quantity_added,
-                    deduction_quantity=F('deduction_quantity') + quantity_deducted
-                )
+
+                product_statistic, created = ProductStatistics.objects.get_or_create(date=date, product_id=product)
+                product_statistic.production_quantity = str(int(product_statistic.production_quantity or 0) + int(quantity_added))
+                product_statistic.deduction_quantity = str(int(product_statistic.deduction_quantity or 0) + int(quantity_deducted))
+
+                product_statistic.save()
+                messages.success(request, f"Statistics updated for product: {existing_data_history.product.product_name}.")
                 messages.success(request, "Inventory Updated")
                 print("Product", product)
             
@@ -2404,6 +2641,7 @@ def editItems(request):
                 messages.error(request, f"IntegrityError: {str(e)}")
                 return redirect(request.session['referring_page'])
 
+            
         except InventoryDetailsDate.DoesNotExist:
             messages.error(request, "Inventory does not exist for editing")
 

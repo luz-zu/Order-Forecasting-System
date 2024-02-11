@@ -139,12 +139,33 @@
           </a>
         </li>
         {% if user.is_authenticated and user.userrole == 'admin' %}
-          <li>
-            <a href="{% url 'staff' %}">
+         
+
+          <li class="sidebar_dropdown">
+            <a class="d-flex align-items-center" data-bs-toggle="collapse" href="#stafflist" role="button" aria-expanded="false" aria-controls="orderlist"  id="orderButton">
               <span class="icon pe-3"><i class="fa-solid fa-user-tie"></i></span>
               <span class="text">Staff</span>
             </a>
+         
           </li>
+          
+          <div class="collapse text-white" id="stafflist">
+            <li class="sidebar_dropdown ps-2">
+              <a href="{% url 'staff' %}" class="d-flex align-items-center ">
+                <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+                <span class="text small-fs">Active Staff</span>
+              </a>
+            </li>
+  
+            <li class="sidebar_dropdown ps-2">
+              <a href="{% url 'deactivatedStaff' %}" class="d-flex align-items-center ">
+                <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+                <span class="text small-fs">Inactive Staff</span>
+              </a>
+            </li>
+  
+          </div>
+          
         {% endif %}
       </ul>
     </div>

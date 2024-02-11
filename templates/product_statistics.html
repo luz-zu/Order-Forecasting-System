@@ -12,33 +12,94 @@
     <div class="container pt-3">
         <hr>
         <div >
-            <form id="productStatisticsForm">
-                <div class="d-flex justify-content-end">
+            <!-- Button to trigger modal -->
+<button type="button" class="btns" data-bs-toggle="modal" data-bs-target="#productStatisticsModal">
+    Click Here to Select Product 
+  </button>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="productStatisticsModal" tabindex="-1" aria-labelledby="productStatisticsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productStatisticsModalLabel">Product Statistics</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="productStatisticsForm">
+            <div class="d-block justify-content-end">
+              <input type="hidden" id="selectedColumnsInput" name="selected_columns">
 
-                
-                <div class="pt-3 pe-3">
-                    <select id="categorySelect" name="category" class="form-control">
-                        <option value="">Select Category</option>
-                        {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.category }}</option>
-                        {% endfor %}
-                    </select>
+              <div class="pt-3 pe-3">
+                <select id="categorySelect" name="category" class="form-control">
+                  <option value="">Select Category</option>
+                  {% for category in categories %}
+                  <option value="{{ category.id }}">{{ category.category }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="pt-3 pe-3">
+                <select id="productSelect" name="product" class="form-control">
+                  <option value="">Select Product</option>
+                  {% for product in products %}
+                  <option value="{{ product.product_id }}">{{ product.product_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="pt-3 pe-3">
+                <label>Select Columns:</label><br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="orderQuantityCheckbox" name="column" value="order_quantity">
+                    <label class="form-check-label" for="orderQuantityCheckbox">Order Quantity</label>
                 </div>
-                <div class="pt-3 pe-3">
-                    <select id="productSelect" name="product" class="form-control">
-                        <option value="">Select Product</option>
-                        {% for product in products %}
-                            <option value="{{ product.product_id }}">{{ product.product_name }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="completedQuantityCheckbox" name="column" value="completed_quantity">
+                    <label class="form-check-label" for="completedQuantityCheckbox">Completed Quantity</label>
                 </div>
-                <div class="pt-3">
-                    <button type="submit" class="btns">Submit</button>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="cancelledQuantityCheckbox" name="column" value="cancelled_quantity">
+                    <label class="form-check-label" for="cancelledQuantityCheckbox">Cancelled Quantity</label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="productionQuantityCheckbox" name="column" value="production_quantity">
+                    <label class="form-check-label" for="productionQuantityCheckbox">Production Quantity</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="allCheckbox" name="column" value="all">
+                    <label class="form-check-label" for="allCheckbox">All</label>
+                </div>
+              
+
+
             </div>
-                
-            </form>
+              <div class="pt-3 pe-3">
+                <select id="timeIntervalSelect" name="time_interval" class="form-control">
+                  <option value="">Select Time Interval</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="pt-3 pe-3">
+                <label for="fromDate">From Date:</label>
+                <input type="date" id="fromDate" name="from_date" class="form-control">
+              </div>
+              <div class="pt-3 pe-3">
+                <label for="toDate">To Date:</label>
+                <input type="date" id="toDate" name="to_date" class="form-control">
+              </div>
+              <div class="pt-3">
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
         </div>  
+
         <div class="pt-3">
             <table id="productStatisticsTableBody">
                 <thead>
@@ -70,12 +131,115 @@
             </table>
         </div>
 
+        <div class="pt-3">
+            <div class="daily-statistics">
+                <h2>Daily Statistics</h2>
+                <ul>
+                    <!-- {% for stat in daily_stats %}
+                    <li>
+                        {{ stat.day }}:
+                        Total Order Quantity - {{ stat.total_order_quantity }},
+                        Average Order Quantity - {{ stat.average_order_quantity }},
+                        Total Completed Quantity - {{ stat.total_completed_quantity }},
+                        Average Completed Quantity - {{ stat.average_completed_quantity }},
+                        Total Production Quantity - {{ stat.total_production_quantity }},
+                        Average Production Quantity - {{ stat.average_production_quantity }},
+                        Total Cancelled Quantity - {{ stat.total_cancelled_quantity }},
+                        Average Cancelled Quantity - {{ stat.average_cancelled_quantity }}
+                    </li>
+                    {% endfor %} -->
+                    <div id="plot_div">
+                        {{ plot_div | safe }}
+                    </div>
+                </ul>
+            </div>
+            
+            <div class="monthly-statistics">
+                <h2>Monthly Statistics</h2>
+                <ul>
+                    {% for stat in monthly_stats %}
+                    <li>
+                        Month {{ stat.month }}:
+                        Total Order Quantity - {{ stat.total_order_quantity }},
+                        Average Order Quantity - {{ stat.average_order_quantity }},
+                        Total Completed Quantity - {{ stat.total_completed_quantity }},
+                        Average Completed Quantity - {{ stat.average_completed_quantity }},
+                        Total Production Quantity - {{ stat.total_production_quantity }},
+                        Average Production Quantity - {{ stat.average_production_quantity }},
+                        Total Cancelled Quantity - {{ stat.total_cancelled_quantity }},
+                        Average Cancelled Quantity - {{ stat.average_cancelled_quantity }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="weekly-statistics">
+                <h2>Weekly Statistics</h2>
+                <ul>
+                    {% for stat in weekly_stats %}
+                    <li>
+                        {{ stat.week }}:
+                        Total Order Quantity - {{ stat.total_order_quantity }},
+                        Average Order Quantity - {{ stat.average_order_quantity }},
+                        Total Completed Quantity - {{ stat.total_completed_quantity }},
+                        Average Completed Quantity - {{ stat.average_completed_quantity }},
+                        Total Production Quantity - {{ stat.total_production_quantity }},
+                        Average Production Quantity - {{ stat.average_production_quantity }},
+                        Total Cancelled Quantity - {{ stat.total_cancelled_quantity }},
+                        Average Cancelled Quantity - {{ stat.average_cancelled_quantity }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            
+
+        </div>
+
         
     </div>
 
 </div>
-
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
+
+var selected_columns = [];
+
+// Add event listeners to each checkbox
+document.querySelectorAll('input[name="column"]').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+        // Clear the selected_columns list
+        var selected_columns = [];
+
+        // Check which checkboxes are checked and add corresponding column values to the list
+        if (document.getElementById('orderQuantityCheckbox').checked) {
+            selected_columns.push('order_quantity');
+        }
+        if (document.getElementById('completedQuantityCheckbox').checked) {
+            selected_columns.push('completed_quantity');
+        }
+        if (document.getElementById('cancelledQuantityCheckbox').checked) {
+            selected_columns.push('cancelled_quantity');
+        }
+        if (document.getElementById('productionQuantityCheckbox').checked) {
+            selected_columns.push('production_quantity');
+        }
+        if (document.getElementById('allCheckbox').checked) {
+            selected_columns = ['order_quantity', 'completed_quantity', 'cancelled_quantity', 'production_quantity'];
+        }
+
+        // Set the value of the hidden input field
+        document.getElementById('selectedColumnsInput').value = selected_columns.join(',');
+
+        console.log(selected_columns);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    var toDateInput = document.getElementById('toDate');
+    var today = new Date().toISOString().split('T')[0];
+    toDateInput.value = today;
+  });
  document.getElementById('categorySelect').addEventListener('change', function() {
             var categoryId = this.value;
             console.log("test", categoryId);

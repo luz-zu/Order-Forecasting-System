@@ -11,7 +11,8 @@ class SalesData(models.Model):
 
 class CustomUser(AbstractUser):
     dob = models.DateField(null=True, blank=True)
-    phone_number = models.CharField(max_length=15, blank=True)
+    company_id = models.BigIntegerField(null=True, blank=True)
+    phone_number = models.CharField(max_length=10, blank=True)
     userrole = models.CharField(max_length=15, blank=True)
     # added_by = models.IntegerField(null=True, blank=True)
     otp = models.CharField(max_length=50, null=True, blank=True)
@@ -19,6 +20,7 @@ class CustomUser(AbstractUser):
     otp_verified = models.CharField(max_length=50, null=True, blank=True)
     # first_login = models.IntegerField(default=1)
     added_by = models.BigIntegerField(null=True, blank=True)
+    deleted_on = models.DateTimeField(null=True, blank=True)
 
  
 
