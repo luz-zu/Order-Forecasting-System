@@ -622,7 +622,7 @@ def get_products(request):
 
 
 from django.db.models import Sum, Avg
-from django.db.models.functions import ExtractDay, ExtractMonth, ExtractWeek
+from django.db.models.functions import ExtractDay, ExtractMonth, ExtractWeek,ExtractYear
 from datetime import date, timedelta
 
 
@@ -707,100 +707,275 @@ def daily_statistics(product_id, from_date=None, to_date=None, selected_columns=
     fig.update_layout(title='Daily Statistics',
                       xaxis=dict(title='Date', tickangle=90),
                       yaxis=dict(title='Quantity'),
-                      xaxis_rangeslider_visible=True)  # Enable scrollbar
+                      xaxis_rangeslider_visible=True,autosize=True)  # Enable scrollbar
 
     # Convert figure to HTML
     plot_div = fig.to_html(full_html=False)
 
     return plot_div
 
-def monthly_statistics(product_id, from_date=None, to_date=None):
-    monthly_stats = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
-    if from_date and to_date:
-        monthly_stats = monthly_stats.filter(date__range=[from_date, to_date])
+
+import calendar
+from calendar import monthrange
+from django.db.models.functions import Cast
+
+def monthly_statistics(product_id, from_date=None, to_date=None, selected_columns=None):
+    monthly_stats = ProductStatistics.objects.filter(product_id=product_id, date__gte=from_date, date__lte=to_date).order_by('date')
 
     monthly_stats = monthly_stats.annotate(
-        month=ExtractMonth('date')
-    ).values('month').annotate(
-        total_order_quantity=Sum('order_quantity'),
-        total_completed_quantity=Sum('completed_quantity'),
-        total_production_quantity=Sum('production_quantity'),
-        total_cancelled_quantity=Sum('cancelled_quantity'),
-        average_order_quantity=Avg('order_quantity'),
-        average_completed_quantity=Avg('completed_quantity'),
-        average_production_quantity=Avg('production_quantity'),
-        average_cancelled_quantity=Avg('cancelled_quantity')
-    ).order_by('month')
-    
-    return monthly_stats
+        month=ExtractMonth('date'),
+        year=ExtractYear('date')
+    ).values('month', 'year').annotate(
+        total_order_quantity=Cast(Sum('order_quantity'), IntegerField()),
+        total_completed_quantity=Cast(Sum('completed_quantity'), IntegerField()),
+        total_production_quantity=Cast(Sum('production_quantity'), IntegerField()),
+        total_cancelled_quantity=Cast(Sum('cancelled_quantity'), IntegerField()),
+        average_order_quantity=Cast(Avg('order_quantity'), IntegerField()),
+        average_completed_quantity=Cast(Avg('completed_quantity'), IntegerField()),
+        average_production_quantity=Cast(Avg('production_quantity'), IntegerField()),
+        average_cancelled_quantity=Cast(Avg('cancelled_quantity'), IntegerField())
+    ).order_by('year', 'month')
 
-def weekly_statistics(product_id, from_date=None, to_date=None):
+    # Calculate start and end dates for each month
+    for entry in monthly_stats:
+        year = entry['year']
+        month = entry['month']
+        days_in_month = monthrange(year, month)[1]
+        start_date = datetime(year, month, 1)
+        end_date = datetime(year, month, days_in_month)
+        entry['start_date'] = start_date
+        entry['end_date'] = end_date
+
+
+    x_labels = [calendar.month_name[entry['month']] + ' ' + str(entry['year']) for entry in monthly_stats]
+
+    traces = []
+    if selected_columns is None or 'order_quantity' in selected_columns:
+        total_order_quantity = [entry['total_order_quantity'] for entry in monthly_stats]
+        trace_total_order_quantity = go.Bar(x=x_labels, y=total_order_quantity, name='Total Order Quantity')
+        traces.append(trace_total_order_quantity)
+    
+    if selected_columns is None or 'completed_quantity' in selected_columns:
+        total_completed_quantity = [entry['total_completed_quantity'] for entry in monthly_stats]
+        trace_total_completed_quantity = go.Bar(x=x_labels, y=total_completed_quantity, name='Total Completed Quantity')
+        traces.append(trace_total_completed_quantity)
+    
+    if selected_columns is None or 'cancelled_quantity' in selected_columns:
+        total_cancelled_quantity = [entry['total_cancelled_quantity'] for entry in monthly_stats]
+        trace_total_cancelled_quantity = go.Bar(x=x_labels, y=total_cancelled_quantity, name='Total Cancelled Quantity')
+        traces.append(trace_total_cancelled_quantity)
+    
+    if selected_columns is None or 'production_quantity' in selected_columns:
+        total_production_quantity = [entry['total_production_quantity'] for entry in monthly_stats]
+        trace_total_production_quantity = go.Bar(x=x_labels, y=total_production_quantity, name='Total Production Quantity')
+        traces.append(trace_total_production_quantity)
+
+        
+    if selected_columns is None or 'order_quantity' in selected_columns:
+        average_order_quantity = [entry['average_order_quantity'] for entry in monthly_stats]
+        trace_average_order_quantity = go.Bar(x=x_labels, y=average_order_quantity, name='Average Order Quantity')
+        traces.append(trace_average_order_quantity)
+    
+    if selected_columns is None or 'completed_quantity' in selected_columns:
+        average_completed_quantity = [entry['average_completed_quantity'] for entry in monthly_stats]
+        trace_average_completed_quantity = go.Bar(x=x_labels, y=average_completed_quantity, name='Average Completed Quantity')
+        traces.append(trace_average_completed_quantity)
+    
+    if selected_columns is None or 'cancelled_quantity' in selected_columns:
+        average_cancelled_quantity = [entry['average_cancelled_quantity'] for entry in monthly_stats]
+        trace_average_cancelled_quantity = go.Bar(x=x_labels, y=average_cancelled_quantity, name='Average Cancelled Quantity')
+        traces.append(trace_average_cancelled_quantity)
+    
+    if selected_columns is None or 'production_quantity' in selected_columns:
+        average_production_quantity = [entry['average_production_quantity'] for entry in monthly_stats]
+        trace_average_production_quantity = go.Bar(x=x_labels, y=average_production_quantity, name='Average Production Quantity')
+        traces.append(trace_average_production_quantity)
+
+    
+
+
+    # Create a Plotly figure
+    fig = go.Figure(data=traces)
+
+    # Update layout
+    fig.update_layout(title='Monthly Statistics',
+                      xaxis=dict(title='Month and Year'),
+                      yaxis=dict(title='Quantity'),
+                      xaxis_rangeslider_visible=True)
+
+    # Convert figure to HTML
+    plot_div = fig.to_html(full_html=False)
+
+    return plot_div, monthly_stats,selected_columns
+
+
+from django.db.models import Min, Max
+
+# def weekly_statistics(product_id, from_date=None, to_date=None, selected_columns=None):
+#     # Filter the queryset by product_id and date range
+#     weekly_stats = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
+#     if from_date and to_date:
+#         weekly_stats = weekly_stats.filter(date__range=[from_date, to_date])
+    
+
+#     # Annotate the queryset to calculate week number, start date, and end date
+#     weekly_stats = weekly_stats.annotate(
+#         week=ExtractWeek('date'),
+#         start_date=Min('date'),
+#         end_date=Max('date')
+#     ).values('week', 'start_date', 'end_date').annotate(
+#         total_order_quantity=Sum('order_quantity'),
+#         total_completed_quantity=Sum('completed_quantity'),
+#         total_production_quantity=Sum('production_quantity'),
+#         total_cancelled_quantity=Sum('cancelled_quantity'),
+#         average_order_quantity=Avg('order_quantity'),
+#         average_completed_quantity=Avg('completed_quantity'),
+#         average_production_quantity=Avg('production_quantity'),
+#         average_cancelled_quantity=Avg('cancelled_quantity')
+#     ).order_by('week')
+
+#     # Calculate start and end dates for each week
+#     for entry in weekly_stats:
+#         start_date = entry['start_date']
+#         end_date = entry['end_date']
+#         year, week_num, _ = start_date.isocalendar()
+#         entry['start_date'] = start_date
+#         entry['end_date'] = end_date
+
+#     traces = []
+
+#     # Add traces for selected columns
+#     if selected_columns is None or 'order_quantity' in selected_columns:
+#         total_order_quantity = [int(entry['total_order_quantity']) for entry in weekly_stats]
+#         trace_total_order_quantity = go.Bar(x=months, y=total_order_quantity, name='Total Order Quantity')
+#         traces.append(trace_total_order_quantity)
+    
+#     if selected_columns is None or 'completed_quantity' in selected_columns:
+#         total_completed_quantity = [int(entry['total_completed_quantity']) for entry in weekly_stats]
+#         trace_total_completed_quantity = go.Bar(x=weeks, y=total_completed_quantity, name='Total Completed Quantity')
+#         traces.append(trace_total_completed_quantity)
+    
+#     if selected_columns is None or 'cancelled_quantity' in selected_columns:
+#         total_cancelled_quantity = [int(entry['total_cancelled_quantity']) for entry in weekly_stats]
+#         trace_total_cancelled_quantity = go.Bar(x=months, y=total_cancelled_quantity, name='Total Cancelled Quantity')
+#         traces.append(trace_total_cancelled_quantity)
+    
+#     if selected_columns is None or 'production_quantity' in selected_columns:
+#         total_production_quantity = [int(entry['total_production_quantity']) for entry in weekly_stats]
+#         trace_total_production_quantity = go.Bar(x=months, y=total_production_quantity, name='Total Production Quantity')
+#         traces.append(trace_total_production_quantity)
+
+#     # Create a Plotly figure
+#     fig = go.Figure(data=traces)
+
+#     # Update layout
+#     fig.update_layout(title='Monthly Statistics',
+#                       xaxis=dict(title='Wek'),
+#                       yaxis=dict(title='Quantity'))
+
+#     # Convert figure to HTML
+#     plot_div = fig.to_html(full_html=False)
+
+#     return weekly_stats,plot_div
+
+import plotly.graph_objs as go
+
+def weekly_statistics(product_id, from_date=None, to_date=None, selected_columns=None):
+    # Filter the queryset by product_id and date range
     weekly_stats = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
     if from_date and to_date:
         weekly_stats = weekly_stats.filter(date__range=[from_date, to_date])
-
-    weekly_stats = weekly_stats.annotate(
-        week=ExtractWeek('date')
-    ).values('week').annotate(
-        total_order_quantity=Sum('order_quantity'),
-        total_completed_quantity=Sum('completed_quantity'),
-        total_production_quantity=Sum('production_quantity'),
-        total_cancelled_quantity=Sum('cancelled_quantity'),
-        average_order_quantity=Avg('order_quantity'),
-        average_completed_quantity=Avg('completed_quantity'),
-        average_production_quantity=Avg('production_quantity'),
-        average_cancelled_quantity=Avg('cancelled_quantity')
-    ).order_by('week')
     
-    return weekly_stats
+    # Annotate the queryset to calculate week number, start date, and end date
+    weekly_stats = weekly_stats.annotate(
+        week=ExtractWeek('date'),
+        start_date=Min('date'),
+        end_date=Max('date')
+    ).values('week', 'start_date', 'end_date').annotate(
+        total_order_quantity=Cast(Sum('order_quantity'), IntegerField()),
+        total_completed_quantity=Cast(Sum('completed_quantity'), IntegerField()),
+        total_production_quantity=Cast(Sum('production_quantity'), IntegerField()),
+        total_cancelled_quantity=Cast(Sum('cancelled_quantity'), IntegerField()),
+        average_order_quantity=Cast(Avg('order_quantity'), IntegerField()),
+        average_completed_quantity=Cast(Avg('completed_quantity'), IntegerField()),
+        average_production_quantity=Cast(Avg('production_quantity'), IntegerField()),
+        average_cancelled_quantity=Cast(Avg('cancelled_quantity'), IntegerField())
+    ).order_by('week')
 
+    # Calculate start and end dates for each week
+    start_date = from_date if from_date else weekly_stats.first()['start_date']
+    end_date = to_date if to_date else weekly_stats.last()['end_date']
 
-def print_daily_statistics(product_id):
-    daily_stats = daily_statistics(product_id)
-    print("Daily Statistics:")
-    for stat in daily_stats:
-        print(f"Day {stat['day']}:")
-        print(f"Total Order Quantity: {stat['total_order_quantity']}")
-        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
-        print(f"Total Production Quantity: {stat['total_production_quantity']}")
-        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
-        print(f"Average Order Quantity: {stat['average_order_quantity']}")
-        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
-        print(f"Average Production Quantity: {stat['average_production_quantity']}")
-        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
-        print("\n")
+    current_date = start_date
+    weeks = []
+    while current_date <= end_date:
+        end_of_week = current_date + timedelta(days=6)
+        weeks.append(f"{current_date.strftime('%Y-%m-%d')} to {end_of_week.strftime('%Y-%m-%d')}")
+        current_date += timedelta(weeks=1)
 
-# Function calls and print statements for monthly statistics
-def print_monthly_statistics(product_id):
-    monthly_stats = monthly_statistics(product_id)
-    print("Monthly Statistics:")
-    for stat in monthly_stats:
-        print(f"Month {stat['month']}:")
-        print(f"Total Order Quantity: {stat['total_order_quantity']}")
-        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
-        print(f"Total Production Quantity: {stat['total_production_quantity']}")
-        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
-        print(f"Average Order Quantity: {stat['average_order_quantity']}")
-        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
-        print(f"Average Production Quantity: {stat['average_production_quantity']}")
-        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
-        print("\n")
+    traces = []
 
-# Function calls and print statements for weekly statistics
-def print_weekly_statistics(product_id):
-    weekly_stats = weekly_statistics(product_id)
-    print("Weekly Statistics:")
-    for stat in weekly_stats:
-        print(stat['week'])
-        print(f"Total Order Quantity: {stat['total_order_quantity']}")
-        print(f"Total Completed Quantity: {stat['total_completed_quantity']}")
-        print(f"Total Production Quantity: {stat['total_production_quantity']}")
-        print(f"Total Cancelled Quantity: {stat['total_cancelled_quantity']}")
-        print(f"Average Order Quantity: {stat['average_order_quantity']}")
-        print(f"Average Completed Quantity: {stat['average_completed_quantity']}")
-        print(f"Average Production Quantity: {stat['average_production_quantity']}")
-        print(f"Average Cancelled Quantity: {stat['average_cancelled_quantity']}")
-        print("\n")
+    # Add traces for selected columns
+    if selected_columns is None or 'order_quantity' in selected_columns:
+        total_order_quantity = [int(entry['total_order_quantity']) for entry in weekly_stats]
+        trace_total_order_quantity = go.Bar(x=weeks, y=total_order_quantity, name='Total Order Quantity')
+        average_order_quantity = [int(entry['average_order_quantity']) for entry in weekly_stats]
+        trace_average_order_quantity = go.Bar(x=weeks, y=average_order_quantity, name='Average Order Quantity')
+        traces.append(trace_total_order_quantity)
+        traces.append(trace_average_order_quantity)
+    
+    if selected_columns is None or 'completed_quantity' in selected_columns:
+        total_completed_quantity = [int(entry['total_completed_quantity']) for entry in weekly_stats]
+        trace_total_completed_quantity = go.Bar(x=weeks, y=total_completed_quantity, name='Total Completed Quantity')
+        average_completed_quantity = [int(entry['average_completed_quantity']) for entry in weekly_stats]
+        trace_average_completed_quantity = go.Bar(x=weeks, y=average_completed_quantity, name='Average Completed Quantity')
+        traces.append(trace_total_completed_quantity)
+        traces.append(trace_average_completed_quantity)
+    
+    if selected_columns is None or 'cancelled_quantity' in selected_columns:
+        total_cancelled_quantity = [int(entry['total_cancelled_quantity']) for entry in weekly_stats]
+        trace_total_cancelled_quantity = go.Bar(x=weeks, y=total_cancelled_quantity, name='Total Cancelled Quantity')
+        average_cancelled_quantity = [int(entry['average_cancelled_quantity']) for entry in weekly_stats]
+        trace_average_cancelled_quantity = go.Bar(x=weeks, y=average_cancelled_quantity, name='Average Cancelled Quantity')
+        traces.append(trace_total_cancelled_quantity)
+        traces.append(trace_average_cancelled_quantity)
+    
+    if selected_columns is None or 'production_quantity' in selected_columns:
+        total_production_quantity = [int(entry['total_production_quantity']) for entry in weekly_stats]
+        trace_total_production_quantity = go.Bar(x=weeks, y=total_production_quantity, name='Total Production Quantity')
+        average_production_quantity = [int(entry['average_production_quantity']) for entry in weekly_stats]
+        trace_average_production_quantity = go.Bar(x=weeks, y=average_production_quantity, name='Average Production Quantity')
+        traces.append(trace_total_production_quantity)
+        traces.append(trace_average_production_quantity)
+
+    # Create a Plotly figure
+    fig = go.Figure(data=traces)
+
+    # # Update layout
+    # fig.update_layout(title='Weekly Statistics',
+    #                   xaxis=dict(title='Date Range', tickangle=90),
+    #                   yaxis=dict(title='Quantity'),
+    #                   xaxis_rangeslider_visible=True,
+    #                   )
+
+   
+    
+    
+    fig.update_layout(title='Weekly Statistics',
+                      xaxis=dict(title='Date Range', tickangle=90),
+                      yaxis=dict(title='Quantity'),
+                      xaxis_rangeslider_visible=True,
+                       autosize=True, height=600,legend=dict(
+            x=5.1,  # Set x position (1.1 places the legend slightly to the right of the plot)
+            y=1.0   # Set y position (1.0 places the legend at the top of the plot)
+        ))
+    
+    
+    
+    # Convert figure to HTML
+    plot_div = fig.to_html(full_html=False)
+
+    return weekly_stats, plot_div
 
 def get_week_dates(year, week):
     d = datetime(year, 1, 1)
@@ -814,52 +989,20 @@ def get_week_dates(year, week):
     end_date = start_date + timedelta(days=6)
     return start_date, end_date
 
-def order_statistics(product_id):
-    today = datetime.now().date()
-    
-    # Total orders till date
-    total_quantity_till_date = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_quantity=Sum('production_quantity'))
+def count_total_quantities(product_id):
+    total_order_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_order_quantity=Sum('order_quantity'))['total_order_quantity'] or 0
+    total_completed_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_completed_quantity=Sum('completed_quantity'))['total_completed_quantity'] or 0
+    total_cancelled_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_cancelled_quantity=Sum('cancelled_quantity'))['total_cancelled_quantity'] or 0
+    total_production_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_production_quantity=Sum('production_quantity'))['total_production_quantity'] or 0
+  
 
-    # Total orders this week
-    start_of_week = today - timedelta(days=today.weekday())
-    total_quantity_this_week = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_week).aggregate(total_quantity=Sum('production_quantity'))
-
-    # Total orders this month
-    start_of_month = today.replace(day=1)
-    total_quantity_this_month = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_month).aggregate(total_quantity=Sum('production_quantity'))
-
-    # Total orders this year
-    start_of_year = today.replace(month=1, day=1)
-    total_quantity_this_year = ProductStatistics.objects.filter(product_id=product_id, date__gte=start_of_year).aggregate(total_quantity=Sum('production_quantity'))
-    
     return {
-        'total_quantity_till_date': total_quantity_till_date['total_quantity'] or 0,
-        'total_quantity_this_week': total_quantity_this_week['total_quantity'] or 0,
-        'total_quantity_this_month': total_quantity_this_month['total_quantity'] or 0,
-        'total_quantity_this_year': total_quantity_this_year['total_quantity'] or 0
+        'total_order_quantity': total_order_quantity,
+        'total_completed_quantity': total_completed_quantity,
+        'total_cancelled_quantity': total_cancelled_quantity,
+        'total_production_quantity': total_production_quantity,
     }
 
-# def update_product_statistics():
-#     # Get yesterday's date
-#     yesterday = date.today() - timedelta(days=1)
-
-#     # Filter orders added until yesterday
-#     orders_until_yesterday = Order.objects.filter(added_on__lte=yesterday)
-
-#     # Loop through each order
-#     for order in orders_until_yesterday:
-#         # Get or create ProductStatistics for the order's date
-#         product_statistic, created = ProductStatistics.objects.get_or_create(date=order.added_on, deleted_on__isnull = True)
-
-#         # Update pending_quantity and ongoing_quantity based on order status
-#         if order.status == 'Pending':
-#             product_statistic.pending_quantity = F('pending_quantity') + order.quantity
-#         elif order.status == 'Ongoing':
-#             product_statistic.ongoing_quantity = F('ongoing_quantity') + order.quantity
-
-#         # Save the updated ProductStatistics
-#         product_statistic.save()
-# # Call the function to update product statistics
 
 def productStatistics(request):
 
@@ -894,6 +1037,8 @@ def productStatistics(request):
         product_id = request.GET.get('product')
         print(request.POST)
         if product_id:
+            product = Product.objects.get(product_id=product_id) 
+            product_name = product.product_name
             
             from_date_str = request.GET.get('from_date')
             to_date_str = request.GET.get('to_date')
@@ -901,41 +1046,59 @@ def productStatistics(request):
             frequency = request.GET.get('time_interval')    
             print("frequency",frequency)
 
-            selected_columns_str = request.POST.get('selected_columns')
+            selected_columns_str = request.GET.get('selected_columns')
             selected_columns = selected_columns_str.split(',') if selected_columns_str else []
             print("first",selected_columns)
 
             from_date = datetime.strptime(from_date_str, '%Y-%m-%d') if from_date_str else None
             to_date = datetime.strptime(to_date_str, '%Y-%m-%d') if to_date_str else None
 
-            if 'all' in selected_columns:
-                selected_columns = ['order_quantity', 'completed_quantity', 'cancelled_quantity', 'production_quantity']
-            
+                        
 
             product_statistics = ProductStatistics.objects.filter(product_id=product_id).order_by('date')
             if from_date and to_date:
                 product_statistics = product_statistics.filter(date__range=[from_date, to_date])
 
             print("product_id", product_id)
-            # Daily production statistics function call
-            # print_daily_statistics(product_id)
-            # print_monthly_statistics(product_id)
-            # print_weekly_statistics(product_id)
-            # daily_stats = daily_statistics(product_id, from_date, to_date)
-            # if frequency == 'daily':
-            #     print("selected", selected_columns)
-            #     plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
-            # elif frequency == 'monthly':
-            #     monthly_stats= monthly_statistics(product_id, from_date, to_date)
-            # elif frequency == 'weekly':
-            #     weekly_stats= weekly_statistics(product_id, from_date, to_date)
-            # plot_div = None
-            plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
-            monthly_stats = None
-            weekly_stats = None
+           
+            if frequency == 'daily':
+                print("selected", frequency)
+                plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
+                monthly_stats = None
+                weekly_stats = None
+                plot_div_monthly =None
+                selected_columns_monthly = None
+                plot_div_weekly=None
+            elif frequency == 'monthly':
+                # monthly_stats= monthly_statistics(product_id, from_date, to_date)
+                plot_div_monthly, monthly_stats,selected_columns_monthly = monthly_statistics(product_id, from_date, to_date, selected_columns)
+                plot_div = None
+                weekly_stats = None
+                plot_div_weekly =None
+            elif frequency == 'weekly':
+                weekly_stats, plot_div_weekly= weekly_statistics(product_id, from_date, to_date, selected_columns)
+                plot_div = None
+                monthly_stats = None
+                plot_div_monthly =None
+            totals_products = count_total_quantities(product_id)
+           
 
+           
         else:
-            product_statistics = ProductStatistics.objects.none()
+            product_statistics = ProductStatistics.objects.all()
+            plot_div = None
+            monthly_stats = None
+            plot_div_monthly =None
+            frequency = None
+            plot_div = None
+            monthly_stats = None
+            plot_div_monthly =None
+            totals_products=None
+            weekly_stats = None
+            plot_div_weekly =None
+            selected_columns=None
+            product_name=None
+
 
         # Add pending and ongoing quantities to context
         context = {
@@ -944,8 +1107,14 @@ def productStatistics(request):
             'products': products,
             'plot_div': plot_div,
             'monthly_stats': monthly_stats,
+            'plot_div_monthly':plot_div_monthly,
+            'selected_columns':selected_columns,
             'weekly_stats': weekly_stats,
-        }
+            'plot_div_weekly':plot_div_weekly,
+            'totals_products': totals_products,
+            'frequency':frequency,
+            'product_name':product_name
+            }
         return render(request, 'product_statistics.html', context)
 
 def get_products(request):
@@ -1746,6 +1915,7 @@ def order_filter(request):
             **filter_params
         )
         categories = category.objects.filter(userid_id=request.user.id)
+        print("categories",categories)
         products = []  # Initially, no products until a category is selected
 
         context = {
