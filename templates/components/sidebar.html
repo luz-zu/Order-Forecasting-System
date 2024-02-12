@@ -110,22 +110,22 @@
         <div class="collapse text-white" id="orderlist">
           <li class="sidebar_dropdown ps-2">
             <a href="{% url 'orders' %}" class="d-flex align-items-center ">
-              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
-              <span class="text small-fs">Ongoing Orders</span>
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-spinner"></i>
+              <span class="text small-fs">Ongoing </span>
             </a>
           </li>
 
           <li class="sidebar_dropdown ps-2">
             <a href="{% url 'getCompletedOrder' %}" class="d-flex align-items-center ">
-              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
-              <span class="text small-fs">Completed Orders</span>
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-check-to-slot"></i>
+              <span class="text small-fs">Completed </span>
             </a>
           </li>
 
           <li class="sidebar_dropdown ps-2">
             <a href="{% url 'getCancelledOrder' %}" class="d-flex align-items-center ">
-              <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
-              <span class="text small-fs">Cancelled Orders</span>
+              <span class="icon pe-3 small-fs"><i class="fa-solid fa-circle-xmark"></i>
+              <span class="text small-fs">Cancelled </span>
             </a>
           </li>
         </div>
@@ -152,14 +152,14 @@
           <div class="collapse text-white" id="stafflist">
             <li class="sidebar_dropdown ps-2">
               <a href="{% url 'staff' %}" class="d-flex align-items-center ">
-                <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+                <span class="icon pe-3 small-fs"><i class="fa-solid fa-user-check"></i></span>
                 <span class="text small-fs">Active Staff</span>
               </a>
             </li>
   
             <li class="sidebar_dropdown ps-2">
               <a href="{% url 'deactivatedStaff' %}" class="d-flex align-items-center ">
-                <span class="icon pe-3 small-fs"><i class="fa-solid fa-list-check"></i></span>
+                <span class="icon pe-3 small-fs"><i class="fa-solid fa-user-xmark"></i></span>
                 <span class="text small-fs">Inactive Staff</span>
               </a>
             </li>

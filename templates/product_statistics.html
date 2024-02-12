@@ -4,14 +4,11 @@
 
 <style>
   #monthly-table-print,
-  #weekly-table-print {
+  #weekly-table-print,
+  #daily-table-print {
     display: none;
   }
-  .plot-container {
-        width: 100%;
-        height: 100vh;
-    }
-
+ 
   
       
   @media print {
@@ -252,7 +249,7 @@
    
         
         
-      <div class="pt-3">
+      <div class="pt-5">
         
         <div class="fs-4 text-blue">Total Quantities</div>
         <div class="row">
@@ -294,21 +291,64 @@
             </div>
           </div>
         </div>
+        <!-- {{ totals_products.percentage_order_completed}}% -->
         
       </div>
         {% endif %}
       </div>
 
-      <div class="pt-3">
+        <div class="pt-5">
+          
         
         <div class="card card-body daily-statistics" {% if frequency != 'daily' %} style="display: none;" {% endif %}>
-          <div class="fs-4 text-blue">Daily Statistics</div>
-          <ul>
-            <div id="plot_div" class="plot-container"></div>>{{ plot_div | safe }}</div>
-          </ul>
-        </div>
+          <div class="d-md-flex d-block justify-content-between align-items-center">
+            <div class="fs-4 text-blue">Daily Statistics</div>
+          <div class="text-end pt-md-0 pt-3">
+            <button id="daily-print-button" class="btns ">
+              <span class="pe-2"><i class="fa-solid fa-download"></i></span> Download Daily Data
+            </button>
+            <div class="text-muted">Click the button to get daily data in tabular format.</div>
+          </div>
 
-        <div class="card card-body weekly-statistics mt-3" {% if frequency != 'weekly' %} style="display: none;" {% endif %}>
+          </div>
+          <div>
+            <table id="daily-table-print">
+              <tr>
+                  <th>Date</th>
+                  {% if 'order_quantity' in selected_columns %}
+                  <th>Order Quantity</th>
+                  {% elif 'completed_quantity' in selected_columns %}
+                  <th>Completed Quantity</th>
+                  {% elif 'production_quantity' in selected_columns %}
+                  <th>Production Quantity</th>
+                  {% elif 'cancelled_quantity' in selected_columns %}
+                  <th>Cancelled Quantity</th>
+                  {% endif %}
+              </tr>
+              {% for entry in daily_stats_data %}
+              <tr>
+                  <td>{{ entry.date|date:"M d, Y" }}</td>
+                  {% if 'order_quantity' in selected_columns %}
+                  <td>{{ entry.order_quantity }}</td>
+                  {% elif 'completed_quantity' in selected_columns %}
+                  <td>{{ entry.completed_quantity }}</td>
+                  {% elif 'production_quantity' in selected_columns %}
+                  <td>{{ entry.production_quantity }}</td>
+                  {% elif 'cancelled_quantity' in selected_columns %}
+                  <td>{{ entry.cancelled_quantity }}</td>
+                  {% endif %}
+              </tr>
+              {% endfor %}
+          </table>
+          </div>
+          <ul>
+            <div id="plot_div" class="plot-container">{{ plot_div | safe }}</div>
+            
+          </ul>
+      </div>
+      
+
+        <div class="card card-body weekly-statistics" {% if frequency != 'weekly' %} style="display: none;" {% endif %}>
           <div class="d-md-flex d-block justify-content-between align-items-center">
             <div class="fs-4 text-blue">Weekly Statistics</div>
           <div class="text-end pt-md-0 pt-3">
@@ -433,12 +473,14 @@
           <div id="monthly-chart">{{ plot_div_monthly | safe }}</div>
         </div>
       </div>
+
+      </div>
     </div>
       </div>
 </div>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
-  // Event listener for time interval select change
+  
   document
     .getElementById("timeIntervalSelect")
     .addEventListener("change", function () {
@@ -446,19 +488,31 @@
       showSelectedStatisticDiv(selectedInterval);
     });
 
+    document
+    .getElementById("daily-print-button")
+    .addEventListener("click", function () {
+      var originalContent = document.body.innerHTML;
+      document.body.innerHTML = document.querySelector(
+        "#daily-table-print"
+      ).outerHTML;
+
+      window.print();
+
+      setTimeout(function () {
+        document.body.innerHTML = originalContent;
+      }, 100);
+    });
+
   document
     .getElementById("monthly-print-button")
     .addEventListener("click", function () {
-      // Hide everything else on the page
       var originalContent = document.body.innerHTML;
       document.body.innerHTML = document.querySelector(
         "#monthly-table-print"
       ).outerHTML;
 
-      // Trigger the print functionality
       window.print();
 
-      // Restore the original content after a delay to ensure printing has started
       setTimeout(function () {
         document.body.innerHTML = originalContent;
       }, 100);

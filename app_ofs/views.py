@@ -625,57 +625,30 @@ from django.db.models import Sum, Avg
 from django.db.models.functions import ExtractDay, ExtractMonth, ExtractWeek,ExtractYear
 from datetime import date, timedelta
 
-
-# def daily_statistics(product_id, from_date=None, to_date=None):
-#     # Query database to get the data
-#     daily_stats = ProductStatistics.objects.filter(product_id=product_id, date__gte=from_date, date__lte=to_date).order_by('date')
-
-#     # Extracting data for each column
-#     dates = [entry.date.strftime("%b %d, %Y") for entry in daily_stats]
-#     order_quantity = [int(entry.order_quantity) for entry in daily_stats]
-#     completed_quantity = [int(entry.completed_quantity) for entry in daily_stats]
-#     cancelled_quantity = [int(entry.cancelled_quantity) for entry in daily_stats]
-#     production_quantity = [int(entry.production_quantity) for entry in daily_stats]
-
-#     # Concatenate all quantities into a single list
-#     all_quantities = order_quantity + completed_quantity + cancelled_quantity + production_quantity
-
-#     # Find the minimum and maximum values
-#     min_value = min(all_quantities)
-#     max_value = max(all_quantities)
-
-#     # Create traces for each column
-#     trace_order_quantity = go.Scatter(x=dates, y=order_quantity, mode='lines', name='Order Quantity')
-#     trace_completed_quantity = go.Scatter(x=dates, y=completed_quantity, mode='lines', name='Completed Quantity')
-#     trace_cancelled_quantity = go.Scatter(x=dates, y=cancelled_quantity, mode='lines', name='Cancelled Quantity')
-#     trace_production_quantity = go.Scatter(x=dates, y=production_quantity, mode='lines', name='Production Quantity')
-
-#     # Create a Plotly figure
-#     fig = go.Figure()
-
-#     # Add traces to the figure
-#     fig.add_trace(trace_order_quantity)
-#     fig.add_trace(trace_completed_quantity)
-#     fig.add_trace(trace_cancelled_quantity)
-#     fig.add_trace(trace_production_quantity)
-
-#     # Update layout
-#     fig.update_layout(title='Daily Statistics',
-#                       xaxis=dict(title='Date', tickangle=90),
-#                       yaxis=dict(title='Quantity', range=[min_value, max_value]),
-#                       xaxis_rangeslider_visible=True)  # Enable scrollbar
-
-#     # Convert figure to HTML
-#     plot_div = fig.to_html(full_html=False)
-
-#     return plot_div
-
 def daily_statistics(product_id, from_date=None, to_date=None, selected_columns=None):
     # Query database to get the data
     daily_stats = ProductStatistics.objects.filter(product_id=product_id, date__gte=from_date, date__lte=to_date).order_by('date')
+    
+    daily_stats_data = []
 
-    # Extracting data for each column
     dates = [entry.date.strftime("%b %d, %Y") for entry in daily_stats]
+    for entry in daily_stats:
+        date = entry.date
+        order_quantity = entry.order_quantity
+        completed_quantity = entry.completed_quantity
+        production_quantity = entry.production_quantity
+        cancelled_quantity = entry.cancelled_quantity
+        
+        daily_data = {
+            'date': date,
+            'order_quantity': order_quantity,
+            'completed_quantity': completed_quantity,
+            'production_quantity': production_quantity,
+            'cancelled_quantity': cancelled_quantity
+        }
+        
+        # Append the dictionary to the list
+        daily_stats_data.append(daily_data)
 
     traces = []
 
@@ -712,7 +685,8 @@ def daily_statistics(product_id, from_date=None, to_date=None, selected_columns=
     # Convert figure to HTML
     plot_div = fig.to_html(full_html=False)
 
-    return plot_div
+
+    return daily_stats_data, plot_div
 
 
 import calendar
@@ -994,14 +968,41 @@ def count_total_quantities(product_id):
     total_completed_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_completed_quantity=Sum('completed_quantity'))['total_completed_quantity'] or 0
     total_cancelled_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_cancelled_quantity=Sum('cancelled_quantity'))['total_cancelled_quantity'] or 0
     total_production_quantity = ProductStatistics.objects.filter(product_id=product_id).aggregate(total_production_quantity=Sum('production_quantity'))['total_production_quantity'] or 0
+
   
+
+    avg_difference_order_completed = total_order_quantity - total_completed_quantity
+    if total_order_quantity != 0:
+        percentage_order_completed = (avg_difference_order_completed / total_order_quantity) * 100
+    else:
+        percentage_order_completed = 0
+    avg_difference_order_production = total_production_quantity - total_order_quantity
+    if total_order_quantity != 0:
+        percentage_order_production = (avg_difference_order_production / total_order_quantity) * 100
+    else:
+        percentage_order_production = 0
+
+    percentage_order_completed = round(percentage_order_completed, 3)
+    percentage_order_production = round(percentage_order_production, 3)
 
     return {
         'total_order_quantity': total_order_quantity,
         'total_completed_quantity': total_completed_quantity,
         'total_cancelled_quantity': total_cancelled_quantity,
         'total_production_quantity': total_production_quantity,
+        'percentage_order_completed':percentage_order_completed,
+        'percentage_order_production':percentage_order_production
     }
+
+def avg_prod_order_diff(product_id):
+
+    # Retrieve ProductStatistics instances for the selected product
+    product_stats = ProductStatistics.objects.filter(product_id=product_id)
+    int_order_quantity = 0
+
+    for col in product_stats:
+        int_order_quantity += int(col.order_quantity)
+    print("test",int_order_quantity)
 
 
 def productStatistics(request):
@@ -1035,8 +1036,10 @@ def productStatistics(request):
         product_statistics = ProductStatistics.objects.all()
 
         product_id = request.GET.get('product')
+        
         print(request.POST)
         if product_id:
+            avg_prod_order_diff(product_id)
             product = Product.objects.get(product_id=product_id) 
             product_name = product.product_name
             
@@ -1063,7 +1066,7 @@ def productStatistics(request):
            
             if frequency == 'daily':
                 print("selected", frequency)
-                plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
+                daily_stats_data, plot_div = daily_statistics(product_id, from_date, to_date, selected_columns)
                 monthly_stats = None
                 weekly_stats = None
                 plot_div_monthly =None
@@ -1075,11 +1078,13 @@ def productStatistics(request):
                 plot_div = None
                 weekly_stats = None
                 plot_div_weekly =None
+                daily_stats_data=None
             elif frequency == 'weekly':
                 weekly_stats, plot_div_weekly= weekly_statistics(product_id, from_date, to_date, selected_columns)
                 plot_div = None
                 monthly_stats = None
                 plot_div_monthly =None
+                daily_stats_data=None
             totals_products = count_total_quantities(product_id)
            
 
@@ -1098,6 +1103,7 @@ def productStatistics(request):
             plot_div_weekly =None
             selected_columns=None
             product_name=None
+            daily_stats_data=None
 
 
         # Add pending and ongoing quantities to context
@@ -1113,7 +1119,8 @@ def productStatistics(request):
             'plot_div_weekly':plot_div_weekly,
             'totals_products': totals_products,
             'frequency':frequency,
-            'product_name':product_name
+            'product_name':product_name,
+            'daily_stats_data':daily_stats_data
             }
         return render(request, 'product_statistics.html', context)
 
@@ -1943,8 +1950,8 @@ def get_product_list(request):
 
 def check_negative_values(fields):
     for field_name, value in fields.items():
-        if value is not None and value < 0:
-            raise ValueError(f"{field_name.capitalize()} cannot be less than 0.")
+        if value is not None and value < 1:
+            raise ValueError(f"{field_name.capitalize()} cannot be 0 or less than 0.")
 
 
 from decimal import Decimal
@@ -1972,11 +1979,11 @@ def addOrder(request):
             })
         except ValueError as ve:
             messages.error(request, str(ve))
-            return render(request, 'orders.html')
+            return HttpResponseRedirect(previous_page)
         
         if delivery_date <= ordered_date:
             messages.error(request, 'Delivery date must be later than the order date.')
-            return render(request, 'orders.html')
+            return HttpResponseRedirect(previous_page)
 
         # Fetch price from InventoryDetailsDate based on product_id and ordered_date
         try:
@@ -2289,40 +2296,9 @@ def editOrder(request):
                         product_stat.save()
                         messages.success(request, f"Cancelled quantity updated for product: {order.product.product_name}.")
 
-
-
-
-#                 if order.quantity != old_quantity:
                     
-# # Calculate difference in quantity
-#                     quantity_diff = old_quantity - int(order.quantity)
-                    
-#                     # Update ProductStatistics based on quantity change
-#                     product_stat, created = ProductStatistics.objects.get_or_create(product_id=order.product_id, date=order.ordered_date)
-#                     if product_stat.order_quantity == "":
-#                         product_stat.order_quantity = 0
-                        
 
-#                     if product_stat.order_quantity == 0:
-#                         final_quantity = order.quantity
-#                         product_stat.order_quantity = str(final_quantity)
-#                         product_stat.save()
-                    
-#                     elif quantity_diff < 0:
-#                         final_quantity = int(product_stat.order_quantity) + abs(quantity_diff)
-#                         product_stat.order_quantity = str(final_quantity)
-#                         product_stat.save()
-#                     else:
-#                         print("else\n")
-#                         print("product_stat.order_quantity", product_stat.order_quantity)
-#                         print("quantity_diff", quantity_diff)
-#                         final_quantity = int(product_stat.order_quantity) - abs(quantity_diff)
-#                         product_stat.order_quantity =str(abs(final_quantity))
-#                         product_stat.save()
-                     
-
-
-                # messages.success(request, 'New Order Added')
+                messages.success(request, 'New Order Added')
                 return HttpResponseRedirect('/orders')
             except IntegrityError:
                 return HttpResponse("An error occurred while editing the order details")
@@ -2338,11 +2314,22 @@ def delete_order(request, order_id):
         try:
             order = Order.objects.get(order_id=order_id, user_id=current_user_id)
             product_id = order.product.product_id
+            if product_stat:
+                deleted_quantity = (product_stat.deleted_quantity or 0) + order.quantity                
+                ProductStatistics.objects.filter(pk=product_stat.pk).update(deleted_quantity=deleted_quantity)
+                
+            else:
+                ProductStatistics.objects.create(date=today, product_id=product_id, deleted_quantity=order.quantity)
+            messages.success(request,f"Statistics Updated for product: {order.product.product_name}.")
             
             order.deleted_on = datetime.now()
             order.save()
+
+            today = datetime.now()
+            product_stat = ProductStatistics.objects.filter(date=today, product_id=product_id).first()
+
             
-            # Get the referer from the request headers
+            
             referer = request.META.get('HTTP_REFERER')
 
             return HttpResponseRedirect(referer or '/default-url/')

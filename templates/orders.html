@@ -1,6 +1,8 @@
 {% extends "base.html" %} {% block title %} Orders {% endblock %} {% block content %} {% load static %}
 
 
+</style>
+
 
 <nav>{% include "components/navbar.html" %}</nav>
 <div>{% include "components/sidebar.html" %}</div>
@@ -8,7 +10,8 @@
 <div class="d-flex" id="main">
 
  
-<div class=" container pt-3">
+<div class=" container">
+
   <hr />
   <div class="d-md-flex d-block pt-3 justify-content-between">
     {%include "components/search.html" %}
@@ -30,7 +33,8 @@
   </div>
 
   <div>{% include "components/filter.html" %}</div>
-
+  
+  {%include "components/pagination.html"  with data=orders %}
 
   <div class="row pt-3">
     <div class="col-12">
@@ -129,7 +133,6 @@
     </div>
   </div>
 
-  {%include "components/pagination.html"  with data=orders %}
 </div>
 
 

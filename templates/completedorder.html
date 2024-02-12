@@ -30,6 +30,7 @@
   </div>
 
   <div>{% include "components/filter.html" %}</div>
+  {%include "components/pagination.html"  with data=orders %}
 
 
   <div class="row pt-3">
@@ -130,7 +131,7 @@
     </div>
   </div>
 
-  {%include "components/pagination.html"  with data=orders %}
+  
 </div>
 
 

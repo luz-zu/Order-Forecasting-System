@@ -129,7 +129,7 @@ class ProductStatistics(models.Model):
     order_quantity = models.CharField(max_length=50, default='')
     completed_quantity = models.CharField(max_length=50, default='')
     cancelled_quantity = models.CharField(max_length=50, default='')
- 
+    deleted_quantity = models.CharField(max_length=50, default='')
     production_quantity = models.CharField(max_length=50, default='')
     deduction_quantity = models.CharField(max_length=50, default='')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)

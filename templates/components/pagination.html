@@ -41,9 +41,9 @@
     </span>
 </div> -->
 
-<div >
+<div class="py-3">
       <div class="d-md-flex d-block justify-content-between align-items-center">
-          <div class="pe-5 pt-3">
+          <div class="pe-md-5 pt-3 text-center">
               {% if data.has_previous %}
                   <a href="?page=1" class="text-white btns">&laquo; First</a>
               {% endif %}
@@ -51,18 +51,17 @@
                   <a href="?page={{ data.paginator.num_pages }}" class="text-white btns">Last &raquo;</a>
               {% endif %}
           </div>
-          <div class="pe-5 pt-3">
+          
+          <div class="pe-md-5 pt-3 text-center">
             <span class="current ">
                 Page {{ data.number }} of {{ data.paginator.num_pages }}.
             </span>
         </div>
-          <div class="d-flex align-items-center justify-content-between pt-3">
-              {% if data.has_previous %}
-                  <a href="?page={{ data.previous_page_number }}" class="text-white btns"><i class="fa-solid fa-chevron-left"></i></a>
-              {% endif %}
-              <div class="px-5 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center justify-content-center pt-3">
+              
+          
                 {% for i in data.paginator.page_range %}
-                <div class="px-1">
+                <div class="pe-1  ">
                     {% if data.number == i %}
                         <span class="current">{{ i }} </span>
                     {% elif i > data.number|add:"-4" and i < data.number|add:"4" %}
@@ -71,20 +70,10 @@
                 </div>
                     
                 {% endfor %}
-            </div>
-              {% if data.has_next %}
-                  <a href="?page={{ data.next_page_number }}" class="text-white btns"><i class="fa-solid fa-chevron-right"></i></a>
-              {% endif %}
+       
+            
           </div>
           
-          <!-- <div class="pe-5">
-              {% for i in data.paginator.page_range %}
-                  {% if data.number == i %}
-                      <span class="current">{{ i }} </span>
-                  {% elif i > data.number|add:"-4" and i < data.number|add:"4" %}
-                      <a href="?page={{ i }}" class="text-white btns">{{ i }}</a>
-                  {% endif %}
-              {% endfor %}
-          </div> -->
+       
       </div>
 </div>
