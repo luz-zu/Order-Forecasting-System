@@ -79,7 +79,10 @@
   
               <div class="mb-3">
                   <label for="category" class="col-form-label">Category:</label>
-                  <input type="text" class="form-control" name="category" id="category" required>
+                  <input type="text" class="form-control" name="category" id="category" >
+                  {% if errror_message %}
+                  <p>{{ error_message }}</p>
+                  {% endif%}
                 </div>
           </div>
           <div class="modal-footer">

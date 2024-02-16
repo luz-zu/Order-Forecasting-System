@@ -317,11 +317,17 @@
                   <th>Date</th>
                   {% if 'order_quantity' in selected_columns %}
                   <th>Order Quantity</th>
-                  {% elif 'completed_quantity' in selected_columns %}
+                  {% endif %}
+
+                  {% if 'completed_quantity' in selected_columns %}
                   <th>Completed Quantity</th>
-                  {% elif 'production_quantity' in selected_columns %}
+                  {% endif %}
+
+                  {% if 'production_quantity' in selected_columns %}
                   <th>Production Quantity</th>
-                  {% elif 'cancelled_quantity' in selected_columns %}
+                  {% endif %}
+
+                  {% if 'cancelled_quantity' in selected_columns %}
                   <th>Cancelled Quantity</th>
                   {% endif %}
               </tr>
@@ -330,11 +336,16 @@
                   <td>{{ entry.date|date:"M d, Y" }}</td>
                   {% if 'order_quantity' in selected_columns %}
                   <td>{{ entry.order_quantity }}</td>
-                  {% elif 'completed_quantity' in selected_columns %}
+                  {% endif %}
+                  {% if 'completed_quantity' in selected_columns %}
                   <td>{{ entry.completed_quantity }}</td>
-                  {% elif 'production_quantity' in selected_columns %}
+                  {% endif %}
+
+                  {% if 'production_quantity' in selected_columns %}
                   <td>{{ entry.production_quantity }}</td>
-                  {% elif 'cancelled_quantity' in selected_columns %}
+                  {% endif %}
+
+                  {% if 'cancelled_quantity' in selected_columns %}
                   <td>{{ entry.cancelled_quantity }}</td>
                   {% endif %}
               </tr>

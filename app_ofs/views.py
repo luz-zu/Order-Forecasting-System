@@ -160,94 +160,34 @@ def register(request):
     return render(request, 'register.html', {'form': form})
 
 @login_required
-def forecast(request):
-    current_user_id = request.user.company_id
-
-    query = "SELECT ordered_date, quantity FROM forecast_data"
-
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-        forecast_data = cursor.fetchall()
-
-    forecast_df = pd.DataFrame(forecast_data, columns=['ordered_date', 'quantity'])
-
-    try:
-        results = arima_sarimax_forecast(forecast_df)
-    except Exception as e:
-        results = {'sarimax_forecast': [], 'sarimax_confidence_intervals': {'lower quantity': [], 'upper quantity': []}}
-
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Pending' AND userid = %s", (current_user_id,))
-        pendingOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Ongoing' AND userid = %s", (current_user_id,))
-        ongoingOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE status = 'Completed' AND userid = %s", (current_user_id,))
-        completedOrders = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM order_info WHERE userid = %s", (current_user_id,))
-        totalOrders = cursor.fetchone()[0]
-
-    sarimax_chart = go.Figure()
-
-    sarimax_chart.add_trace(go.Scatter(x=forecast_df['ordered_date'], y=forecast_df['quantity'], mode='lines', name='Actual Quantity'))
-
-    last_date = forecast_df['ordered_date'].max()
-    sarimax_forecast_index = pd.date_range(start=last_date, periods=13, freq='M')[1:]
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index, y=results['sarimax_forecast'], mode='lines', name='SARIMAX Forecast'))
-
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['lower quantity'],
-                                       fill=None,
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Lower CI'))
-
-    sarimax_chart.add_trace(go.Scatter(x=sarimax_forecast_index,
-                                       y=results['sarimax_confidence_intervals']['upper quantity'],
-                                       fill='tonexty',
-                                       mode='lines',
-                                       line=dict(color='rgba(100, 100, 255, 0.3)'),
-                                       name='SARIMAX Upper CI'))
-
-    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-
-    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
-
-    context = {
-        'pendingOrder': pendingOrders,
-        'ongoingOrder': ongoingOrders,
-        'completedOrder': completedOrders,
-        'totalOrder': totalOrders,
-        'results': results,
-        'sarimax_chart_html': sarimax_chart_html,
-    }
-
-    return render(request, 'forecast.html', context)
-import datetime
-from django.db.models import F, Func, ExpressionWrapper, DateField
-from django.db.models.functions import TruncMonth
-from dateutil.relativedelta import relativedelta
-
-@login_required
-
-
-# old code
-# def user_dashboard(request):
-#     # Fetch the last 12 months and future 12 months forecast data if available
-#     current_date = datetime.now().date()
-#     current_month = current_date.replace(day=1)
-#     last_12_months = current_date - relativedelta(months=12)
-#     next_12_months = current_date + relativedelta(months=12)
+# def forecast(request):
+#     user = request.user.added_by
+#     products = Product.objects.filter(user_id =request.user.id)
  
-#     forecast_data_next_12_months_exists = ForecastData.objects.filter(ordered_date__gte=current_month, ordered_date__lte=next_12_months).order_by('ordered_date')
-#     forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=last_12_months, ordered_date__lte=next_12_months).order_by('ordered_date')
-#     actual_data = ForecastData.objects.filter(ordered_date__lt=current_date -relativedelta(months=1), ordered_date__gte=last_12_months).order_by('ordered_date')
+#     product_id = request.GET.get('product_dashboard')
+#     if product_id:
+#         product_id =product_id
+#     else:
+#         product_id=None
 
-#     if not forecast_data_next_12_months_exists.exists():
+    
+#     current_date = datetime.now().date()
+#     # current_date = date(2024,2,14)
+#     next_30_days = current_date + timedelta(days=30)
+
+#     if request.method == 'GET' and 'product_dashboard' in request.GET:
+#         product_id = request.GET.get('product_dashboard')
+    
+#     # Check if there's any missing data in the next 30 days (excluding the current day)
+#     missing_data_exists = any(not ForecastData.objects.filter(ordered_date=current_date + timedelta(days=i)).exists() for i in range(1, 31) if current_date + timedelta(days=i) != current_date)
+#     # if product_id:
+#     if missing_data_exists:
 #         # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
-#         data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
+#         data_queryset = ProductStatistics.objects.filter(product_id ='101').values('date', 'order_quantity')
+#         for data in data_queryset:
+#             date = data['date']
+#             order_quantity = data['order_quantity']
+#             print("Date:", date, "Order Quantity:", order_quantity)
 #         data = pd.DataFrame(data_queryset)
 #         data.columns = ["Month", "Sales"]
 #         data = data.dropna()
@@ -257,131 +197,71 @@ from dateutil.relativedelta import relativedelta
 #         results_df = pd.DataFrame()
 
 #         for method, values in results.items():
-#             if method == 'sarimax_forecast':
-#                 dates = list(values.index)
-#                 forecast_values = list(values.values)
-#                 results_df['Dates'] = dates
-#                 results_df['Forecast_Values'] = forecast_values
-#             elif method == 'sarimax_confidence_intervals':
-#                 upper_ci = list(values['upper Sales'])
-#                 lower_ci = list(values['lower Sales'])
-#                 results_df['Upper_CI'] = upper_ci
-#                 results_df['Lower_CI'] = lower_ci
-
-#         # Print the DataFrame to verify
-#         print(results_df)
-#         results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
-
-#         for index, row in results_df.iterrows():
-#             date = row['Dates']
-#             forecast_value = row['Forecast_Values']
-#             lower_ci = row['Lower_CI']
-#             upper_ci = row['Upper_CI']
+#             print(method)
+#             if method == 'forecast_dates':
+#                 forecast_date = list(values.values)
+#                 results_df['Dates'] = forecast_date
+                
+#             elif method == 'sarimax_forecast':
             
-
-#             # Check if data already exists for this date
-#             existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
-
-#             if existing_data.exists():
-#                 # Update existing data
-#                 existing_data.update(
-#                     forecasted_quantity=forecast_value,
-#                     lower_ci_sarimax=lower_ci,
-#                     upper_ci_sarimax=upper_ci
-#                 )
-#             else:
-#                 # Create new data
-#                 ForecastData.objects.create(
-#                     quantity=0,
-#                     ordered_date=date,
-#                     forecasted_quantity=forecast_value,
-#                     lower_ci_sarimax=lower_ci,
-#                     upper_ci_sarimax=upper_ci
-#                 )
-
-#     forecast_dates = [forecast.ordered_date.strftime("%b %Y") for forecast in forecast_data_queryset]
-#     forecast_quantity = [forecast.forecasted_quantity for forecast in forecast_data_queryset]
-#     upper_ci_sarimax = [forecast.upper_ci_sarimax for forecast in forecast_data_queryset]
-#     lower_ci_sarimax = [forecast.lower_ci_sarimax for forecast in forecast_data_queryset]
-#     actual_quantity = [actual.quantity for actual in actual_data]
-
-#     # Create SARIMAX chart
-#     sarimax_chart = go.Figure()
-
-#     # Plot actual data if available
-#     if actual_quantity:
-#         sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
-
-#     # Plot forecast data and confidence intervals
-#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
-#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
-#     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
-
-#     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
-
-#     # Convert SARIMAX chart to HTML
-#     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
-
-#     context = {
-#         'sarimax_chart_html': sarimax_chart_html,
-#     }
-
-#     return render(request, 'dashboard/dashboard.html', context)
-
-# correct code
-# def user_dashboard(request):
-#     # Fetch the last 12 months and future 12 months forecast data if available
-#     current_date = datetime.now().date()
-#     # current_date = datetime(2024, 5, 1).date()
-#     current_month = current_date.replace(day=1)
-#     last_12_months = current_date - relativedelta(months=12)
-#     next_12_months = current_date + relativedelta(months=12)
-    
-#     # Check if there's any missing data in the next 12 months (excluding the current month)
-#     missing_data_exists = any(not ForecastData.objects.filter(ordered_date=current_month + relativedelta(months=i)).exists() for i in range(1, 13) if current_month + relativedelta(months=i) != current_month)
-
-#     if missing_data_exists:
-#         # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
-#         data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
-#         data = pd.DataFrame(data_queryset)
-#         data.columns = ["Month", "Sales"]
-#         data = data.dropna()
-
-#         results = arima_sarimax_forecast(data)
-#         results_df = pd.DataFrame()
-
-#         for method, values in results.items():
-#             if method == 'sarimax_forecast':
-#                 dates = list(values.index)
+#                 # dates = list(values.index)
 #                 forecast_values = list(values.values)
-#                 results_df['Dates'] = dates
+#                 # results_df['Dates'] = dates
 #                 results_df['Forecast_Values'] = forecast_values
 #             elif method == 'sarimax_confidence_intervals':
+                
 #                 upper_ci = list(values['upper Sales'])
 #                 lower_ci = list(values['lower Sales'])
 #                 results_df['Upper_CI'] = upper_ci
 #                 results_df['Lower_CI'] = lower_ci
+#             elif method == 'arima_forecast':
+            
+#                 # dates = list(values.index)
+#                 forecast_values_arima = list(values.values)
+#                 results_df['Forecast_Values_Arima'] = forecast_values_arima
+#             elif method == 'arima_confidence_intervals':
+                
+#                 upper_ci_arima = list(values['upper Sales'])
+#                 lower_ci_arima= list(values['lower Sales'])
+#                 results_df['Upper_CI_arima'] = lower_ci_arima
+#                 results_df['Lower_CI_arima'] = lower_ci_arima
 
 #         # Print the DataFrame to verify
-#         print(results_df)
+#         # print(results_df['Dates'])
 #         results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
+#         results_df.iloc[:, 1:] = results_df.iloc[:, 1:].applymap(lambda x: int(round(float(x))))
+#         results_df['Forecast_Values_Arima'] = results_df['Forecast_Values_Arima'].astype(np.int64)
+#         results_df['Upper_CI_arima'] = results_df['Upper_CI_arima'].astype(np.int64)
+#         results_df['Lower_CI_arima'] = results_df['Lower_CI_arima'].astype(np.int64)
+#         results_df['Forecast_Values'] = results_df['Forecast_Values'].astype(np.int64)
+#         results_df['Upper_CI'] = results_df['Upper_CI'].astype(np.int64)
+#         results_df['Lower_CI'] = results_df['Lower_CI'].astype(np.int64)
+
+        
 
 #         for index, row in results_df.iterrows():
 #             date = row['Dates']
 #             forecast_value = row['Forecast_Values']
 #             lower_ci = row['Lower_CI']
 #             upper_ci = row['Upper_CI']
+#             forecast_value_arima = row['Forecast_Values_Arima']
+#             lower_ci_arima = row['Lower_CI_arima']
+#             upper_ci_arima = row['Upper_CI_arima']
 
 #             # Check if data already exists for this date
 #             existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
 
-#             # Do not update data for current month
-#             if existing_data.exists() and date.month != current_date.month:
+#             # Do not update data for current date
+#             if existing_data.exists() and date != current_date:
 #                 # Update existing data
 #                 existing_data.update(
 #                     forecasted_quantity=forecast_value,
 #                     lower_ci_sarimax=lower_ci,
-#                     upper_ci_sarimax=upper_ci
+#                     upper_ci_sarimax=upper_ci,
+#                     arima_forecasted_quantity = forecast_value_arima,
+#                     arima_upper_ci =upper_ci_arima,
+#                     arima_lower_ci = lower_ci_arima,
+
 #                 )
 #             elif not existing_data.exists():
 #                 # Create new data
@@ -390,22 +270,33 @@ from dateutil.relativedelta import relativedelta
 #                     ordered_date=date,
 #                     forecasted_quantity=forecast_value,
 #                     lower_ci_sarimax=lower_ci,
-#                     upper_ci_sarimax=upper_ci
+#                     upper_ci_sarimax=upper_ci,
+#                     arima_forecasted_quantity = forecast_value_arima,
+#                     arima_upper_ci =upper_ci_arima,
+#                     arima_lower_ci = lower_ci_arima,
 #                 )
 
 #     # Fetch updated forecast data queryset after potential updates
-#     forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=last_12_months, ordered_date__lte=next_12_months).order_by('ordered_date')
-#     actual_data = ForecastData.objects.filter(ordered_date__lt=current_date - relativedelta(months=1), ordered_date__gte=last_12_months).order_by('ordered_date')
+#     forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=current_date, ordered_date__lte=next_30_days).order_by('ordered_date')
+#     actual_data = ProductStatistics.objects.filter(date__gte=current_date - timedelta(days=30) , date__lte=current_date).order_by('date')
 
-#     actual_quantity = [actual.quantity for actual in actual_data]
 
-#     forecast_dates = [forecast.ordered_date.strftime("%b %Y") for forecast in forecast_data_queryset]
-#     forecast_quantity = [forecast.forecasted_quantity for forecast in forecast_data_queryset]
-#     upper_ci_sarimax = [forecast.upper_ci_sarimax for forecast in forecast_data_queryset]
-#     lower_ci_sarimax = [forecast.lower_ci_sarimax for forecast in forecast_data_queryset]
+#     forecast_dates = [forecast.ordered_date.strftime("%b %d, %Y") for forecast in forecast_data_queryset]
+#     forecast_quantity = [int(forecast.forecasted_quantity) for forecast in forecast_data_queryset]
+#     upper_ci_sarimax = [int(forecast.upper_ci_sarimax) for forecast in forecast_data_queryset]
+#     lower_ci_sarimax = [int(forecast.lower_ci_sarimax) for forecast in forecast_data_queryset]
+
+#     arima_forecast_quantity = [int(forecast.arima_forecasted_quantity) for forecast in forecast_data_queryset]
+#     arima_upper_ci_sarimax = [int(forecast.arima_upper_ci) for forecast in forecast_data_queryset]
+#     arima_lower_ci_sarimax = [int(forecast.arima_lower_ci) for forecast in forecast_data_queryset]
+
+
+#     actual_quantity = [actual.order_quantity for actual in actual_data]
+
 
 #     # Create SARIMAX chart
 #     sarimax_chart = go.Figure()
+#     arimax_chart =go.Figure()
 
 #     # Plot actual data if available
 #     if actual_quantity:
@@ -415,37 +306,256 @@ from dateutil.relativedelta import relativedelta
 #     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
 #     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
 #     sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
+    
+#     arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_lower_ci_sarimax, mode='lines', name='ARIMA Lower CI'))
+#     arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_upper_ci_sarimax, mode='lines', name='ARIMA Upper CI'))
+#     arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_forecast_quantity, mode='lines', name='ARIMA Forecast'))
 
 #     sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+#     arimax_chart.update_layout(title='ARIMAX Forecast with Confidence Intervals')
 
 #     # Convert SARIMAX chart to HTML
 #     sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+#     arimax_chart_html = arimax_chart.to_html(full_html=False)
+#     # else:
+#     #     arimax_chart_html =None
+#     #     sarimax_chart_html=None
 
-#     context = {
-#         'sarimax_chart_html': sarimax_chart_html,
+#     # Serialize chart data
+#     sarimax_chart_json = sarimax_chart.to_json()
+#     arimax_chart_json = arimax_chart.to_json()
+
+#     # Prepare data for JSON response
+#     json_data = {
+#         'sarimax_chart': sarimax_chart_json,
+#         'arimax_chart': arimax_chart_json,
+#         # You can include additional data here if needed
 #     }
 
-#     return render(request, 'dashboard/dashboard.html', context)
+#     # Return JSON response if needed
+#     if request.GET.get('format') == 'json':
+#         return JsonResponse(json_data)
+
+#     context = {
+#         'arimax_chart_html': arimax_chart_html,
+#         'sarimax_chart_html': sarimax_chart_html,
+#         'products':products,
+#         'json_data':json_data
+#     }
+
+#     return render(request, 'forecast.html', context)
+
+
+def forecast(request):
+    user = request.user.added_by
+    products = Product.objects.filter(user_id=request.user.id)
+ 
+    product_id = request.GET.get('product_dashboard')
+    
+    if product_id:
+        product_id = product_id
+    else:
+        product_id = None
+    
+    current_date = datetime.now().date()
+    next_30_days = current_date + timedelta(days=30)
+
+    if request.method == 'GET' and 'product_dashboard' in request.GET:
+        product_id = request.GET.get('product_dashboard')
+        
+    if product_id:
+    # Check if there's any missing data in the next 30 days (excluding the current day)
+        missing_data_exists = any(not ForecastData.objects.filter(product_id=product_id, ordered_date=current_date + timedelta(days=i)).exists() for i in range(1, 31) if current_date + timedelta(days=i) != current_date)
+        # if missing_data_exists:
+        print(missing_data_exists)
+        if missing_data_exists:
+            # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range for the selected product
+            data_queryset = ProductStatistics.objects.filter(product_id=product_id).values('date', 'order_quantity')
+            data = pd.DataFrame(data_queryset)
+            data.columns = ["Month", "Sales"]
+            data = data.dropna()
+
+            results = arima_sarimax_forecast(data)  # Implement your forecasting function
+            results_df = pd.DataFrame()
+
+            for method, values in results.items():
+                if method == 'forecast_dates':
+                    forecast_date = list(values.values)
+                    results_df['Dates'] = forecast_date
+                elif method == 'sarimax_forecast':
+                    forecast_values = list(values.values)
+                    results_df['Forecast_Values'] = forecast_values
+                elif method == 'sarimax_confidence_intervals':
+                    upper_ci = list(values['upper Sales'])
+                    lower_ci = list(values['lower Sales'])
+                    results_df['Upper_CI'] = upper_ci
+                    results_df['Lower_CI'] = lower_ci
+                elif method == 'arima_forecast':
+                    forecast_values_arima = list(values.values)
+                    results_df['Forecast_Values_Arima'] = forecast_values_arima
+                elif method == 'arima_confidence_intervals':
+                    upper_ci_arima = list(values['upper Sales'])
+                    lower_ci_arima = list(values['lower Sales'])
+                    results_df['Upper_CI_arima'] = lower_ci_arima
+                    results_df['Lower_CI_arima'] = lower_ci_arima
+
+            # Update or create forecast data for the next 30 days
+            for index, row in results_df.iterrows():
+                date = row['Dates']
+                forecast_value = row['Forecast_Values']
+                lower_ci = row['Lower_CI']
+                upper_ci = row['Upper_CI']
+                forecast_value_arima = row['Forecast_Values_Arima']
+                lower_ci_arima = row['Lower_CI_arima']
+                upper_ci_arima = row['Upper_CI_arima']
+
+                existing_data = ForecastData.objects.filter(product_id=product_id, ordered_date=date.strftime('%Y-%m-%d'))
+
+                if existing_data.exists() and date != current_date:
+                    existing_data.update(
+                        forecasted_quantity=forecast_value,
+                        lower_ci_sarimax=lower_ci,
+                        upper_ci_sarimax=upper_ci,
+                        arima_forecasted_quantity=forecast_value_arima,
+                        arima_upper_ci=upper_ci_arima,
+                        arima_lower_ci=lower_ci_arima,
+                    )
+                elif not existing_data.exists():
+                    ForecastData.objects.create(
+                        product_id=product_id,
+                        quantity=0,
+                        ordered_date=date,
+                        forecasted_quantity=forecast_value,
+                        lower_ci_sarimax=lower_ci,
+                        upper_ci_sarimax=upper_ci,
+                        arima_forecasted_quantity=forecast_value_arima,
+                        arima_upper_ci=upper_ci_arima,
+                        arima_lower_ci=lower_ci_arima,
+                    )
+
+        else:
+            return render(request, 'forecast.html')
+        # Fetch updated forecast data queryset after potential updates
+        forecast_data_queryset = ForecastData.objects.filter(product_id=product_id, ordered_date__gte=current_date, ordered_date__lte=next_30_days).order_by('ordered_date')
+        actual_data = ProductStatistics.objects.filter(product_id=product_id, date__gte=current_date - timedelta(days=30), date__lte=current_date).order_by('date')
+
+        forecast_dates = [forecast.ordered_date.strftime("%b %d, %Y") for forecast in forecast_data_queryset]
+        forecast_quantity = [int(forecast.forecasted_quantity) for forecast in forecast_data_queryset]
+        upper_ci_sarimax = [int(forecast.upper_ci_sarimax) for forecast in forecast_data_queryset]
+        lower_ci_sarimax = [int(forecast.lower_ci_sarimax) for forecast in forecast_data_queryset]
+
+        arima_forecast_quantity = [int(forecast.arima_forecasted_quantity) for forecast in forecast_data_queryset]
+        arima_upper_ci_sarimax = [int(forecast.arima_upper_ci) for forecast in forecast_data_queryset]
+        arima_lower_ci_sarimax = [int(forecast.arima_lower_ci) for forecast in forecast_data_queryset]
+
+        actual_quantity = [actual.order_quantity for actual in actual_data]
+
+        # Create SARIMAX chart
+        sarimax_chart = go.Figure()
+        arimax_chart = go.Figure()
+
+        # Plot actual data if available
+        if actual_quantity:
+            sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
+
+        # Plot forecast data and confidence intervals
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
+        
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_lower_ci_sarimax, mode='lines', name='ARIMA Lower CI'))
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_upper_ci_sarimax, mode='lines', name='ARIMA Upper CI'))
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_forecast_quantity, mode='lines', name='ARIMA Forecast'))
+
+        sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+        arimax_chart.update_layout(title='ARIMAX Forecast with Confidence Intervals')
+
+        # Convert SARIMAX chart to HTML
+        sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+        arimax_chart_html = arimax_chart.to_html(full_html=False)
+
+        # Serialize chart data
+        sarimax_chart_json = sarimax_chart.to_json()
+        arimax_chart_json = arimax_chart.to_json()
+
+        # Prepare data for JSON response
+        json_data = {
+            'sarimax_chart': sarimax_chart_json,
+            'arimax_chart': arimax_chart_json,
+            # You can include additional data here if needed
+        }
+
+        # Return JSON response if needed
+        if request.GET.get('format') == 'json':
+            return JsonResponse(json_data)
+    else:
+        arimax_chart_html =None
+        sarimax_chart_html=None
+        json_data=None
+
+    context = {
+        'arimax_chart_html': arimax_chart_html,
+        'sarimax_chart_html': sarimax_chart_html,
+        'products': products,
+        'json_data': json_data
+    }
+    
+
+    return render(request, 'forecast.html', context)
+
+
+import datetime
+from django.db.models import F, Func, ExpressionWrapper, DateField
+from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
+from django.urls import reverse
+
+@login_required
 
 
 def user_dashboard(request):
-    # Fetch the last 12 months and future 30 days forecast data if available
-    user = request.user.added_by
-    total_orders = Order.objects.filter(user=user,deleted_on__isnull=True).count()
-    pending_orders = Order.objects.filter(user=user, status='Pending',deleted_on__isnull=True).count()
-    ongoing_orders = Order.objects.filter(user=user, status='Ongoing',deleted_on__isnull=True).count()
-    completed_orders = Order.objects.filter(user=user, status='Completed',deleted_on__isnull=True).count()
+    user = request.user.id
+    company_id = request.user.company_id
+    total_orders = Order.objects.filter(company_id=company_id,deleted_on__isnull=True).count()
+    pending_orders = Order.objects.filter(company_id=company_id, status='Pending',deleted_on__isnull=True).count()
+    ongoing_orders = Order.objects.filter(company_id=company_id, status='Ongoing',deleted_on__isnull=True).count()
+    completed_orders = Order.objects.filter(company_id=company_id, status='Completed',deleted_on__isnull=True).count()
+    product_order_sums = ProductStatistics.objects.filter.values('product_id').annotate(order_sum=Sum('order_quantity'))
+    highest_order_product = max(product_order_sums, key=lambda x: x['order_sum'])
+    lowest_order_product = min(product_order_sums, key=lambda x: x['order_sum'])
 
+    product_production_sums = ProductStatistics.objects.values('product_id').annotate(production_sum=Sum('production_quantity'))
+
+    highest_production_product = max(product_production_sums, key=lambda x: x['production_sum'])
+    lowest_production_product = max(product_production_sums, key=lambda x: x['production_sum'])
+
+    highest_order_product_name = Product.objects.get(product_id=highest_order_product['product_id']).product_name
+    lowest_order_product_name = Product.objects.get(product_id=lowest_order_product['product_id']).product_name
+    highest_production_product_name = Product.objects.get(product_id=highest_production_product['product_id']).product_name
+    lowest_production_product_name = Product.objects.get(product_id=lowest_production_product['product_id']).product_name
+
+
+
+    categories = category.objects.filter(company_id=company_id)
+    # category_id = request.GET.get('category_dashboard')
+    # print('categories', category_id)
+    products = Product.objects.filter(company_id =company_id)
+ 
+    product_id = request.GET.get('product_dashboard')
+    if product_id:
+        product_id =product_id
+    else:
+        product_id=None
 
     
     current_date = datetime.now().date()
+    # current_date = date(2024,2,14)
     current_month = current_date.replace(day=1)
     next_30_days = current_date + timedelta(days=30)
 
     last_7_days = current_date - timedelta(days=7)
-    orders_per_day_last_7_days = Order.objects.filter(user=user, ordered_date__gte=last_7_days, ordered_date__lte=current_date).values('ordered_date').annotate(num_orders=Count('id')).order_by('ordered_date')
+    orders_per_day_last_7_days = Order.objects.filter(company_id=company_id , ordered_date__gte=last_7_days, ordered_date__lte=current_date).values('ordered_date').annotate(num_orders=Count('id')).order_by('ordered_date')
 
-    # Extract dates and corresponding number of orders
     order_dates = [order['ordered_date'].strftime("%b %d, %Y") for order in orders_per_day_last_7_days]
     num_orders_per_day = [order['num_orders'] for order in orders_per_day_last_7_days]
 
@@ -455,92 +565,154 @@ def user_dashboard(request):
 
     # Convert bar graph to HTML
     bar_graph_html = bar_graph.to_html(full_html=False)
+    if request.method == 'GET' and 'product_dashboard' in request.GET:
+        product_id = request.GET.get('product_dashboard')
     
     # Check if there's any missing data in the next 30 days (excluding the current day)
     missing_data_exists = any(not ForecastData.objects.filter(ordered_date=current_date + timedelta(days=i)).exists() for i in range(1, 31) if current_date + timedelta(days=i) != current_date)
+    if product_id:
+        if missing_data_exists:
+            # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
+            data_queryset = ProductStatistics.objects.filter(product_id ='101').values('date', 'order_quantity')
+            for data in data_queryset:
+                date = data['date']
+                order_quantity = data['order_quantity']
+                print("Date:", date, "Order Quantity:", order_quantity)
+            data = pd.DataFrame(data_queryset)
+            data.columns = ["Month", "Sales"]
+            data = data.dropna()
 
-    if missing_data_exists:
-        # Perform ARIMA or SARIMAX forecast if data doesn't exist in the given range
-        data_queryset = ForecastData.objects.all().values('ordered_date', 'quantity')
-        data = pd.DataFrame(data_queryset)
-        data.columns = ["Month", "Sales"]
-        data = data.dropna()
+            results = arima_sarimax_forecast(data)
+            print(results)
+            results_df = pd.DataFrame()
 
-        results = arima_sarimax_forecast(data)
-        results_df = pd.DataFrame()
+            for method, values in results.items():
+                print(method)
+                if method == 'forecast_dates':
+                    forecast_date = list(values.values)
+                    results_df['Dates'] = forecast_date
+                    
+                elif method == 'sarimax_forecast':
+                
+                    # dates = list(values.index)
+                    forecast_values = list(values.values)
+                    # results_df['Dates'] = dates
+                    results_df['Forecast_Values'] = forecast_values
+                elif method == 'sarimax_confidence_intervals':
+                    
+                    upper_ci = list(values['upper Sales'])
+                    lower_ci = list(values['lower Sales'])
+                    results_df['Upper_CI'] = upper_ci
+                    results_df['Lower_CI'] = lower_ci
+                elif method == 'arima_forecast':
+                
+                    # dates = list(values.index)
+                    forecast_values_arima = list(values.values)
+                    results_df['Forecast_Values_Arima'] = forecast_values_arima
+                elif method == 'arima_confidence_intervals':
+                    
+                    upper_ci_arima = list(values['upper Sales'])
+                    lower_ci_arima= list(values['lower Sales'])
+                    results_df['Upper_CI_arima'] = lower_ci_arima
+                    results_df['Lower_CI_arima'] = lower_ci_arima
 
-        for method, values in results.items():
-            if method == 'sarimax_forecast':
-                dates = list(values.index)
-                forecast_values = list(values.values)
-                results_df['Dates'] = dates
-                results_df['Forecast_Values'] = forecast_values
-            elif method == 'sarimax_confidence_intervals':
-                upper_ci = list(values['upper Sales'])
-                lower_ci = list(values['lower Sales'])
-                results_df['Upper_CI'] = upper_ci
-                results_df['Lower_CI'] = lower_ci
+            # Print the DataFrame to verify
+            # print(results_df['Dates'])
+            results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
+            results_df.iloc[:, 1:] = results_df.iloc[:, 1:].applymap(lambda x: int(round(float(x))))
+            results_df['Forecast_Values_Arima'] = results_df['Forecast_Values_Arima'].astype(np.int64)
+            results_df['Upper_CI_arima'] = results_df['Upper_CI_arima'].astype(np.int64)
+            results_df['Lower_CI_arima'] = results_df['Lower_CI_arima'].astype(np.int64)
+            results_df['Forecast_Values'] = results_df['Forecast_Values'].astype(np.int64)
+            results_df['Upper_CI'] = results_df['Upper_CI'].astype(np.int64)
+            results_df['Lower_CI'] = results_df['Lower_CI'].astype(np.int64)
 
-        # Print the DataFrame to verify
-        print(results_df)
-        results_df['Dates'] = pd.to_datetime(results_df['Dates']).dt.date
+            
 
-        for index, row in results_df.iterrows():
-            date = row['Dates']
-            forecast_value = row['Forecast_Values']
-            lower_ci = row['Lower_CI']
-            upper_ci = row['Upper_CI']
+            for index, row in results_df.iterrows():
+                date = row['Dates']
+                forecast_value = row['Forecast_Values']
+                lower_ci = row['Lower_CI']
+                upper_ci = row['Upper_CI']
+                forecast_value_arima = row['Forecast_Values_Arima']
+                lower_ci_arima = row['Lower_CI_arima']
+                upper_ci_arima = row['Upper_CI_arima']
 
-            # Check if data already exists for this date
-            existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
+                # Check if data already exists for this date
+                existing_data = ForecastData.objects.filter(ordered_date=date.strftime('%Y-%m-%d'))
 
-            # Do not update data for current date
-            if existing_data.exists() and date != current_date:
-                # Update existing data
-                existing_data.update(
-                    forecasted_quantity=forecast_value,
-                    lower_ci_sarimax=lower_ci,
-                    upper_ci_sarimax=upper_ci
-                )
-            elif not existing_data.exists():
-                # Create new data
-                ForecastData.objects.create(
-                    quantity=0,
-                    ordered_date=date,
-                    forecasted_quantity=forecast_value,
-                    lower_ci_sarimax=lower_ci,
-                    upper_ci_sarimax=upper_ci
-                )
+                # Do not update data for current date
+                if existing_data.exists() and date != current_date:
+                    # Update existing data
+                    existing_data.update(
+                        forecasted_quantity=forecast_value,
+                        lower_ci_sarimax=lower_ci,
+                        upper_ci_sarimax=upper_ci,
+                        arima_forecasted_quantity = forecast_value_arima,
+                        arima_upper_ci =upper_ci_arima,
+                        arima_lower_ci = lower_ci_arima,
 
-    # Fetch updated forecast data queryset after potential updates
-    forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=current_date, ordered_date__lte=next_30_days).order_by('ordered_date')
-    actual_data = ForecastData.objects.filter(ordered_date__lt=current_date, ordered_date__gte=current_date - relativedelta(months=1)).order_by('ordered_date')
+                    )
+                elif not existing_data.exists():
+                    # Create new data
+                    ForecastData.objects.create(
+                        quantity=0,
+                        ordered_date=date,
+                        forecasted_quantity=forecast_value,
+                        lower_ci_sarimax=lower_ci,
+                        upper_ci_sarimax=upper_ci,
+                        arima_forecasted_quantity = forecast_value_arima,
+                        arima_upper_ci =upper_ci_arima,
+                        arima_lower_ci = lower_ci_arima,
+                    )
 
-    actual_quantity = [actual.quantity for actual in actual_data]
+        # Fetch updated forecast data queryset after potential updates
+        forecast_data_queryset = ForecastData.objects.filter(ordered_date__gte=current_date, ordered_date__lte=next_30_days).order_by('ordered_date')
+        actual_data = ProductStatistics.objects.filter(date__gte=current_date - timedelta(days=30) , date__lte=current_date).order_by('date')
 
-    forecast_dates = [forecast.ordered_date.strftime("%b %d, %Y") for forecast in forecast_data_queryset]
-    forecast_quantity = [forecast.forecasted_quantity for forecast in forecast_data_queryset]
-    upper_ci_sarimax = [forecast.upper_ci_sarimax for forecast in forecast_data_queryset]
-    lower_ci_sarimax = [forecast.lower_ci_sarimax for forecast in forecast_data_queryset]
 
-    # Create SARIMAX chart
-    sarimax_chart = go.Figure()
+        forecast_dates = [forecast.ordered_date.strftime("%b %d, %Y") for forecast in forecast_data_queryset]
+        forecast_quantity = [int(forecast.forecasted_quantity) for forecast in forecast_data_queryset]
+        upper_ci_sarimax = [int(forecast.upper_ci_sarimax) for forecast in forecast_data_queryset]
+        lower_ci_sarimax = [int(forecast.lower_ci_sarimax) for forecast in forecast_data_queryset]
 
-    # Plot actual data if available
-    if actual_quantity:
-        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
+        arima_forecast_quantity = [int(forecast.arima_forecasted_quantity) for forecast in forecast_data_queryset]
+        arima_upper_ci_sarimax = [int(forecast.arima_upper_ci) for forecast in forecast_data_queryset]
+        arima_lower_ci_sarimax = [int(forecast.arima_lower_ci) for forecast in forecast_data_queryset]
 
-    # Plot forecast data and confidence intervals
-    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
-    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
-    sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
 
-    sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+        actual_quantity = [actual.order_quantity for actual in actual_data]
 
-    # Convert SARIMAX chart to HTML
-    sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+
+        # Create SARIMAX chart
+        sarimax_chart = go.Figure()
+        arimax_chart =go.Figure()
+
+        # Plot actual data if available
+        if actual_quantity:
+            sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=actual_quantity, mode='lines', name='Actual Sales'))
+
+        # Plot forecast data and confidence intervals
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=forecast_quantity, mode='lines', name='SARIMAX Forecast'))
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=upper_ci_sarimax, mode='lines', name='SARIMAX Upper CI'))
+        sarimax_chart.add_trace(go.Scatter(x=forecast_dates, y=lower_ci_sarimax, mode='lines', name='SARIMAX Lower CI'))
+        
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_lower_ci_sarimax, mode='lines', name='ARIMA Lower CI'))
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_upper_ci_sarimax, mode='lines', name='ARIMA Upper CI'))
+        arimax_chart.add_trace(go.Scatter(x=forecast_dates, y=arima_forecast_quantity, mode='lines', name='ARIMA Forecast'))
+
+        sarimax_chart.update_layout(title='SARIMAX Forecast with Confidence Intervals')
+        arimax_chart.update_layout(title='ARIMAX Forecast with Confidence Intervals')
+
+        # Convert SARIMAX chart to HTML
+        sarimax_chart_html = sarimax_chart.to_html(full_html=False)
+        arimax_chart_html = arimax_chart.to_html(full_html=False)
+    else:
+        arimax_chart_html =None
+        sarimax_chart_html=None
 
     context = {
+        'arimax_chart_html': arimax_chart_html,
         'sarimax_chart_html': sarimax_chart_html,
         'total_orders': total_orders,
         'pending_orders': pending_orders,
@@ -548,9 +720,16 @@ def user_dashboard(request):
         'completed_orders': completed_orders,
         'orders_per_day_last_7_days': orders_per_day_last_7_days,
         'bar_graph_html': bar_graph_html,
+        'categories':categories,
+        'products':products,
+        'highest_order_product': highest_order_product_name,
+        'highest_production_product': highest_production_product_name,
+        'lowest_order_product':lowest_order_product_name,
+        'lowest_production_product': lowest_production_product_name
     }
 
     return render(request, 'dashboard/dashboard.html', context)
+
 
 # @login_required
 def logout_view(request):
@@ -575,10 +754,11 @@ def addnewproduct(request):
 @login_required
 
 def inventory(request):
-    current_user = request.user.added_by
+    current_user = request.user.id
+    company_id = request.user.company_id
 
     # Filter products where deleted_on is NULL
-    categories_with_count = category.objects.filter(userid_id=current_user).annotate(
+    categories_with_count = category.objects.filter(company_id=company_id).annotate(
         total_products=Count('product_info', filter=Q(product_info__deleted_on__isnull=True))
     ).values('id', 'category', 'total_products')
 
@@ -613,7 +793,7 @@ def inventory(request):
 @login_required
 def get_products(request):
     if request.method == 'GET' and request.is_ajax():
-        category_id = request.GET.get('category') or request.GET.get('categorySelect_order_filter')
+        category_id = request.GET.get('category') or request.GET.get('categorySelect_order_filter') 
         if category_id:
             products = Product.objects.filter(category_id=category_id)
             product_data = [{'product_id': product.product_id, 'product_name': product.product_name} for product in products]
@@ -994,15 +1174,7 @@ def count_total_quantities(product_id):
         'percentage_order_production':percentage_order_production
     }
 
-def avg_prod_order_diff(product_id):
 
-    # Retrieve ProductStatistics instances for the selected product
-    product_stats = ProductStatistics.objects.filter(product_id=product_id)
-    int_order_quantity = 0
-
-    for col in product_stats:
-        int_order_quantity += int(col.order_quantity)
-    print("test",int_order_quantity)
 
 
 def productStatistics(request):
@@ -1025,7 +1197,7 @@ def productStatistics(request):
         # If start_date is after yesterday, generate statistics only for today
         if start_date > end_date:
             generate_statistics_for_date(current_user_id,date.today())
-
+        
         # Retrieve products filtered by category if provided in the request
         if 'category_id' in request.GET:
             category_id = request.GET.get('category_id')
@@ -1039,7 +1211,6 @@ def productStatistics(request):
         
         print(request.POST)
         if product_id:
-            avg_prod_order_diff(product_id)
             product = Product.objects.get(product_id=product_id) 
             product_name = product.product_name
             
@@ -1208,6 +1379,7 @@ def staff(request):
 def addStaff(request):
     if request.method == 'POST':
         current_user = request.user.id
+        company_id = request.user.company_id
 
         fname = request.POST.get('first_name', '')
         lname = request.POST.get('last_name', '')
@@ -1225,14 +1397,14 @@ def addStaff(request):
             # Create a new CustomUser (staff member)
             user = CustomUser.objects.create_user(
                 username=email,
-                company_id=current_user,
                 email=email,
                 password=password,
                 first_name=fname,
                 last_name=lname,
                 phone_number=phone,
                 userrole=role,
-                added_by=current_user
+                added_by=current_user,
+                company_id=company_id,
             )
 
             messages.success(request, 'Staff member added successfully!')
@@ -1341,13 +1513,12 @@ def reactivate_staff(request, staff_id):
 
 from .models import category, Product, InventoryDetails, InventoryDetailsDate, Order,CustomUser,ForecastData,ProductStatistics  
 
-
-
 @login_required
 
 def get_category(request):
     current_user_id = request.user.added_by
-    categories = category.objects.filter(userid=current_user_id)
+    company_id =request.user.company_id
+    categories = category.objects.filter(company_id=company_id)
     search_query = request.GET.get('q')
 
     if search_query:
@@ -1378,18 +1549,21 @@ def add_category(request):
         if form.is_valid():
             category_name = form.cleaned_data['category'].capitalize()
             current_user = request.user  # Assuming request.user is a CustomUser instance
-            if not category_name:
+            company_id =request.user.company_id
+            existing_category = category.objects.filter(category__iexact=category_name, company_id=company_id).first()
+
+            if  category_name == "":
                 messages.error(request, 'Category cannot be empty.')
-                return redirect('category')
+                # return redirect('category')
+                error_message = 'Category name cannot be empty.'
+                print(error_message)
 
-            # Check if a category with the lowercase name already exists
-            existing_category = category.objects.filter(category__iexact=category_name, userid=current_user).first()
 
-            if existing_category:
+            elif existing_category:
                 messages.error(request, 'Category already exists!')
             else:
                 try:
-                    category.objects.create(category=category_name, userid=current_user)
+                    category.objects.create(category=category_name, userid=current_user, company_id=company_id  )
                     messages.success(request, 'Category added successfully!')
                 except IntegrityError:
                     messages.error(request, 'An error occurred while adding the category.')
@@ -1402,7 +1576,7 @@ def add_category(request):
     else:
         form = CategoryForm()
 
-    return render(request, 'category.html', {'form': form})
+    return render(request, 'category.html', {'form': form}, {'error_message':error_message})
 
 @login_required
 def edit_category(request):
@@ -1412,13 +1586,14 @@ def edit_category(request):
             old_category_id = form.cleaned_data['category_id']
             old_category_name = form.cleaned_data['old_category_name'].capitalize()
             current_user_id = request.user.added_by
+            company_id = request.user.company_id
 
             if not old_category_name:
                 messages.error(request, 'Category cannot be empty.')
                 return redirect('category')
 
             try:
-                category_instance = category.objects.get(id=old_category_id, userid=current_user_id)
+                category_instance = category.objects.get(id=old_category_id, company_id=company_id)
                 
                 # Check if the new name is different
                 if old_category_name == category_instance.category:
@@ -1438,8 +1613,8 @@ def edit_category(request):
                 messages.error(request, 'Category not found!')
             except IntegrityError:
                 messages.error(request, 'Failed editing category!')
-            except ValidationError as e:
-                messages.error(request, e.message)
+            # except ValidationError as e:
+            #     messages.error(request, e.message)
 
             return redirect('category')
         else:
@@ -1453,8 +1628,8 @@ def edit_category(request):
 
 @login_required
 def get_categories_list(request):
-    current_user_id = request.user.added_by
-    categories_list = category.objects.filter(userid_id=current_user_id).values('id', 'category')
+    company_id = request.user.company_id
+    categories_list = category.objects.filter(company_id=company_id).values('id', 'category')
 
     return JsonResponse(list(categories_list), safe=False)
 
@@ -1472,9 +1647,10 @@ def paginate_data(data, page_number, items_per_page):
 
 @login_required
 def getProduct(request):
-    current_user = request.user.added_by
+    current_user = request.user.id
+    company_id = request.user.company_id
 
-    products = Product.objects.filter(user_id=current_user, deleted_on__isnull=True).order_by('-id')
+    products = Product.objects.filter(company_id=company_id, deleted_on__isnull=True).order_by('-id')
     categories = category.objects.filter(userid_id=current_user)
     search_query = request.GET.get('q')
 
@@ -1507,6 +1683,8 @@ def getProduct(request):
         }
 
     return render(request, 'products.html', context)
+
+
 @login_required
 def addProduct(request):
     if request.method == 'POST':
@@ -1514,17 +1692,18 @@ def addProduct(request):
         if form.is_valid():
             product_name = form.cleaned_data['product_name'].capitalize()
             product_description = form.cleaned_data['product_description']
-            current_user = request.user
+            current_user = request.user.id
+            company_id= request.user.company_id
 
             if not product_name:
                 messages.error(request, 'Product name cannot be blank')
                 return HttpResponseRedirect('/products')
 
-            existing_product = Product.objects.filter(
-                product_name=product_name,
-                user=current_user,
-                deleted_on__isnull=False
-            ).first()
+            # existing_product = Product.objects.filter(
+            #     product_name=product_name,
+            #     company_id=company_id,
+            #     deleted_on__isnull=False
+            # ).first()
 
             # if existing_product:
             #     existing_product.deleted_on = None
@@ -1533,14 +1712,14 @@ def addProduct(request):
             # else:
             existing_product = Product.objects.filter(
                 product_name=product_name,
-                user=current_user,
+                company_id=company_id,
                 deleted_on__isnull=True
             ).first()
 
             if existing_product:
                 messages.info(request, 'Product already exists!')
             else:
-                max_product_id = Product.objects.filter(user=current_user).aggregate(Max('product_id'))['product_id__max']
+                max_product_id = Product.objects.filter(company_id=company_id).aggregate(Max('product_id'))['product_id__max']
                 if max_product_id is not None:
             # Increment the product ID for a new product
                     form.instance.product_id = int(max_product_id) + 1
@@ -1550,13 +1729,15 @@ def addProduct(request):
                 category_name = request.POST.get('product_category')
                 
                 try:
-                    category_instance = category.objects.get(category=category_name, userid_id=current_user)
+                    category_instance = category.objects.get(category=category_name, company_id=company_id)
                     form.instance.category_id = category_instance.id
+                    form.instance.user_id = current_user
                 except category.DoesNotExist:
                     messages.error(request, 'Category not found!')
                     return HttpResponseRedirect('/products')
 
-                form.instance.user = current_user
+                
+                form.instance.company_id =company_id
                 form.cleaned_data['product_name'] = product_name
                 form.save()
 
@@ -1579,18 +1760,18 @@ def editProduct(request):
     
 
     try:
-        product_instance = get_object_or_404(Product, product_id=product_id, user=request.user)
+        product_instance = get_object_or_404(Product, product_id=product_id, company_id=request.user.company_id)
 
         if product_instance.deleted_on is not None:
             existing_product = Product.objects.exclude(id=product_instance.id).filter(
                 product_name=new_product_name,
-                user=request.user,
+                company_id=request.user.company_id,
                 deleted_on__isnull=True
             )
         else:
             existing_product = Product.objects.exclude(id=product_instance.id).filter(
                 product_name=new_product_name,
-                user=request.user
+                company_id=request.user.company_id
             )
 
         if existing_product.exists():
@@ -1627,12 +1808,12 @@ def delete_product(request, product_id):
             product_id=product_id,
             # status__in=['Ongoing', 'Pending'],
             deleted_on__isnull=True,
-            user=current_user
+            company_id=request.user.company_id
         ).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
         inventory_quantity = InventoryDetails.objects.filter(
             product_id=product_id,
-            user=current_user
+            company_id=request.user.company_id
         ).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
         if order_quantity > 0 or inventory_quantity > 0:
@@ -1659,54 +1840,15 @@ from datetime import datetime, timedelta
 
 @login_required
 
-# def getOrder(request):
-#     current_user = request.user
-
-#     orders = Order.objects.filter(
-#         user_id=current_user,
-#         status__in=['Ongoing', 'Pending'],
-#         deleted_on__isnull=True
-#     ).select_related('product').order_by('-id')
-
-#     for order in orders:
-#         delivery_date = order.delivery_date
-#         current_date = timezone.now().date()
-
-#         if delivery_date < current_date:
-#             order.status = 'Pending'
-#             order.save()
-#         elif delivery_date == current_date or delivery_date > current_date:
-#             order.status = 'Ongoing'
-#             order.save()
-
-#     search_query = request.GET.get('q')
-
-#     if search_query:
-#         orders = orders.filter(
-#             Q(order_id__icontains=search_query) |
-#             Q(quantity__icontains=search_query) |
-#             Q(ordered_date__icontains=search_query) |
-#             Q(delivery_date__icontains=search_query) |
-#             Q(completed_date__icontains=search_query) |
-#             Q(price__icontains=search_query) |
-#             Q(status__icontains=search_query) |
-#             Q(product__product_name__icontains=search_query)  # Search by product name (assuming it's a field in Product)
-#         )
-#     page = request.GET.get('page', 1)
-#     paginated_orders = paginate_data(orders, page, 20)
-#     context = {
-#         'orders': paginated_orders,
-#     }
-
-#     return render(request, 'orders.html', context)
 
 def getOrder(request):
-    categories = category.objects.filter(userid=request.user)
+    categories = category.objects.filter(company_id=request.user.company_id)
     current_user = request.user
+    company_id=request.user.company_id
 
     # Retrieve all orders for the current user with status 'Ongoing' or 'Pending' and not deleted
     orders = Order.objects.filter(
-        user_id=current_user,
+        company_id=company_id,
         status__in=['Ongoing', 'Pending'],
         deleted_on__isnull=True
     ).select_related('product').order_by('-id')
@@ -1766,10 +1908,11 @@ def get_products_by_category(request):
 @login_required
 
 def getCompletedOrder(request):
-    current_user_id = request.user.added_by
+    current_user_id = request.user.id
+    company_id = request.user.company_id
 
     # Retrieve completed orders using Django ORM
-    completed_orders = Order.objects.filter(user_id=current_user_id, status='Completed', deleted_on__isnull=True).select_related('product').order_by('-id')
+    completed_orders = Order.objects.filter(company_id=company_id, status='Completed', deleted_on__isnull=True).select_related('product').order_by('-id')
     
     search_query = request.GET.get('q')
 
@@ -1806,8 +1949,8 @@ def getCompletedOrder(request):
 
 def getCancelledOrder(request):
     current_user_id = request.user.added_by
-
-    cancelled_orders = Order.objects.filter(user_id=current_user_id, status='Cancelled').order_by('-id')
+    company_id = request.user.company_id
+    cancelled_orders = Order.objects.filter(company_id=company_id, status='Cancelled').order_by('-id')
     
     search_query = request.GET.get('q')
 
@@ -1892,9 +2035,10 @@ def order_filter(request):
         status = request.POST.get('status')
         category_id = request.POST.get('categorySelect_order_filter')
         product_id = request.POST.get('product')
+        print(from_date)
 
         filter_params = {
-            'user_id': request.user,
+            'company_id': request.user.company_id,
             'product__deleted_on__isnull': True,  # Exclude deleted products
         }
 
@@ -1918,10 +2062,10 @@ def order_filter(request):
             filter_params['product_id'] = product_id
 
         filtered_orders = Order.objects.filter(
-            Q(user_id=request.user),
+            Q(company_id=request.user.company_id),
             **filter_params
         )
-        categories = category.objects.filter(userid_id=request.user.id)
+        categories = category.objects.filter(company_id=request.user.company_id)
         print("categories",categories)
         products = []  # Initially, no products until a category is selected
 
@@ -1937,8 +2081,9 @@ def order_filter(request):
 @login_required
 def get_product_list(request):
     current_user_id = request.user.added_by
-    sql_query_product = "SELECT id, product_name, product_id FROM product_info where user_id = %s AND deleted_on IS NULL"
-    values = (current_user_id)
+    company_id=request.user.company_id
+    sql_query_product = "SELECT id, product_name, product_id FROM product_info where company_id = %s AND deleted_on IS NULL"
+    values = (company_id)
     product_list = []
     with connection.cursor() as cursor:
         cursor.execute(sql_query_product, values)
@@ -1951,7 +2096,7 @@ def get_product_list(request):
 def check_negative_values(fields):
     for field_name, value in fields.items():
         if value is not None and value < 1:
-            raise ValueError(f"{field_name.capitalize()} cannot be 0 or less than 0.")
+            raise ValueError(f"{field_name.capitalize()} cannot be 0 orless than 0.")
 
 
 from decimal import Decimal
@@ -1965,7 +2110,8 @@ def addOrder(request):
         ordered_date = request.POST['ordered_date']
         delivery_date = request.POST['delivery_date']
         status = request.POST['status']
-        current_user_id = request.user.added_by
+        current_user_id = request.user.id
+        company_id = request.user.company_id
         product_name_object = Product.objects.get(product_id=order_product_name)
         product_name = product_name_object.product_name
         previous_page = request.META.get('HTTP_REFERER')
@@ -1989,20 +2135,20 @@ def addOrder(request):
         try:
             inventory_entry = InventoryDetailsDate.objects.get(product__product_id=order_product_name,
                                                                date=ordered_date,
-                                                               user=current_user_id)
+                                                               company_id=company_id)
             price = inventory_entry.price
             total_price = Decimal(quantity) * Decimal(price)
             
         except InventoryDetailsDate.DoesNotExist:
             # If price for the specified date is not found, get the latest price for the product
             latest_price_entry = InventoryDetailsDate.objects.filter(product__product_id=order_product_name,
-                                                                      user=current_user_id).aggregate(Max('date'))
+                                                                      company_id=company_id).aggregate(Max('date'))
             latest_price_date = latest_price_entry['date__max']
 
             try:
                 latest_inventory_entry = InventoryDetailsDate.objects.get(product__product_id=order_product_name,
                                                                            date=latest_price_date,
-                                                                           user=current_user_id)
+                                                                           company_id=company_id)
                 price = latest_inventory_entry.price
                 # Calculate total_price
                 total_price = Decimal(quantity) * Decimal(price)
@@ -2014,7 +2160,7 @@ def addOrder(request):
                 total_price = 0
         latest_inventory_entry_quantity = InventoryDetailsDate.objects.filter(
             product__product_id=order_product_name,
-            user=current_user_id
+            company_id=company_id
         ).latest('date')
 
         available_quantity = Decimal(latest_inventory_entry_quantity.quantity)
@@ -2038,7 +2184,8 @@ def addOrder(request):
                 total_price=total_price,
                 delivery_date=delivery_date,
                 status=status,
-                user_id=current_user_id
+                user_id=current_user_id,
+                company_id=company_id
             )
             if status.lower() == 'completed':
                 order.completed_date = timezone.now().date()
@@ -2050,7 +2197,7 @@ def addOrder(request):
 
             inventory_quantity, created_quantity = InventoryDetailsDate.objects.get_or_create(product__product_id=order_product_name,
                                                                            date=timezone.now().date(),
-                                                                           user=current_user_id)
+                                                                           company_id=company_id)
             
             
             product_statistic_order_quantity, created = ProductStatistics.objects.get_or_create(product_id=order_product_name, date = ordered_date)
@@ -2071,6 +2218,8 @@ def addOrder(request):
                         else:
                             inventory_quantity.quantity = str(int(available_quantity)-int(order.quantity)) 
                             inventory_quantity.quantity_deducted = str(int(inventory_quantity.quantity_deducted) + int(order.quantity))
+                            inventory_quantity.user_id = current_user_id
+                            inventory_quantity.company_id = company_id
                             inventory_quantity.save()
 
 
@@ -2116,7 +2265,8 @@ def addOrder(request):
 
 def editOrder(request):
     request.session['referring_page'] = request.META.get('HTTP_REFERER', '/')
-    current_user_id = request.user.added_by
+    current_user_id = request.user.id
+    company_id = request.user.company_id
 
     if request.method == 'POST':
         old_order_id = request.POST.get('old_orderid', '')
@@ -2136,7 +2286,7 @@ def editOrder(request):
             return redirect(request.session['referring_page'])
 
         try:
-            order = Order.objects.get(order_id=old_order_id, user_id=current_user_id)
+            order = Order.objects.get(order_id=old_order_id, company_id=company_id)
         except Order.DoesNotExist:
             messages.error(request, 'Order not found.')
             return redirect(request.session['referring_page'])
@@ -2166,13 +2316,13 @@ def editOrder(request):
             # Fetch the latest date for the product in InventoryDetailsDate
             latest_date = InventoryDetailsDate.objects.filter(
                 product__product_id=order.product.product_id,
-                user=current_user_id
+                company_id=company_id
             ).aggregate(latest_date=Max('date'))['latest_date']
 
             # Fetch the quantity for the latest date
             latest_quantity = InventoryDetailsDate.objects.filter(
                 product__product_id=order.product.product_id,
-                user=current_user_id,
+                company_id=company_id,
                 date=latest_date
             ).values('quantity').first()
 
@@ -2210,13 +2360,13 @@ def editOrder(request):
                     # Find the latest date for the product in InventoryDetailsDate
                     latest_date = InventoryDetailsDate.objects.filter(
                         product__product_id=order.product.product_id,
-                        user=current_user_id
+                        company_id=company_id
                     ).aggregate(Max('date'))['date__max']
 
                     # Deduct the quantity from the latest date
                     InventoryDetailsDate.objects.filter(
                         product__product_id=order.product.product_id,
-                        user=current_user_id,
+                        company_id=company_id,
                         date=latest_date
                     ).update(
                         quantity_deducted=F('quantity_deducted') + Decimal(edit_quantity)
@@ -2225,7 +2375,7 @@ def editOrder(request):
                     # Update the quantity by subtracting total quantity deducted
                     InventoryDetailsDate.objects.filter(
                         product__product_id=order.product.product_id,
-                        user=current_user_id,
+                        company_id=company_id,
                         date=latest_date
                     ).update(
                         quantity=F('quantity') - Decimal(edit_quantity)
@@ -2308,11 +2458,12 @@ def editOrder(request):
 
 @login_required
 def delete_order(request, order_id):
-    current_user_id = request.user.added_by
+    current_user_id = request.user.id
+    company_id = request.user.company_id
 
     if request.method == 'POST':
         try:
-            order = Order.objects.get(order_id=order_id, user_id=current_user_id)
+            order = Order.objects.get(order_id=order_id, company_id=company_id)
             product_id = order.product.product_id
             if product_stat:
                 deleted_quantity = (product_stat.deleted_quantity or 0) + order.quantity                
@@ -2345,12 +2496,13 @@ def delete_order(request, order_id):
 @login_required
 def getProductCategory(request):
     category = request.GET.get('category')
-    current_user_id =  request.user.added_by
+    current_user_id =  request.user.id
+    company_id = request.user.company_id
 
     product_list = []
     with connection.cursor() as cursor:
         sql_query = "SELECT id, product_name, product_id FROM product_info WHERE userid =%s and deleted_on IS  NULL"
-        cursor.execute(sql_query, [current_user_id])
+        cursor.execute(sql_query, [company_id])
         products = cursor.fetchall()
         # print(products)
         for product in products:
@@ -2365,9 +2517,10 @@ from datetime import date
 
 def inventorylist(request, category_name):
     current_user_id = request.user
+    company_id = request.user.company_id
 
     # Retrieve the category instance
-    category_instance = get_object_or_404(category, category=category_name, userid_id=current_user_id)
+    category_instance = get_object_or_404(category, category=category_name, company_id=company_id)
 
     # Retrieve the products for the category
     if category_instance:
@@ -2376,13 +2529,13 @@ def inventorylist(request, category_name):
         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
 
     # Retrieve products using Django ORM
-    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+    products = Product.objects.filter(category_id=category_id, company_id=company_id, deleted_on__isnull=True).values('product_id', 'product_name')
     product_ids = [str(product['product_id']) for product in products]
 
     # Subquery to get the latest date for each product
     latest_dates_subquery = (
         InventoryDetailsDate.objects
-        .filter(product_id=OuterRef('product_id'), user=current_user_id)
+        .filter(product_id=OuterRef('product_id'), company_id=company_id)
         .order_by('-date')
         .values('date')[:1]
     )
@@ -2390,7 +2543,7 @@ def inventorylist(request, category_name):
     # Retrieve the latest quantity for each product on the latest date
     inventory_details = (
         InventoryDetailsDate.objects
-        .filter(product_id__in=product_ids, user=current_user_id)
+        .filter(product_id__in=product_ids, company_id=company_id)
         .annotate(latest_date=Subquery(latest_dates_subquery))
         .filter(date=F('latest_date'))
         .values('product_id', 'product__product_name', 'quantity')
@@ -2419,85 +2572,12 @@ def inventorylist(request, category_name):
 
 @login_required
 
-# def inventoryhistory(request, category_name):
-#     current_user_id = request.user.id
-
-#     # Retrieve category_id using Django ORM
-#     category_info = category.objects.filter(category=category_name, userid_id=current_user_id).first()
-
-#     if category_info:
-#         category_id = category_info.id
-#     else:
-#         return render(request, 'inventoryhistory.html', {'items': [], 'product': []})
-
-#     # Retrieve products using Django ORM
-#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
-#     product_ids = [str(product['product_id']) for product in products]
-
-#     # Check if there are details for today's date for each product, otherwise add the required data
-#     for product_id in product_ids:
-#         today_details = InventoryDetailsDate.objects.filter(
-#             product__product_id=product_id,
-#             user_id=current_user_id,
-#             date=date.today()
-#         ).first()
-
-#         if not today_details:
-#             # If details for today's date do not exist, get the latest available details
-#             latest_details = InventoryDetailsDate.objects.filter(
-#                 product__product_id=product_id,
-#                 user_id=current_user_id
-#             ).order_by('-date').first()
-
-#             if latest_details:
-#                 # If there are details available, create data for today using the latest available details
-#                 InventoryDetailsDate.objects.create(
-#                     user_id=current_user_id,
-#                     product_id=product_id,
-#                     quantity=latest_details.quantity,
-#                     quantity_added=0,
-#                     quantity_deducted=0,
-#                     price=latest_details.price,
-#                     date=date.today()
-#                 )
-#             else:
-#                 # If no details are available, create data with default values
-#                 InventoryDetailsDate.objects.create(
-#                     user_id=current_user_id,
-#                     product_id=product_id,
-#                     quantity=0,
-#                     quantity_added=0,
-#                     quantity_deducted=0,
-#                     price=0,
-#                     date=date.today()
-#                 )
-
-#     # Retrieve products and inventory details after adding the required data
-#     products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
-#     product_ids = [str(product['product_id']) for product in products]
-
-#     inventory_details = InventoryDetailsDate.objects.filter(
-#         product__product_id__in=product_ids,
-#         user_id=current_user_id
-#     ).order_by('-id')
-
-#     # Convert Django ORM QuerySet to list of dictionaries
-#     products_list = list(products)
-#     inventory_list = list(inventory_details)
-#     page = request.GET.get('page', 1)
-#     paginated_items = paginate_data(inventory_list, page, 20)
-
-#     context = {
-#         'items': paginated_items,
-#         'product': products_list
-#     }
-#     return render(request, 'inventoryhistory.html', context)
-
 def inventoryhistory(request, category_name):
     current_user_id = request.user.id
+    company_id = request.user.company_id
 
     # Retrieve category_id using Django ORM
-    category_info = category.objects.filter(category=category_name, userid_id=current_user_id).first()
+    category_info = category.objects.filter(category=category_name, company_id=company_id).first()
 
     if category_info:
         category_id = category_info.id
@@ -2506,7 +2586,7 @@ def inventoryhistory(request, category_name):
     category_name = category_info.category
 
     # Retrieve products using Django ORM
-    products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
+    products = Product.objects.filter(category_id=category_id, company_id=company_id, deleted_on__isnull=True).values('product_id', 'product_name')
     product_ids = [str(product['product_id']) for product in products]
 
     # Define the search query
@@ -2518,7 +2598,7 @@ def inventoryhistory(request, category_name):
     for product_id in product_ids:
         today_details = InventoryDetailsDate.objects.filter(
             product__product_id=product_id,
-            user_id=current_user_id,
+            company_id=company_id,
             date=date.today()
         ).first()
 
@@ -2526,13 +2606,14 @@ def inventoryhistory(request, category_name):
             # If details for today's date do not exist, get the latest available details
             latest_details = InventoryDetailsDate.objects.filter(
                 product__product_id=product_id,
-                user_id=current_user_id
+                company_id=company_id
             ).order_by('-date').first()
 
             if latest_details:
                 # If there are details available, create data for today using the latest available details
                 InventoryDetailsDate.objects.create(
                     user_id=current_user_id,
+                    company_id=company_id,
                     product_id=product_id,
                     quantity=latest_details.quantity,
                     quantity_added=0,
@@ -2544,6 +2625,7 @@ def inventoryhistory(request, category_name):
                 # If no details are available, create data with default values
                 InventoryDetailsDate.objects.create(
                     user_id=current_user_id,
+                    company_id = company_id,
                     product_id=product_id,
                     quantity=0,
                     quantity_added=0,
@@ -2552,13 +2634,10 @@ def inventoryhistory(request, category_name):
                     date=date.today()
                 )
 
-    # # Retrieve products and inventory details after adding the required data
-    # products = Product.objects.filter(category_id=category_id, user_id=current_user_id, deleted_on__isnull=True).values('product_id', 'product_name')
-    # product_ids = [str(product['product_id']) for product in products]
 
     inventory_details = InventoryDetailsDate.objects.filter(
         product__product_id__in=product_ids,
-        user_id=current_user_id
+        company_id=company_id
     ).order_by('-id')
 
     products_list = list(products)
@@ -2602,7 +2681,8 @@ def addItems(request):
         product = request.POST.get('getProductCategory', '')
         quantity = request.POST.get('quantity', '')
         price = request.POST.get('price', '')
-        current_user_id = request.user.added_by
+        current_user_id = request.user.id
+        company_id = request.user.company_id
         current_date = timezone.now().date()
 
         try:
@@ -2617,7 +2697,7 @@ def addItems(request):
 
         try:
             # Try to get existing entry in InventoryDetailsDate
-            existing_data_history = InventoryDetailsDate.objects.get(product_id=product, date=current_date, user_id=current_user_id)
+            existing_data_history = InventoryDetailsDate.objects.get(product_id=product, date=current_date, company_id=company_id)
             existing_data_history.quantity_added = str(int(existing_data_history.quantity_added) + int(quantity))
                                                 
             existing_data_history.quantity = str(int(existing_data_history.quantity) + int(quantity))
@@ -2627,7 +2707,7 @@ def addItems(request):
 
         except InventoryDetailsDate.DoesNotExist:
             # If no entry exists, insert a new row into inventorydetails_date
-            new_entry_history = InventoryDetailsDate(product_id=product, quantity=quantity, quantity_added = quantity, quantity_deducted='0', price=price, user_id=current_user_id, date=current_date)
+            new_entry_history = InventoryDetailsDate(product_id=product, quantity=quantity, quantity_added = quantity, quantity_deducted='0', price=price, user_id=current_user_id, date=current_date, company_id=company_id)
             new_entry_history.save()
             messages.success(request, "Inventory Added")
 
@@ -2635,7 +2715,8 @@ def addItems(request):
             # Handle the IntegrityError, log it, or display an error message
             messages.error(request, f"IntegrityError: {str(e)}")
             return redirect(request.session['referring_page'])
-        
+        # Error updating product statistics: Failed to insert expression "Col(product_statistics, app_ofs.ProductStatistics.production_quantity) + Value(1)" on app_ofs.ProductStatistics.production_quantity. F() expressions can only be used to update, not to insert.
+
         try:
             # Update product statistics
             ProductStatistics.objects.update_or_create(
@@ -2652,7 +2733,7 @@ def addItems(request):
 
         try:
             # Try to get existing entry in Order
-            existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=current_date, user_id=current_user_id)
+            existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=current_date, company_id=company_id)
             if existing_data_order_info.exists():
                 for order_info in existing_data_order_info:
                     order_info.price = price if price else order_info.price
@@ -2682,30 +2763,33 @@ def editItems(request):
         quantity_deducted = request.POST.get('edit_quantity_deducted', '')
         price = request.POST.get('edit_price_inventory', '')
         operation = request.POST.get('edit_operation', '')
-        current_user_id = request.user.added_by
+        current_user_id = request.user.id
+        company_id = request.user.company_id
         print("test", price)
     
         try:
             # Convert quantity_added and quantity_deducted to integers
             if quantity_added != "":
+                quantity_added = 0
                 quantity_added = int(quantity_added)
             if quantity_deducted != "":
+                quantity_deducted = 0
                 quantity_deducted = int(quantity_deducted)
         except ValueError:
             messages.error(request, "Invalid quantity value")
             return redirect(request.session['referring_page'])
         
-        try:
-            check_negative_values({
-                'Quantity Added': Decimal(quantity_added) if quantity_added != "" else 0,
-                'Quantity Deducted': Decimal(quantity_deducted) if quantity_deducted != "" else 0
-            })
-        except ValueError as ve:
-            messages.error(request, str(ve))
-            return redirect(request.session['referring_page'])
+        # try:
+        #     check_negative_values({
+        #         'Quantity Added': Decimal(quantity_added) if quantity_added != "" else 0,
+        #         'Quantity Deducted': Decimal(quantity_deducted) if quantity_deducted != "" else 0
+        #     })
+        # except ValueError as ve:
+        #     messages.error(request, str(ve))
+        #     return redirect(request.session['referring_page'])
 
         try:
-            existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, user_id=current_user_id)
+            existing_data_history = InventoryDetailsDate.objects.get(id=inventory_id, company_id=company_id)
             existing_quantity_added = int(existing_data_history.quantity_added)
             existing_quantity_deducted = int(existing_data_history.quantity_deducted)
             existing_data_quantity = int(existing_data_history.quantity)
@@ -2746,12 +2830,10 @@ def editItems(request):
                     # Deduct or add quantity for later dates
                     later_dates = InventoryDetailsDate.objects.filter(
                         product__product_id=existing_data_history.product_id,
-                        user_id=current_user_id,
+                        company_id=company_id,
                         date__gt=date
                     )
-
-                   
-                    
+    
 
                     for later_date in later_dates:
                         print(later_date.date)
@@ -2781,7 +2863,7 @@ def editItems(request):
                 print("Product", product)
             
             try:
-                existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, user_id=current_user_id,deleted_on__isnull=True)
+                existing_data_order_info = Order.objects.filter(product_id=product, ordered_date=date, company_id=company_id,deleted_on__isnull=True)
                 if existing_data_order_info.exists():
                     for order_info in existing_data_order_info:
                         order_info.price = price if price else order_info.price
@@ -2807,29 +2889,29 @@ def editItems(request):
     return render(request, 'inventoryhistory.html')
 
 
-@login_required
-def getItems(request):
-    current_user_id = request.user.added_by
-    sql_query_inventory = "SELECT * FROM inventory_details where user_id = %d"
-    values = (current_user_id)
-    with connection.cursor() as cursor:
-        cursor.execute(sql_query_inventory, values)
-        data = cursor.fetchall()
+# @login_required
+# def getItems(request):
+#     current_user_id = request.user.added_by
+#     sql_query_inventory = "SELECT * FROM inventory_details where user_id = %d"
+#     values = (current_user_id)
+#     with connection.cursor() as cursor:
+#         cursor.execute(sql_query_inventory, values)
+#         data = cursor.fetchall()
 
-    itemList = []
-    for row in data:
-        items = {
-            'category': row[1],
-            'product': row[2],
-            'quantity': row[3],
-            'price': row[4],
-        }
-        itemList.append(items)
+#     itemList = []
+#     for row in data:
+#         items = {
+#             'category': row[1],
+#             'product': row[2],
+#             'quantity': row[3],
+#             'price': row[4],
+#         }
+#         itemList.append(items)
 
-    context = {
-        'items': itemList,
-    }
-    return render(request, 'inventory.html', context)
+#     context = {
+#         'items': itemList,
+#     }
+#     return render(request, 'inventory.html', context)
 
 
 def forgetpassword(request):
@@ -3074,51 +3156,214 @@ from datetime import datetime
 #         'sarimax_confidence_intervals': sarimax_confidence_intervals,
 #     }
 
+# def arima_sarimax_forecast(data):
+#     # Convert 'Month' column to datetime format if not already
+#     data['Month'] = pd.to_datetime(data['Month'])
+
+#     # Set 'Month' as the index
+#     data.set_index('Month', inplace=True)
+#     data['Sales'] = pd.to_numeric(data['Sales'], errors='coerce')
+
+
+#     # Perform first-order differencing to make the time series stationary
+#     data_diff = data['Sales'].diff().dropna()
+
+#     # Perform seasonal differencing if necessary
+#     seasonal_diff = data_diff.diff(periods=30).dropna()
+
+#     # Use pmdarima to automatically choose the best parameters for ARIMA
+#     arima_model = pm.auto_arima(data['Sales'], seasonal=False, suppress_warnings=True, stepwise=True)
+#     arima_order = arima_model.get_params()['order']
+
+#     # Fit ARIMA model
+#     arima_result = ARIMA(data['Sales'], order=arima_order).fit()
+
+#     # Use pmdarima to automatically choose the best parameters for SARIMAX
+#     sarimax_model = pm.auto_arima(data['Sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12)
+#     sarimax_order = sarimax_model.get_params()['order']
+#     sarimax_seasonal_order = sarimax_model.get_params()['seasonal_order']
+
+#     # Fit SARIMAX model
+#     sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
+
+#     # Get the current date
+#     current_date = datetime.now()
+#     forecast_dates = pd.date_range(start=current_date + timedelta(days=1), periods=30)
+    
+
+
+#     # Forecast for the next 30 days from the current date
+#     forecast_steps = 30
+
+#     # # Forecast using ARIMA
+#     # arima_forecast = arima_result.get_forecast(steps=forecast_steps)
+#     # arima_confidence_intervals = arima_forecast.conf_int()
+
+#     # # Forecast using SARIMAX
+#     # sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
+#     # sarimax_confidence_intervals = sarimax_forecast.conf_int()
+
+#     # return {
+#     #     'forecast_dates':forecast_dates,
+#     #     'arima_forecast': arima_forecast.predicted_mean,
+#     #     'arima_confidence_intervals': arima_confidence_intervals,
+#     #     'sarimax_forecast': sarimax_forecast.predicted_mean,
+#     #     'sarimax_confidence_intervals': sarimax_confidence_intervals,
+#     # }
+
+#      # Forecast using ARIMA
+#     arima_forecast = arima_result.get_forecast(steps=forecast_steps)
+#     arima_forecast_values = arima_forecast.predicted_mean.astype(np.int64)
+#     arima_confidence_intervals = arima_forecast.conf_int().astype(np.int64)
+
+#     # Forecast using SARIMAX
+#     sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
+#     sarimax_forecast_values = sarimax_forecast.predicted_mean.astype(np.int64)
+#     sarimax_confidence_intervals = sarimax_forecast.conf_int().astype(np.int64)
+
+#     return {
+#         'forecast_dates': forecast_dates,
+#         'arima_forecast': arima_forecast_values,
+#         'arima_confidence_intervals': arima_confidence_intervals,
+#         'sarimax_forecast': sarimax_forecast_values,
+#         'sarimax_confidence_intervals': sarimax_confidence_intervals,
+#     }
+
+# def arima_sarimax_forecast(data):
+    # data['Month'] = pd.to_datetime(data['Month'])
+    # data.set_index('Month', inplace=True)
+    # data['Sales'] = pd.to_numeric(data['Sales'], errors='coerce')
+    # duplicate_labels = data.index[data.index.duplicated()]
+    # data = data[~data.index.duplicated()]
+    # data.dropna(inplace=True)
+    # data['Sales'].fillna(data['Sales'].mean(), inplace=True)
+
+
+
+
+
+#     adf_result = adfuller(data['Sales'])
+#     print("adf_result,", adf_result)
+
+#     if adf_result[1] > 0.05:
+#         data_diff = data['Sales'].diff().dropna()
+#         seasonal_diff = data_diff.diff(periods=1).dropna()
+#         data['Sales'] = seasonal_diff if seasonal_diff.std() < data_diff.std() else data_diff
+#         print(data['Sales'])
+#         data = data.dropna()
+
+
+
+#     arima_model = pm.auto_arima(data['Sales'], seasonal=False, suppress_warnings=True, stepwise=True)
+#     arima_order = arima_model.get_params()['order']
+#     arima_result = ARIMA(data['Sales'], order=arima_order).fit()
+
+#     sarimax_model = pm.auto_arima(data['Sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12)
+#     sarimax_order = sarimax_model.get_params()['order']
+#     sarimax_seasonal_order = sarimax_model.get_params()['seasonal_order']
+#     sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
+
+#     current_date = datetime.now()
+#     forecast_dates = pd.date_range(start=current_date + timedelta(days=1), periods=30)
+#     forecast_steps = 30
+
+#     arima_forecast = arima_result.get_forecast(steps=forecast_steps)
+#     arima_forecast_values = arima_forecast.predicted_mean.astype(np.int64)
+#     arima_confidence_intervals = arima_forecast.conf_int().astype(np.int64)
+
+#     sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
+#     sarimax_forecast_values = sarimax_forecast.predicted_mean.astype(np.int64)
+#     sarimax_confidence_intervals = sarimax_forecast.conf_int().astype(np.int64)
+
+#     return {
+#         'forecast_dates': forecast_dates,
+#         'arima_forecast': arima_forecast_values,
+#         'arima_confidence_intervals': arima_confidence_intervals,
+#         'sarimax_forecast': sarimax_forecast_values,
+#         'sarimax_confidence_intervals': sarimax_confidence_intervals,
+#     }
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 def arima_sarimax_forecast(data):
-    # Convert 'Month' column to datetime format if not already
+    # Data Preprocessing
     data['Month'] = pd.to_datetime(data['Month'])
-
-    # Set 'Month' as the index
     data.set_index('Month', inplace=True)
+    data['Sales'] = pd.to_numeric(data['Sales'], errors='coerce')
+    duplicate_labels = data.index[data.index.duplicated()]
+    data = data[~data.index.duplicated()]
+    data.dropna(inplace=True)
+    data['Sales'].fillna(data['Sales'].mean(), inplace=True)
 
-    # Perform first-order differencing to make the time series stationary
-    data_diff = data['Sales'].diff().dropna()
 
-    # Perform seasonal differencing if necessary
-    seasonal_diff = data_diff.diff(periods=30).dropna()
+    # # Seasonal Differencing
+    adf_result = adfuller(data['Sales'])
+    print("ADF test result:", adf_result)
+    # if adf_result[1] > 0.05:
+    #     data_diff = data['Sales'].diff().dropna()
+    #     seasonal_diff = data_diff.diff(periods=30).dropna()
+    #     data['Sales'] = seasonal_diff if seasonal_diff.std() < data_diff.std() else data_diff
+    #     # data.dropna(inplace=True)
+    #     print(data['Sales'])
+    # if adf_result[1] > 0.05:
+    #     seasonal_diff = data['Sales'].diff(periods=3).dropna()  # Adjust periods for weekly seasonality
+    #     data['Sales'] = seasonal_diff if seasonal_diff.std() < data['Sales'].std() else data['Sales']
 
-    # Use pmdarima to automatically choose the best parameters for ARIMA
-    arima_model = pm.auto_arima(data['Sales'], seasonal=False, suppress_warnings=True, stepwise=True)
-    arima_order = arima_model.get_params()['order']
+    # Model Selection
+    arima_model = pm.auto_arima(data['Sales'], seasonal=False, suppress_warnings=True, stepwise=True, 
+                                information_criterion='aic')  # Use AIC for ARIMA model selection
+    sarimax_model = pm.auto_arima(data['Sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12, 
+                                  information_criterion='aic')  # Use AIC for SARIMAX model selection
 
-    # Fit ARIMA model
-    arima_result = ARIMA(data['Sales'], order=arima_order).fit()
+    # Model Fitting
+    arima_result = ARIMA(data['Sales'], order=arima_model.get_params()['order']).fit()
+    sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_model.get_params()['order'],
+                                               seasonal_order=sarimax_model.get_params()['seasonal_order']).fit()
 
-    # Use pmdarima to automatically choose the best parameters for SARIMAX
-    sarimax_model = pm.auto_arima(data['Sales'], seasonal=True, suppress_warnings=True, stepwise=True, m=12)
-    sarimax_order = sarimax_model.get_params()['order']
-    sarimax_seasonal_order = sarimax_model.get_params()['seasonal_order']
+    # Forecasting
+    forecast_dates = pd.date_range(start=data.index[-1] + pd.Timedelta(days=1), periods=30)
+    arima_forecast = arima_result.get_forecast(steps=30)
+    sarimax_forecast = sarimax_result.get_forecast(steps=30)
 
-    # Fit SARIMAX model
-    sarimax_result = sm.tsa.statespace.SARIMAX(data['Sales'], order=sarimax_order, seasonal_order=sarimax_seasonal_order).fit()
+    # Convert forecasted values to integers
+    arima_forecast_values = arima_forecast.predicted_mean.round().astype(int)
+    sarimax_forecast_values = sarimax_forecast.predicted_mean.round().astype(int)
 
-    # Get the current date
-    current_date = datetime.now()
+    # Confidence Intervals
+    arima_confidence_intervals = arima_forecast.conf_int().astype(int)
+    sarimax_confidence_intervals = sarimax_forecast.conf_int().astype(int)
 
-    # Forecast for the next 30 days from the current date
-    forecast_steps = 30
+    arima_mae = mean_absolute_error(data['Sales'].tail(30), arima_forecast_values)
+    arima_mse = mean_squared_error(data['Sales'].tail(30), arima_forecast_values)
+    sarimax_mae = mean_absolute_error(data['Sales'].tail(30), sarimax_forecast_values)
+    sarimax_mse = mean_squared_error(data['Sales'].tail(30), sarimax_forecast_values)
 
-    # Forecast using ARIMA
-    arima_forecast = arima_result.get_forecast(steps=forecast_steps)
-    arima_confidence_intervals = arima_forecast.conf_int()
+    arima_percentage_errors = np.abs((data['Sales'].tail(30) - arima_forecast_values) / data['Sales'].tail(30)) * 100
+    sarimax_percentage_errors = np.abs((data['Sales'].tail(30) - sarimax_forecast_values) / data['Sales'].tail(30)) * 100
+    arima_mape = arima_percentage_errors.mean()
+    sarimax_mape = sarimax_percentage_errors.mean()
 
-    # Forecast using SARIMAX
-    sarimax_forecast = sarimax_result.get_forecast(steps=forecast_steps)
-    sarimax_confidence_intervals = sarimax_forecast.conf_int()
+    arima_mspe = (arima_percentage_errors ** 2).mean()
+    sarimax_mspe = (sarimax_percentage_errors ** 2).mean()
+
+    print("ARIMA Model:")
+    print("MAPE:", arima_mape)
+    print("MSPE:", arima_mspe)
+
+    print("\nSARIMAX Model:")
+    print("MAPE:", sarimax_mape)
+    print("MSPE:", sarimax_mspe)
+    print("ARIMA Model:")
+    print("MAE:", arima_mae)
+    print("MSE:", arima_mse)
+
+    print("\nSARIMAX Model:")
+    print("MAE:", sarimax_mae)
+    print("MSE:", sarimax_mse)
 
     return {
-        'arima_forecast': arima_forecast.predicted_mean,
+        'forecast_dates': forecast_dates,
+        'arima_forecast': arima_forecast_values,
         'arima_confidence_intervals': arima_confidence_intervals,
-        'sarimax_forecast': sarimax_forecast.predicted_mean,
+        'sarimax_forecast': sarimax_forecast_values,
         'sarimax_confidence_intervals': sarimax_confidence_intervals,
     }

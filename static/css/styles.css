@@ -89,7 +89,7 @@ body {
 .btns {
   background: #1d2951;
   text-align: center;
-  width: 100%;
+  /* width: 100%; */
   border: none;
   border-radius: 5px;
   padding: 0.5rem;

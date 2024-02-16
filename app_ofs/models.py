@@ -26,6 +26,7 @@ class CustomUser(AbstractUser):
 
 class category(models.Model):
     id = models.AutoField(primary_key=True)
+    company_id = models.CharField(max_length=50, unique=True, null=True)
     category_id = models.CharField(max_length=50, unique=True, null=True)
     category = models.CharField(max_length=50, null=True)
     updated_on = models.DateTimeField(auto_now=True)
@@ -41,6 +42,7 @@ class category(models.Model):
 
 class Product(models.Model):
     id = models.AutoField(primary_key=True)
+    company_id = models.BigIntegerField(null=True, blank=True)
     product_id = models.CharField(max_length=50, unique=True, null=True)
     product_name = models.CharField(max_length=50, null=True)
     product_description = models.CharField(max_length=200, null=True)
@@ -64,6 +66,7 @@ class Product(models.Model):
    
 class InventoryDetailsDate(models.Model):
     date = models.DateField()
+    company_id = models.BigIntegerField(null=True, blank=True)
     quantity = models.CharField(max_length=100)
     quantity_added = models.CharField(max_length =50)
     quantity_deducted = models.CharField(max_length =50)
@@ -82,6 +85,7 @@ class InventoryDetailsDate(models.Model):
 class InventoryDetails(models.Model):
     id = models.AutoField(primary_key=True) 
     quantity = models.CharField(max_length=50)
+    company_id = models.BigIntegerField(null=True, blank=True)
     price = models.CharField(max_length=50)
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, db_column='product_id', related_name='inventorydetails', to_field='product_id')
     user = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING)
@@ -95,6 +99,7 @@ class InventoryDetails(models.Model):
 
 class Order(models.Model):
     order_id = models.CharField(max_length=50, unique=True, null=True)
+    company_id = models.BigIntegerField(null=True, blank=True)
     quantity = models.CharField(max_length=50, null=True)
     ordered_date = models.DateField(null=True)
     delivery_date = models.DateField(null=True)
@@ -116,15 +121,20 @@ class Order(models.Model):
 class ForecastData(models.Model):
     product_id = models.IntegerField(default=101)
     # user_id = models.IntegerField(default=39)
+    company_id = models.BigIntegerField(null=True, blank=True)
     forecasted_quantity =  models.CharField(max_length=500, null=True)
     upper_ci_sarimax =  models.CharField(max_length=500, null=True)
     lower_ci_sarimax =  models.CharField(max_length=500, null=True)
+    arima_forecasted_quantity =  models.CharField(max_length=500, null=True)
+    arima_upper_ci =  models.CharField(max_length=500, null=True)
+    arima_lower_ci =  models.CharField(max_length=500, null=True)
     quantity = models.IntegerField()
     ordered_date = models.DateField()
     class Meta:
         db_table = 'forecast_data'
 
 class ProductStatistics(models.Model):
+    # company_id = models.BigIntegerField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, db_column='product_id', related_name='product_statistics', to_field='product_id')
     order_quantity = models.CharField(max_length=50, default='')
     completed_quantity = models.CharField(max_length=50, default='')

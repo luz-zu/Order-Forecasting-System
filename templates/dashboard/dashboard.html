@@ -61,13 +61,11 @@
       <div class="col-lg-6 col-12">
         <div class="card">
           <div class="card-body">
-            {% if topProductData.product_name %}
-              <h3>Top Product Order in Last 7 Days</h3>
-              <p>Product Name: {{ topProductData.product_name }}</p>
-              <p>Total Quantity: {{ topProductData.total_quantity }}</p>
-            {% else %}
-              <p>No orders in the last 7 days.</p>
-            {% endif %}
+            <p>Highest Ordered Product Name : {{ highest_order_product }}</p>
+            <p>Lowest Ordered Product Name : {{ lowest_order_product }}</p>
+            <p>Highest Production Product Name : {{ highest_production_product }}</p>
+            <p>Lowest Production Product Name : {{ lowest_production_product }}</p>
+      
             <div>
               <div>
                 <!-- {{ monthlyChartDiv|safe }} -->
@@ -84,6 +82,7 @@
   
       <div class="col-lg-6 col-12 pt-lg-0 pt-3">
         <div class="card">
+          
           {{ bar_graph_html | safe }}
         </div>
         
@@ -95,14 +94,31 @@
       <div class="card">
           <div class="card-body">
             <div class="card-title fs-5">Daily Prediction</div>
-            <div>{{ sarimax_chart_html|safe }}</div>
-            <form method="get" action="{% url 'dashboard' %}">
-              <label for="forecast_steps">Number of Forecast Steps:</label>
-              <input type="number" name="forecast_steps" value="6" min="1" max="100">
-              <input type="submit" value="Update Forecast">
-          </form>
-          </div>
-        </div>
+            
+              <form method="GET" id="filter-form" action="{% url 'dashboard' %}">
+                <div class="d-flex">
+                <div class="py-3">
+   
+                <select name="product" id="product_dashboard" class="form-control pe-2">
+                    <option value="" >Select Product</option>
+                    {% for product in products %}
+                        <option value="{{ product.product_id }}" >{{ product.product_name }}</option>
+                    {% endfor %}
+                </select>
+                </div>
+              
+                  
+
+                </div>
+                
+                <button type="submit" class="btns">Apply</button>
+            </form>
+            
+                <div>{{ sarimax_chart_html|safe }}</div>
+                <div>{{ arimax_chart_html|safe }}</div>
+    
+    </div>
+  </div>
     </div>
 
     
@@ -112,6 +128,69 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.getElementById("category_dashboard").addEventListener("change", function() {
+    var categoryId = this.value;
+    if (categoryId) {
+        console.log(categoryId)
+        fetchProducts(categoryId);
+    } else {
+        resetProductSelect();
+    }
+});
+
+function fetchProducts(categoryId) {
+    fetch("/update_product_dropdown/?category=" + categoryId)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Response data:", data); // Log the response data
+            var productSelect = document.getElementById("product_dashboard");
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            // Ensure data is an array before using forEach
+            if (Array.isArray(data)) {
+                data.forEach(product => {
+                    var option = document.createElement("option");
+                    option.value = product.product_id;
+                    option.text = product.product_name;
+                    productSelect.appendChild(option);
+                });
+            } else {
+                console.error("Data is not an array:", data);
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching products:", error);
+            // Handle the error gracefully, such as displaying an error message to the user
+        });
+}
+
+function resetProductSelect() {
+    var productSelect = document.getElementById("productSelect");
+    productSelect.innerHTML = '<option value="">Select Product</option>';
+}
+
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Add event listener to the dropdown
+//     document.getElementById('category_dashboard').addEventListener('change', function() {
+//         // Retrieve the selected option
+//         var selectedOption = this.options[this.selectedIndex];
+        
+//         // Check if an option is selected
+//         if (selectedOption) {
+//             // Get the value (category ID or name)
+//             var selectedValue = selectedOption.value;
+            
+//             // Print the selected value (you can replace this with any action you want)
+//             console.log('Selected Category:', selectedValue);
+//         }
+//     });
+// });
+
 
 var xyValues = [
   {x:50, y:7},
@@ -146,52 +225,6 @@ new Chart("myChart", {
 });
 
 
-function initializeTopProductChart(labels, data) {
-          var ctx = document.getElementById('topProductChart').getContext('2d');
-          var topProductChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Total Quantity',
-                data: data,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 2,
-                fill: false
-              }]
-            },
-            options: {
-              scales: {
-                x: {
-                  type: 'time',
-                  time: {
-                    unit: 'day',
-                    displayFormats: {
-                      day: 'MMM D'
-                    }
-                  }
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: 'Total Quantity'
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        // Example usage when the DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-          // Replace these with actual data
-          var labels = ["2024-02-01", "2024-02-02", "2024-02-03"];
-          var data = [10, 15, 8];
-
-          // Call the function with your data
-          initializeTopProductChart(labels, data);
-        });
 
 
 </script>

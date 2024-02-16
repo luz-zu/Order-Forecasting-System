@@ -1,26 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SARIMAX Forecast</title>
-    <!-- Include Plotly.js for interactive charts -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body>
-    <h1>SARIMAX Forecast</h1>
+{%extends "base.html" %} {% block title %} Dashboard {% endblock %} 
+{% block content %} {% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}" />
 
-    <div id="sarimax-chart"></div>
+<nav>{%include "components/navbar.html" %}</nav>
+<div>{%include "components/sidebar.html" %}</div>
+<div>
+  <div id="messages" style="display: none">
+    {% for msg in messages %}
+    <div class="alert alert-success" role="alert">{{ msg }}</div>
+    {% endfor %}
+  </div>
 
-    <script>
-    var sarimaxChartHtml = "{{ sarimax_chart_html|safe }}";
+  <div class="d-flex" id="main">
+    <div class="container pt-3">
+      <div class="text-blue fs-3">Dashboard</div>
+      <hr />
 
-    if ('sarimax_forecast' in results && 'sarimax_confidence_intervals' in results) {
-    document.getElementById('sarimax-chart').innerHTML = sarimaxChartHtml;
-} else {
-    document.getElementById('sarimax-chart').innerHTML = "<p>Error: Unable to generate forecast.</p>";
-}
-    </script>
-</body>
-</html>
+      <div class="row pt-5">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-title fs-5">Daily Prediction</div>
+
+            <form method="GET" id="filter-form">
+                <div class="d-flex">
+                    <div class="py-3">
+                        <select name="product" id="product_dashboard" class="form-control pe-2">
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                            <option value="{{ product.product_id }}">{{ product.product_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="button" id="apply-filter-btn" class="btns">Apply</button>
+            </form>
+            <div id="charts-container">
+                <div id="sarimax-chart-container">{{ sarimax_chart_html|safe }}</div>
+                <div id="arimax-chart-container">{{ arimax_chart_html|safe }}</div>
+            </div>
+
+            <!-- <div>{{ sarimax_chart_html|safe }}</div>
+            <div>{{ arimax_chart_html|safe }}</div> -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    // Function to update the forecast charts
+    function updateForecastCharts(sarimaxChartHtml, arimaxChartHtml) {
+        $('#sarimax-chart-container').html(sarimaxChartHtml);
+        $('#arimax-chart-container').html(arimaxChartHtml);
+    }
+
+    // Event listener for Apply button click
+    $('#apply-filter-btn').click(function() {
+        var product_id = $('#product_dashboard').val();
+        console.log(product_id)
+        
+        // Make AJAX request to fetch updated forecast data
+        $.ajax({
+            url: '{% url "forecast" %}',
+            type: 'GET',
+            data: {
+                product_dashboard: product_id,
+                format: 'json'  // Add format=json to the request
+            },
+            beforeSend: function() {
+                // Show loading spinner or message
+                $('#charts-container').html('<div>Loading...</div>');
+            },
+            success: function(response) {
+                // Update the forecast charts with the new data
+                updateForecastCharts(response.sarimax_chart_html, response.arimax_chart_html);
+            },
+            error: function(xhr, status, error) {
+                // Handle errors
+                console.error(xhr.responseText);
+            }
+        });
+    });
+});         
+</script>
+
+{% load static %} {% endblock %}
